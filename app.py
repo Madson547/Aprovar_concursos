@@ -838,6 +838,100 @@ def _mostrar_senha():
         st.rerun()
 
 
+# ======================================================================= BIBLIOTECA (só admin)
+CATEGORIAS_BIB = ["CFS PMMS", "PCMS (Polícia Civil)", "BMMS (Bombeiros)", "CFC PMMS", "Outros"]
+TIPOS_BIB = ["pdf", "docx", "doc", "pptx", "xlsx", "txt", "jpg", "jpeg", "png", "zip"]
+LIMITE_MB = 450  # o plano gratuito do Neon tem 0,5 GB no total
+
+
+@st.cache_resource(show_spinner=False)
+def _garante_biblioteca() -> bool:
+    db.executar(
+        """CREATE TABLE IF NOT EXISTS material (
+               id          SERIAL PRIMARY KEY,
+               categoria   TEXT NOT NULL,
+               nome        TEXT NOT NULL,
+               mime        TEXT,
+               tamanho     INT  NOT NULL,
+               observacao  TEXT,
+               dados       BYTEA NOT NULL,
+               enviado_por INT REFERENCES usuario(id),
+               criado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+               UNIQUE (categoria, nome, tamanho))""")
+    return True
+
+
+def _mb(b) -> str:
+    return f"{(b or 0) / 1048576:.1f} MB"
+
+
+def tela_biblioteca(usuario: dict):
+    st.header("Biblioteca de materiais")
+    st.caption("Área exclusiva do administrador para guardar o material de estudo dos próximos concursos. "
+               "Nada daqui aparece para revisores ou alunos.")
+    _garante_biblioteca()
+    usado = db.um("SELECT COALESCE(SUM(tamanho), 0) AS t, COUNT(*) AS n FROM material")
+    st.progress(min(usado["t"] / (LIMITE_MB * 1048576), 1.0),
+                text=f"{usado['n']} arquivos · {_mb(usado['t'])} usados de ~{LIMITE_MB} MB livres no banco")
+
+    with st.form("bib_envio", clear_on_submit=True):
+        c1, c2 = st.columns([1, 1.4])
+        categoria = c1.selectbox("Para qual concurso", CATEGORIAS_BIB, key="bib_cat")
+        obs = c2.text_input("Observação (opcional)", key="bib_obs", placeholder="ex.: versão antiga, reconferir no Planalto")
+        arquivos = st.file_uploader("Arquivos", type=TIPOS_BIB, accept_multiple_files=True, key="bib_arq")
+        enviar = st.form_submit_button("Guardar na biblioteca", type="primary")
+    if enviar:
+        if not arquivos:
+            st.warning("Escolha pelo menos um arquivo.")
+        else:
+            novos, repetidos = 0, 0
+            for a in arquivos:
+                dados = a.getvalue()
+                if usado["t"] + len(dados) > LIMITE_MB * 1048576:
+                    st.error(f"Sem espaço para {a.name}. Apague arquivos antigos ou fale com o suporte do banco.")
+                    break
+                existe = db.um("SELECT 1 FROM material WHERE categoria=%s AND nome=%s AND tamanho=%s",
+                               (categoria, a.name, len(dados)))
+                if existe:
+                    repetidos += 1
+                    continue
+                db.executar("""INSERT INTO material (categoria, nome, mime, tamanho, observacao, dados, enviado_por)
+                               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                            (categoria, a.name, a.type, len(dados), obs or None, dados, usuario["id"]))
+                usado["t"] += len(dados)
+                novos += 1
+            if novos:
+                st.success(f"{novos} arquivo(s) guardado(s) em {categoria}.")
+            if repetidos:
+                st.info(f"{repetidos} arquivo(s) já estavam na biblioteca e foram ignorados.")
+
+    itens = db.consultar("""SELECT id, categoria, nome, tamanho, observacao, criado_em
+                            FROM material ORDER BY categoria, nome""")
+    if not itens:
+        st.info("A biblioteca ainda está vazia.")
+        return
+    st.subheader("Arquivos guardados")
+    filtro = st.selectbox("Concurso", ["Todos"] + sorted({i["categoria"] for i in itens}), key="bib_filtro")
+    vis = [i for i in itens if filtro == "Todos" or i["categoria"] == filtro]
+    st.dataframe(pd.DataFrame([{"Concurso": i["categoria"], "Arquivo": i["nome"], "Tamanho": _mb(i["tamanho"]),
+                                "Observação": i["observacao"] or "", "Guardado em": i["criado_em"].strftime("%d/%m/%Y")}
+                               for i in vis]), hide_index=True, width="stretch")
+
+    rotulos = {f"{i['nome']} ({i['categoria']})": i["id"] for i in vis}
+    escolhido = st.selectbox("Escolha um arquivo para baixar ou apagar", list(rotulos), index=None, key="bib_sel")
+    if escolhido:
+        mid = rotulos[escolhido]
+        c1, c2 = st.columns(2)
+        reg = db.um("SELECT nome, mime, dados FROM material WHERE id = %s", (mid,))
+        c1.download_button("Baixar", data=bytes(reg["dados"]), file_name=reg["nome"],
+                           mime=reg["mime"] or "application/octet-stream", width="stretch", key=f"bib_dl_{mid}")
+        if c2.toggle("Quero apagar este arquivo", key=f"bib_conf_{mid}"):
+            if c2.button("Apagar definitivamente", key=f"bib_del_{mid}", width="stretch"):
+                db.executar("DELETE FROM material WHERE id = %s", (mid,))
+                st.session_state.pop("bib_sel", None)
+                st.rerun()
+
+
 # ======================================================================= MINHA CONTA
 def tela_conta(usuario: dict):
     st.header("Minha conta")
@@ -885,6 +979,7 @@ if usuario["perfil"] in ("admin", "revisor"):
     TELAS["Revisão da equipe"] = tela_revisao
 if usuario["perfil"] == "admin":
     TELAS["Usuários"] = tela_usuarios
+    TELAS["Biblioteca"] = tela_biblioteca
 TELAS["Minha conta"] = tela_conta
 
 with st.sidebar:
