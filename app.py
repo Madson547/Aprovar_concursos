@@ -413,11 +413,14 @@ def _pareceres(qid: int) -> list[dict]:
     )
 
 
+POR_PAGINA = [1, 5, 10]
+
+
 def tela_questoes(usuario: dict):
     st.header("Resolver questões")
     uid, perfil = usuario["id"], usuario["perfil"]
 
-    c1, c2, c3 = st.columns([2, 1.3, 1.3])
+    c1, c2, c3, c4 = st.columns([2, 1.3, 1.3, 0.9])
     incluir = True
     if perfil != "aluno":
         incluir = st.toggle("Incluir questões ainda em revisão", value=True, key="f_rev",
@@ -428,11 +431,12 @@ def tela_questoes(usuario: dict):
     assunto_id = opcoes.get(c1.selectbox("Assunto", list(opcoes), key="f_ass"))
     tipo = _chave(TIPOS, c2.selectbox("Tipo", list(TIPOS.values()), key="f_tipo"))
     situacao = _chave(SITUACOES, c3.selectbox("Situação", list(SITUACOES.values()), key="f_sit"))
+    por_pagina = c4.selectbox("Por página", POR_PAGINA, index=1, key="f_pp")
 
-    filtro = (tuple(status), assunto_id, tipo, situacao)
+    filtro = (tuple(status), assunto_id, tipo, situacao, por_pagina)
     if st.session_state.get("filtro_ativo") != filtro:
         st.session_state["filtro_ativo"] = filtro
-        st.session_state["q_idx"] = 0
+        st.session_state["pagina"] = 0
         st.session_state["lista_q"] = _questoes(uid, status, assunto_id, tipo, situacao)
     lista = st.session_state["lista_q"]
 
@@ -440,22 +444,34 @@ def tela_questoes(usuario: dict):
         st.info("Nenhuma questão com esses filtros. Troque o assunto, o tipo ou a situação.")
         return
 
-    idx = min(st.session_state.get("q_idx", 0), len(lista) - 1)
-    q = lista[idx]
-    _navegacao(idx, len(lista), "topo")
-    _questao(q, usuario)
-    _navegacao(idx, len(lista), "base")
+    total_pag = (len(lista) + por_pagina - 1) // por_pagina
+    pag = min(st.session_state.get("pagina", 0), total_pag - 1)
+    inicio = pag * por_pagina
+    da_pagina = lista[inicio:inicio + por_pagina]
+
+    _navegacao(pag, total_pag, inicio, len(da_pagina), len(lista), "topo")
+    for i, q in enumerate(da_pagina):
+        if i:
+            st.divider()
+        if por_pagina > 1:
+            st.markdown(f"**Questão {inicio + i + 1}**")
+        _questao(q, usuario)
+    st.divider()
+    _navegacao(pag, total_pag, inicio, len(da_pagina), len(lista), "base")
 
 
-def _navegacao(idx: int, total: int, onde: str):
+def _navegacao(pag: int, total_pag: int, inicio: int, qtd: int, total: int, onde: str):
     a, b, c = st.columns([1, 2, 1])
-    if a.button("◀ Anterior", disabled=idx == 0, width="stretch", key=f"ant_{onde}"):
-        st.session_state["q_idx"] = idx - 1
+    if a.button("◀ Anterior", disabled=pag == 0, width="stretch", key=f"ant_{onde}"):
+        st.session_state["pagina"] = pag - 1
         st.rerun()
-    b.markdown(f"<div style='text-align:center;padding-top:6px'>Questão <b>{idx + 1}</b> de {total}</div>",
-               unsafe_allow_html=True)
-    if c.button("Próxima ▶", disabled=idx >= total - 1, width="stretch", key=f"prox_{onde}"):
-        st.session_state["q_idx"] = idx + 1
+    if qtd == 1:
+        texto = f"Questão <b>{inicio + 1}</b> de {total}"
+    else:
+        texto = f"Questões <b>{inicio + 1}–{inicio + qtd}</b> de {total} · página {pag + 1}/{total_pag}"
+    b.markdown(f"<div style='text-align:center;padding-top:6px'>{texto}</div>", unsafe_allow_html=True)
+    if c.button("Próxima ▶", disabled=pag >= total_pag - 1, width="stretch", key=f"prox_{onde}"):
+        st.session_state["pagina"] = pag + 1
         st.rerun()
 
 
