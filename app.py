@@ -212,10 +212,12 @@ CSS = """
         background-repeat:repeat;background-size:320px 120px;-webkit-user-select:none;user-select:none}
 .cartao .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:.82rem;color:var(--texto-suave);margin-bottom:8px}
 .cartao .cod{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--verde);font-weight:600}
-.cartao .enun{font-size:1.05rem;font-weight:500;line-height:1.55;margin:0}
+.cartao .enun{font-size:1.05rem;font-weight:500;line-height:1.55;margin:0;white-space:pre-line}
+.cartao .coment{white-space:pre-line}
+.cartao .fonte{font-size:.78rem;color:var(--texto-suave);margin:0 0 6px}
 .etq{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 8px;margin-left:6px}
 .etq.lei{background:var(--verde-claro);color:var(--verde)} .etq.caso{background:#F5E8C8;color:#8A5A00}
-.etq.rev{background:#E8E2F4;color:#4B3A7A} .etq.port{background:#DCEBF7;color:#1F4E79} .etq.prova{background:#FBE3E3;color:#8B1E1E}
+.etq.rev{background:#E8E2F4;color:#4B3A7A} .etq.port{background:#DCEBF7;color:#1F4E79} .etq.prova{background:#FBE3E3;color:#8B1E1E} .etq.acervo{background:#ECE6DA;color:#6B5320}
 .alt{border:1px solid var(--linha);border-radius:8px;padding:9px 12px;margin:6px 0;line-height:1.5}
 .alt.certa{border-color:var(--ok);background:var(--ok-bg)} .alt.errada{border-color:var(--erro);background:var(--erro-bg)}
 .alt .why{display:block;font-size:.88rem;color:var(--texto-suave);margin-top:4px}
@@ -226,7 +228,7 @@ button[kind="primary"],button[kind="primaryFormSubmit"]{background:#4B5A23!impor
 .rotulo{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bronze);margin:10px 0 2px}
 @media (prefers-color-scheme: dark){
  :root{--verde:#B5C77A;--verde-claro:#2A331C;--ok:#7FD39A;--ok-bg:#173222;--erro:#F19A90;--erro-bg:#3A1C19;--lei:#20261F;--linha:#2E372F;--texto-suave:#9AA597;--bronze:#D9B45E}
- .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4}}
+ .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4} .etq.acervo{background:#332B1C;color:#E0C995}}
 </style>
 """
 
@@ -348,7 +350,10 @@ def tela_trocar_senha(usuario: dict, obrigatoria: bool):
 DIF = {1: "Fácil", 2: "Média", 3: "Difícil"}
 TIPOS = {"": "Todos os tipos", "lei_seca": "Só lei seca", "caso_pratico": "Só casos práticos", "portugues": "Só Português"}
 ROTULO_TIPO = {"lei_seca": ("lei", "Lei seca"), "caso_pratico": ("caso", "Caso prático"), "portugues": ("port", "Português")}
-ORIGENS = {"": "Todas as origens", "prova_anterior": "Só provas anteriores", "inedita": "Só inéditas"}
+# "" (padrão) = questões próprias do app. O acervo (questões antigas de materiais de apoio) só aparece se escolhido.
+ORIGENS = {"": "Inéditas e provas anteriores", "inedita": "Só inéditas", "prova_anterior": "Só provas anteriores",
+           "material": "Questões antigas (acervo)", "todas": "Todas, incluindo o acervo"}
+FILTRO_ORIGEM = """(%(orig)s = 'todas' OR (%(orig)s = '' AND q.origem::text <> 'material') OR q.origem::text = %(orig)s)"""
 SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "erradas": "Errei na última tentativa"}
 # Ordem dos itens principais do filtro (o que não está aqui vem depois, na ordem do edital)
 ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM"]
@@ -359,13 +364,34 @@ def _chave(dicionario: dict, rotulo):
     return next((k for k, v in dicionario.items() if v == rotulo), None)
 
 
+def _base_rotulo(r: str) -> str:
+    """'3 – CPM · Código Penal Militar (95)' -> 'CPM · Código Penal Militar' (sem número e sem contador)."""
+    return re.sub(r"^[\d.]+ – | \(\d+\)$", "", r)
+
+
+def _remapeia(chave: str, opcoes: list[str]):
+    """Mantém a escolha do filtro quando só a numeração ou o contador do rótulo mudou (ex.: ao trocar o banco)."""
+    v = st.session_state.get(chave)
+    if v is None or (v in opcoes if isinstance(v, str) else all(x in opcoes for x in v)):
+        return
+    if isinstance(v, str):
+        novo = next((o for o in opcoes if _base_rotulo(o) == _base_rotulo(v)), None)
+        if novo is None:
+            del st.session_state[chave]
+        else:
+            st.session_state[chave] = novo
+    else:
+        bases = {_base_rotulo(x) for x in v}
+        st.session_state[chave] = [o for o in opcoes if _base_rotulo(o) in bases]
+
+
 def status_visiveis(perfil: str, incluir_revisao: bool) -> list[str]:
     if perfil == "aluno":
         return ["aprovada"]
     return ["aprovada", "em_revisao"] if incluir_revisao else ["aprovada"]
 
 
-def _arvore(status: list[str]) -> list[dict]:
+def _arvore(status: list[str], origem: str = "") -> list[dict]:
     """Itens principais (lei ou matéria) com seus subitens (assuntos), numerados 1, 1.1, 1.2...
     Só entram assuntos que têm questão visível para o usuário."""
     linhas = db.consultar(
@@ -376,9 +402,9 @@ def _arvore(status: list[str]) -> list[dict]:
            LEFT JOIN diploma d ON d.id = a.diploma_id
            JOIN questao_assunto qa ON qa.assunto_id = a.id
            JOIN questao q ON q.id = qa.questao_id
-           WHERE q.status::text = ANY(%s)
+           WHERE q.status::text = ANY(%(st)s) AND """ + FILTRO_ORIGEM + """
            GROUP BY a.id, a.nome, a.ordem, d.sigla, m.nome, d.nome_popular, d.id""",
-        (status,),
+        {"st": status, "orig": origem},
     )
     grupos: dict[str, dict] = {}
     for l in linhas:
@@ -406,7 +432,7 @@ def _questoes(uid: int, status: list[str], assuntos, tipo: str, origem: str, sit
            WHERE q.status::text = ANY(%(st)s)
              AND (%(ass)s::int[] IS NULL OR EXISTS (SELECT 1 FROM questao_assunto qa WHERE qa.questao_id = q.id AND qa.assunto_id = ANY(%(ass)s::int[])))
              AND (%(tipo)s = '' OR q.tipo = %(tipo)s)
-             AND (%(orig)s = '' OR q.origem::text = %(orig)s)
+             AND """ + FILTRO_ORIGEM + """
              AND (%(sit)s = 'todas'
                   OR (%(sit)s = 'nao_respondidas' AND NOT EXISTS (SELECT 1 FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s))
                   OR (%(sit)s = 'erradas' AND (SELECT r.acertou FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s
@@ -451,23 +477,31 @@ def tela_questoes(usuario: dict):
                             help="Alunos só veem as questões aprovadas.")
     status = status_visiveis(perfil, incluir)
 
+    origem = _chave(ORIGENS, st.selectbox("Banco de questões", list(ORIGENS.values()), key="f_orig",
+                                          help="As questões antigas (acervo) vêm de simulados e materiais de apoio. "
+                                               "Elas ficam separadas das questões próprias do app."))
+    if origem == "material":
+        st.caption("📚 Acervo: questões antigas de simulados e materiais de apoio. O comentário de cada uma diz se o "
+                   "gabarito já foi conferido com o texto oficial da lei.")
+
     # Nível 1: lei/matéria · Nível 2: subitens (vazio = todos os subitens do item escolhido)
-    arvore = _arvore(status)
+    arvore = _arvore(status, origem)
     g1, g2 = st.columns([1, 1.4])
     principais = {"Todas as matérias e leis": None} | {g["rotulo"]: g for g in arvore}
+    _remapeia("f_grupo", list(principais))
     grupo = principais[g1.selectbox("Matéria / lei", list(principais), key="f_grupo")]
     if grupo is None:
         assuntos = None
         g2.selectbox("Subitens", ["Escolha primeiro uma matéria ou lei"], disabled=True, key="f_sub_off")
     else:
         subs = {a["rotulo"]: a["id"] for a in grupo["subs"]}
+        _remapeia(f"f_sub_{grupo['sigla']}", list(subs))
         marcados = g2.multiselect("Subitens", list(subs), key=f"f_sub_{grupo['sigla']}",
                                   placeholder="Todos os subitens (marque para escolher só alguns)")
         assuntos = [subs[m] for m in marcados] or list(subs.values())
 
-    c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.2, 0.8])
+    c1, c3, c4 = st.columns([1.2, 1.2, 0.8])
     tipo = _chave(TIPOS, c1.selectbox("Tipo", list(TIPOS.values()), key="f_tipo"))
-    origem = _chave(ORIGENS, c2.selectbox("Origem", list(ORIGENS.values()), key="f_orig"))
     situacao = _chave(SITUACOES, c3.selectbox("Situação", list(SITUACOES.values()), key="f_sit"))
     por_pagina = c4.selectbox("Por página", POR_PAGINA, index=1, key="f_pp")
 
@@ -479,7 +513,7 @@ def tela_questoes(usuario: dict):
     lista = st.session_state["lista_q"]
 
     if not lista:
-        st.info("Nenhuma questão com esses filtros. Troque a matéria, os subitens, o tipo, a origem ou a situação.")
+        st.info("Nenhuma questão com esses filtros. Troque o banco de questões, a matéria, os subitens, o tipo ou a situação.")
         return
 
     total_pag = (len(lista) + por_pagina - 1) // por_pagina
@@ -519,14 +553,17 @@ def _questao(q: dict, usuario: dict):
     etq_tipo = f'<span class="etq {classe}">{nome_tipo}</span>'
     etq_rev = '<span class="etq rev">Em revisão</span>' if q["status"] == "em_revisao" else ""
     etq_prova = f'<span class="etq prova">{esc(q["fonte"])}</span>' if q["origem"] == "prova_anterior" else ""
+    etq_acervo = '<span class="etq acervo">Acervo</span>' if q["origem"] == "material" else ""
     apoio = ""
     if q["texto_apoio"]:
-        with st.expander("📄 Texto para as questões de Português (toque para ler)"):
+        rotulo = ("📄 Texto para as questões de Português (toque para ler)" if q["tipo"] == "portugues"
+                  else "📄 Texto de apoio (toque para ler)")
+        with st.expander(rotulo):
             st.markdown("".join(f"<p>{esc(p)}</p>" for p in q["texto_apoio"].split("\n\n")), unsafe_allow_html=True)
     st.markdown(
         f"""<div class="cartao">
               <div class="topo"><span><span class="cod">{esc(q['codigo'])}</span> · {esc(q['assuntos'])}</span>
-              <span>{DIF.get(q['dificuldade'], '')}{etq_tipo}{etq_prova}{etq_rev}</span></div>
+              <span>{DIF.get(q['dificuldade'], '')}{etq_tipo}{etq_prova}{etq_acervo}{etq_rev}</span></div>
               {apoio}<p class="enun">{esc(q['enunciado'])}</p></div>""",
         unsafe_allow_html=True,
     )
@@ -569,15 +606,16 @@ def _correcao(q: dict, alts: list[dict], escolha_id: int, fundo: str):
         marcada = next(a for a in alts if a["id"] == escolha_id)
         st.error(f"Você marcou {marcada['letra']}. Gabarito: {certa['letra']}")
 
+    dica = f'<div class="dica"><b>Para memorizar:</b> {esc(q["dica"])}</div>' if q.get("dica") else ""
     partes = []
     for a in alts:
         cls = "certa" if a["correta"] else ("errada" if a["id"] == escolha_id else "")
         partes.append(f'<div class="alt {cls}"><b>{a["letra"]})</b> {esc(a["texto"])}'
-                      f'<span class="why">{esc(a["comentario"])}</span></div>')
+                      + (f'<span class="why">{esc(a["comentario"])}</span>' if a["comentario"] else "") + '</div>')
     st.markdown(
         f"""<div class="cartao">{''.join(partes)}
-            <div class="rotulo">Comentário</div><p>{esc(q['comentario'])}</p>
-            <div class="dica"><b>Para memorizar:</b> {esc(q['dica'])}</div></div>""",
+            <div class="rotulo">Comentário</div><p class="coment">{esc(q['comentario'])}</p>
+            {dica}</div>""",
         unsafe_allow_html=True,
     )
     lei = _lei(q["id"])
