@@ -590,12 +590,43 @@ def _questao(q: dict, usuario: dict):
         return
 
     _correcao(q, alts, escolha_id, fundo)
-    if st.button("Refazer esta questão", key=f"refazer_{q['id']}"):
+    _estatistica_turma(q["id"])
+    b1, b2 = st.columns([1, 1.4])
+    if b1.button("Refazer esta questão", key=f"refazer_{q['id']}"):
         respondidas.pop(q["id"], None)
         st.session_state.pop(f"radio_{q['id']}", None)
         st.rerun()
+    _reportar(q, usuario, b2)
     if usuario["perfil"] in ("admin", "revisor"):
         _parecer(q, usuario)
+
+
+def _estatistica_turma(qid: int):
+    """Percentual de acerto de todos que responderam (1ª resposta de cada pessoa) e a alternativa mais marcada."""
+    e = db.um(
+        """WITH primeira AS (
+               SELECT DISTINCT ON (r.usuario_id) r.usuario_id, r.acertou, a.letra
+               FROM resposta r JOIN alternativa a ON a.id = r.alternativa_id
+               WHERE r.questao_id = %s ORDER BY r.usuario_id, r.respondida_em)
+           SELECT COUNT(*) AS n, ROUND(100.0 * AVG(acertou::int)) AS pct,
+                  (SELECT letra FROM primeira GROUP BY letra ORDER BY COUNT(*) DESC, letra LIMIT 1) AS mais
+           FROM primeira""", (qid,))
+    if e and e["n"] >= 3:
+        st.caption(f"📊 {int(e['pct'])}% acertaram de primeira ({e['n']} pessoas) · alternativa mais marcada: {e['mais']}")
+
+
+def _reportar(q: dict, usuario: dict, onde):
+    with onde.popover("⚠️ Achei um erro nesta questão", width="stretch"):
+        with st.form(f"rep_{q['id']}", clear_on_submit=True):
+            txt = st.text_area("O que está errado?", placeholder="Ex.: a alternativa C também está correta, porque...",
+                               key=f"rep_txt_{q['id']}")
+            if st.form_submit_button("Enviar para a equipe"):
+                if len(txt.strip()) < 10:
+                    st.warning("Explique um pouco melhor (pelo menos uma frase).")
+                else:
+                    db.executar("INSERT INTO reporte_erro (usuario_id, questao_id, descricao) VALUES (%s, %s, %s)",
+                                (usuario["id"], q["id"], txt.strip()))
+                    st.success("Obrigado! A equipe vai conferir.")
 
 
 def _correcao(q: dict, alts: list[dict], escolha_id: int, fundo: str):
@@ -630,7 +661,7 @@ def _correcao(q: dict, alts: list[dict], escolha_id: int, fundo: str):
 
 def _ref(referencia: str) -> str:
     """Tira a marca interna de linha ('[L123]') da referência do artigo."""
-    return re.sub(r" \[L\d+\]$", "", referencia)
+    return re.sub(r" \[(?:[A-Z]+-)?L\d+\]$", "", referencia)
 
 
 def _parecer(q: dict, usuario: dict):
@@ -677,6 +708,192 @@ STATUS = {"em_revisao": "Em revisão", "aprovada": "Aprovada", "desatualizada": 
 # ======================================================================= REVISÃO
 def tela_revisao(usuario: dict):
     st.header("Revisão da equipe")
+    n_rep = db.um("SELECT COUNT(*) AS n FROM reporte_erro WHERE status = 'aberto'")["n"]
+    abas = ["Pareceres", "Erros reportados" + (f" ({n_rep})" if n_rep else ""), "Qualidade das questões"]
+    if usuario["perfil"] == "admin":
+        abas.insert(1, "Aprovar por lote")
+    t = dict(zip(abas, st.tabs(abas)))
+    with t["Pareceres"]:
+        _revisao_pareceres(usuario)
+    if "Aprovar por lote" in t:
+        with t["Aprovar por lote"]:
+            _aprovar_lote(usuario)
+    with t[abas[-2]]:
+        _erros_reportados(usuario)
+    with t["Qualidade das questões"]:
+        _qualidade(usuario)
+
+
+# Lote = conjunto de questões com a mesma fonte (cada lote gerado tem a sua); o acervo forma um lote só.
+LOTE_SQL = "CASE WHEN q.origem::text = 'material' THEN 'Acervo (questões antigas)' ELSE COALESCE(q.fonte, '(sem fonte)') END"
+SEM_PENDENCIA = """NOT EXISTS (SELECT 1 FROM parecer p WHERE p.questao_id = q.id AND p.voto = 'ajustar')
+                   AND NOT EXISTS (SELECT 1 FROM reporte_erro e WHERE e.questao_id = q.id AND e.status = 'aberto')"""
+
+
+def _aprovar_lote(usuario: dict):
+    st.caption("Confira uma amostra sorteada do lote. Se estiver boa, aprove o lote inteiro de uma vez. "
+               "Questões com pedido de ajuste ou erro reportado em aberto ficam de fora.")
+    lotes = db.consultar(
+        f"""SELECT {LOTE_SQL} AS lote, COUNT(*) AS total,
+                   COUNT(*) FILTER (WHERE q.status = 'em_revisao') AS revisao,
+                   COUNT(*) FILTER (WHERE q.status = 'em_revisao' AND {SEM_PENDENCIA}) AS livres,
+                   COUNT(*) FILTER (WHERE q.status = 'aprovada') AS aprovadas, MIN(q.codigo) AS primeiro
+            FROM questao q GROUP BY 1 ORDER BY primeiro""")
+    df = pd.DataFrame(lotes)
+    st.dataframe(df[["lote", "total", "aprovadas", "revisao"]].rename(
+        columns={"lote": "Lote", "total": "Questões", "aprovadas": "Aprovadas", "revisao": "Em revisão"}),
+        hide_index=True, width="stretch")
+    pendentes = [l for l in lotes if l["revisao"]]
+    if not pendentes:
+        st.success("Nenhum lote com questões em revisão.")
+        return
+    rot = {f"{l['lote']} — {l['revisao']} em revisão": l for l in pendentes}
+    lote = rot[st.selectbox("Lote", list(rot), key="lote_sel")]
+    chave = f"amostra::{lote['lote']}"
+    qtd = st.slider("Tamanho da amostra", 5, 20, 10, key="lote_qtd")
+    if st.button("🎲 Sortear amostra", key="lote_sortear") or chave not in st.session_state:
+        st.session_state[chave] = [r["id"] for r in db.consultar(
+            f"SELECT q.id FROM questao q WHERE {LOTE_SQL} = %s AND q.status = 'em_revisao' ORDER BY random() LIMIT %s",
+            (lote["lote"], qtd))]
+    for i, qid in enumerate(st.session_state[chave], start=1):
+        q = db.um("SELECT codigo, enunciado, comentario, texto_apoio FROM questao WHERE id = %s", (qid,))
+        with st.expander(f"{i}. {q['codigo']} — {q['enunciado'][:90]}…"):
+            if q["texto_apoio"]:
+                st.caption("(questão com texto de apoio)")
+            st.markdown(f"**{esc(q['enunciado'])}**", unsafe_allow_html=True)
+            for a in _alternativas(qid):
+                marca = "✅" if a["correta"] else "▫️"
+                st.markdown(f"{marca} **{a['letra']})** {esc(a['texto'])}  \n<small>{esc(a['comentario'] or '')}</small>",
+                            unsafe_allow_html=True)
+            st.markdown(f"<small><b>Comentário:</b> {esc(q['comentario'])}</small>", unsafe_allow_html=True)
+    st.divider()
+    fora = lote["revisao"] - lote["livres"]
+    if fora:
+        st.warning(f"{fora} questão(ões) deste lote têm pedido de ajuste ou erro reportado e não serão aprovadas agora.")
+    ok = st.checkbox(f"Conferi a amostra e quero aprovar as {lote['livres']} questões em revisão deste lote",
+                     key=f"lote_ok::{lote['lote']}")
+    if st.button("Aprovar o lote", type="primary", disabled=not ok or not lote["livres"], key="lote_aprovar"):
+        db.executar(f"""UPDATE questao q SET status = 'aprovada', revisado_por = %s, revisado_em = now()
+                        WHERE {LOTE_SQL} = %s AND q.status = 'em_revisao' AND {SEM_PENDENCIA}""",
+                    (usuario["nome"], lote["lote"]))
+        st.session_state.pop("filtro_ativo", None)
+        st.session_state.pop(chave, None)
+        st.success(f"{lote['livres']} questões aprovadas. Os alunos já podem vê-las.")
+        st.rerun()
+
+
+def _erros_reportados(usuario: dict):
+    linhas = db.consultar(
+        """SELECT e.id, e.descricao, e.criado_em, q.id AS qid, q.codigo, q.status::text AS status, u.nome
+           FROM reporte_erro e JOIN questao q ON q.id = e.questao_id LEFT JOIN usuario u ON u.id = e.usuario_id
+           WHERE e.status = 'aberto' ORDER BY e.criado_em""")
+    if not linhas:
+        st.success("Nenhum erro reportado em aberto.")
+        return
+    st.caption("Enquanto houver erro em aberto, a questão não entra na aprovação por lote.")
+    for e in linhas:
+        with st.container(border=True):
+            st.markdown(f"**{e['codigo']}** · {STATUS.get(e['status'], e['status'])} · por {esc(e['nome'] or '—')} "
+                        f"em {e['criado_em']:%d/%m %H:%M}")
+            st.write(e["descricao"])
+            with st.expander("Ver a questão e o gabarito"):
+                for a in _alternativas(e["qid"]):
+                    st.markdown(f"{'✅' if a['correta'] else '▫️'} **{a['letra']})** {esc(a['texto'])}",
+                                unsafe_allow_html=True)
+            if usuario["perfil"] != "admin":
+                continue
+            c1, c2, c3 = st.columns(3)
+            if c1.button("Procedente: tirar do ar", key=f"rep_proc_{e['id']}",
+                         help="A questão volta para 'Em revisão' e some para os alunos até ser corrigida."):
+                db.executar("UPDATE questao SET status = 'em_revisao' WHERE id = %s", (e["qid"],))
+                db.executar("UPDATE reporte_erro SET status = 'procedente' WHERE id = %s", (e["id"],))
+                st.session_state.pop("filtro_ativo", None)
+                st.rerun()
+            if c2.button("Procedente: já corrigi", key=f"rep_corr_{e['id']}"):
+                db.executar("UPDATE reporte_erro SET status = 'procedente' WHERE id = %s", (e["id"],))
+                st.rerun()
+            if c3.button("Improcedente", key=f"rep_imp_{e['id']}"):
+                db.executar("UPDATE reporte_erro SET status = 'improcedente' WHERE id = %s", (e["id"],))
+                st.rerun()
+
+
+def _dif_observada(pct: float) -> int:
+    return 1 if pct >= 75 else (3 if pct < 40 else 2)
+
+
+def _qualidade(usuario: dict):
+    st.caption("Conta só a 1ª resposta de cada pessoa em cada questão. Use para achar questões fáceis demais, "
+               "difíceis demais ou com possível erro de gabarito.")
+    minimo = st.slider("Mínimo de pessoas que responderam", 3, 50, 10, key="qual_min")
+    linhas = db.consultar(
+        f"""WITH primeira AS (
+                SELECT DISTINCT ON (r.usuario_id, r.questao_id) r.questao_id, r.acertou, a.letra
+                FROM resposta r JOIN alternativa a ON a.id = r.alternativa_id
+                ORDER BY r.usuario_id, r.questao_id, r.respondida_em),
+            por_letra AS (
+                SELECT questao_id, letra, COUNT(*) AS n, BOOL_OR(acertou) AS certa FROM primeira GROUP BY 1, 2),
+            errada_top AS (
+                SELECT DISTINCT ON (questao_id) questao_id, letra, n FROM por_letra WHERE NOT certa
+                ORDER BY questao_id, n DESC)
+            SELECT q.id, q.codigo, q.dificuldade, {LOTE_SQL} AS lote, COUNT(p.*) AS n,
+                   ROUND(100.0 * AVG(p.acertou::int)) AS pct, et.letra AS errada, et.n AS n_errada
+            FROM questao q JOIN primeira p ON p.questao_id = q.id
+            LEFT JOIN errada_top et ON et.questao_id = q.id
+            WHERE q.status::text <> 'anulada'
+            GROUP BY q.id, et.letra, et.n HAVING COUNT(p.*) >= %s""", (minimo,))
+
+    # Equilíbrio da dificuldade declarada (não depende de respostas)
+    dist = db.consultar(
+        """SELECT COALESCE(d.sigla, m.nome) AS grupo, q.dificuldade, COUNT(DISTINCT q.id) AS n
+           FROM questao q JOIN materia m ON m.id = q.materia_id
+           LEFT JOIN questao_assunto qa ON qa.questao_id = q.id LEFT JOIN assunto a ON a.id = qa.assunto_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE q.status::text <> 'anulada' AND q.origem::text <> 'material' GROUP BY 1, 2""")
+    with st.expander("Equilíbrio de dificuldade por matéria/lei (dificuldade declarada)"):
+        dd = pd.DataFrame(dist)
+        if not dd.empty:
+            tab = dd.pivot_table(index="grupo", columns="dificuldade", values="n", fill_value=0, aggfunc="sum")
+            tab = tab.rename(columns=DIF)
+            tab["% difíceis"] = (100 * tab.get("Difícil", 0) / tab.sum(axis=1)).round(0)
+            st.dataframe(tab.sort_values("% difíceis"), width="stretch")
+            st.caption("Referência: algo perto de 30% fáceis, 45% médias e 25% difíceis.")
+
+    if not linhas:
+        st.info(f"Ainda não há questões com pelo menos {minimo} pessoas respondendo. "
+                "Os números aparecem conforme os alunos usam o app.")
+        return
+    df = pd.DataFrame(linhas)
+    df["observada"] = df["pct"].astype(float).map(_dif_observada)
+    df["suspeita"] = (df["pct"].astype(float) < 35) & (df["n_errada"].fillna(0) >= 0.5 * df["n"])
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Com estatística", len(df))
+    c2.metric("Fáceis demais (≥ 90%)", int((df["pct"] >= 90).sum()))
+    c3.metric("Difíceis demais (< 25%)", int((df["pct"] < 25).sum()))
+    c4.metric("Suspeita de gabarito", int(df["suspeita"].sum()))
+    filtro = st.radio("Mostrar", ["Suspeita de gabarito", "Fáceis demais", "Difíceis demais",
+                                  "Dificuldade declarada diferente da observada", "Todas"], horizontal=True, key="qual_f")
+    vis = {"Suspeita de gabarito": df[df["suspeita"]], "Fáceis demais": df[df["pct"] >= 90],
+           "Difíceis demais": df[df["pct"] < 25],
+           "Dificuldade declarada diferente da observada": df[df["dificuldade"] != df["observada"]],
+           "Todas": df}[filtro]
+    st.dataframe(vis.assign(dificuldade=vis["dificuldade"].map(DIF), observada=vis["observada"].map(DIF))
+                 [["codigo", "lote", "n", "pct", "errada", "n_errada", "dificuldade", "observada"]]
+                 .rename(columns={"codigo": "Código", "lote": "Lote", "n": "Pessoas", "pct": "% acerto",
+                                  "errada": "Errada mais marcada", "n_errada": "Marcaram",
+                                  "dificuldade": "Declarada", "observada": "Observada"})
+                 .sort_values("% acerto"), hide_index=True, width="stretch")
+    st.caption("Suspeita de gabarito: menos de 35% de acerto e metade ou mais marcando a mesma alternativa errada. "
+               "Confira se essa alternativa também está correta.")
+    difer = df[df["dificuldade"] != df["observada"]]
+    if usuario["perfil"] == "admin" and len(difer):
+        if st.button(f"Ajustar a dificuldade de {len(difer)} questões para a observada", key="qual_ajusta"):
+            for _, r in difer.iterrows():
+                db.executar("UPDATE questao SET dificuldade = %s WHERE id = %s", (int(r["observada"]), int(r["id"])))
+            st.success("Dificuldades ajustadas.")
+            st.rerun()
+
+
+def _revisao_pareceres(usuario: dict):
     st.caption("Regra sugerida: questão com pelo menos 2 aprovações e nenhum pedido de ajuste está pronta para ser aprovada.")
     linhas = db.consultar(
         """SELECT q.id, q.codigo, q.status::text AS status, q.tipo,
