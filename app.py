@@ -12,14 +12,19 @@ Para rodar no próprio computador (opcional):
 """
 import base64
 import html
+import json
+import random
 import re
 import secrets
 import string
+import time
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import bcrypt
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
@@ -56,7 +61,14 @@ def executar(sql: str, params=None) -> None:
     with _pool().connection() as conn:
         conn.execute(sql, params or ())
 
-db = SimpleNamespace(consultar=consultar, um=um, executar=executar)
+
+def transacao(fn):
+    """Roda fn(conn) numa transação só: ou grava tudo, ou nada."""
+    with _pool().connection() as conn:
+        with conn.transaction():
+            return fn(conn)
+
+db = SimpleNamespace(consultar=consultar, um=um, executar=executar, transacao=transacao)
 
 
 # ======================================================================
@@ -226,6 +238,12 @@ CSS = """
 .lei-txt .ref{display:block;font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:var(--texto-suave)}
 button[kind="primary"],button[kind="primaryFormSubmit"]{background:#4B5A23!important;border-color:#4B5A23!important;color:#fff!important}
 .rotulo{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bronze);margin:10px 0 2px}
+.mapa{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 10px}
+.mq{min-width:28px;text-align:center;font-size:.74rem;border:1px solid var(--linha);border-radius:5px;padding:2px 0;color:var(--texto-suave)}
+.mq.ok{background:var(--verde-claro);color:var(--verde);border-color:var(--verde);font-weight:600}
+.mq.certa{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);font-weight:600}
+.mq.errada{background:var(--erro-bg);color:var(--erro);border-color:var(--erro);font-weight:600}
+.mq.atual{outline:2px solid var(--bronze);outline-offset:1px;font-weight:700}
 @media (prefers-color-scheme: dark){
  :root{--verde:#B5C77A;--verde-claro:#2A331C;--ok:#7FD39A;--ok-bg:#173222;--erro:#F19A90;--erro-bg:#3A1C19;--lei:#20261F;--linha:#2E372F;--texto-suave:#9AA597;--bronze:#D9B45E}
  .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4} .etq.acervo{background:#332B1C;color:#E0C995}}
@@ -547,26 +565,38 @@ def _navegacao(pag: int, total_pag: int, inicio: int, qtd: int, total: int, onde
         st.rerun()
 
 
-def _questao(q: dict, usuario: dict):
-    fundo = marca_dagua(usuario["nome"], usuario["login"])
-    classe, nome_tipo = ROTULO_TIPO.get(q["tipo"], ("lei", q["tipo"]))
-    etq_tipo = f'<span class="etq {classe}">{nome_tipo}</span>'
-    etq_rev = '<span class="etq rev">Em revisão</span>' if q["status"] == "em_revisao" else ""
-    etq_prova = f'<span class="etq prova">{esc(q["fonte"])}</span>' if q["origem"] == "prova_anterior" else ""
-    etq_acervo = '<span class="etq acervo">Acervo</span>' if q["origem"] == "material" else ""
-    apoio = ""
-    if q["texto_apoio"]:
+def _texto_apoio(q: dict, expandido: bool = False):
+    if q.get("texto_apoio"):
         rotulo = ("📄 Texto para as questões de Português (toque para ler)" if q["tipo"] == "portugues"
                   else "📄 Texto de apoio (toque para ler)")
-        with st.expander(rotulo):
+        with st.expander(rotulo, expanded=expandido):
             st.markdown("".join(f"<p>{esc(p)}</p>" for p in q["texto_apoio"].split("\n\n")), unsafe_allow_html=True)
+
+
+def _cartao(q: dict, cabecalho: str | None = None):
+    """Enunciado da questão. Com `cabecalho`, troca código/assunto/etiquetas por um título neutro (modo prova)."""
+    if cabecalho is not None:
+        topo = f'<span><b>{esc(cabecalho)}</b></span>'
+    else:
+        classe, nome_tipo = ROTULO_TIPO.get(q["tipo"], ("lei", q["tipo"]))
+        etq_tipo = f'<span class="etq {classe}">{nome_tipo}</span>'
+        etq_rev = '<span class="etq rev">Em revisão</span>' if q["status"] == "em_revisao" else ""
+        etq_prova = f'<span class="etq prova">{esc(q["fonte"])}</span>' if q["origem"] == "prova_anterior" else ""
+        etq_acervo = '<span class="etq acervo">Acervo</span>' if q["origem"] == "material" else ""
+        topo = (f'<span><span class="cod">{esc(q["codigo"])}</span> · {esc(q["assuntos"])}</span>'
+                f'<span>{DIF.get(q["dificuldade"], "")}{etq_tipo}{etq_prova}{etq_acervo}{etq_rev}</span>')
     st.markdown(
         f"""<div class="cartao">
-              <div class="topo"><span><span class="cod">{esc(q['codigo'])}</span> · {esc(q['assuntos'])}</span>
-              <span>{DIF.get(q['dificuldade'], '')}{etq_tipo}{etq_prova}{etq_acervo}{etq_rev}</span></div>
-              {apoio}<p class="enun">{esc(q['enunciado'])}</p></div>""",
+              <div class="topo">{topo}</div>
+              <p class="enun">{esc(q['enunciado'])}</p></div>""",
         unsafe_allow_html=True,
     )
+
+
+def _questao(q: dict, usuario: dict):
+    fundo = marca_dagua(usuario["nome"], usuario["login"])
+    _texto_apoio(q)
+    _cartao(q)
 
     alts = _alternativas(q["id"])
     respondidas = st.session_state.setdefault("respondidas", {})
@@ -629,9 +659,11 @@ def _reportar(q: dict, usuario: dict, onde):
                     st.success("Obrigado! A equipe vai conferir.")
 
 
-def _correcao(q: dict, alts: list[dict], escolha_id: int, fundo: str):
+def _correcao(q: dict, alts: list[dict], escolha_id: int | None, fundo: str):
     certa = next(a for a in alts if a["correta"])
-    if escolha_id == certa["id"]:
+    if escolha_id is None:
+        st.warning(f"Você deixou em branco. Gabarito: {certa['letra']}")
+    elif escolha_id == certa["id"]:
         st.success(f"Você acertou. Gabarito: {certa['letra']}")
     else:
         marcada = next(a for a in alts if a["id"] == escolha_id)
@@ -696,6 +728,598 @@ def _parecer(q: dict, usuario: dict):
                 )
                 st.success("Parecer salvo.")
                 st.rerun()
+
+
+# ======================================================================
+# TELAS_SIMULADO
+# ======================================================================
+# Prova CFS-31/QPPM/2026 (Edital n. 1/2026): 50 questões de 4 alternativas = 20 de Português + 30 de Legislação.
+# A Legislação segue a distribuição da prova de 21/06/2026. As 2 questões da Portaria 167 (fora do edital)
+# foram trocadas por 1 da CE/MS e 1 do Dec. 10.769/02, que estão no edital e não caíram em 2026.
+CFS_PORTUGUES = 20
+CFS_PORT_TEXTO = 15        # na prova, 15 das 20 de Português saíram do texto-base
+CFS_LEGISLACAO = {"Lei 13.869/19": 3, "LC 053/90": 3, "CPM": 3, "Lei 11.340/06": 3,
+                  "Dec. 1.261/81": 2, "Lei 10.826/03": 2, "LC 127/08": 2, "Lei 11.343/06": 2,
+                  "Dec. 1.093/81": 2, "RDPMMS": 2, "CF/88": 1, "CPPM": 1, "LC 190/14": 1,
+                  "Lei 9.455/97": 1, "CE/MS": 1, "Dec. 10.769/02": 1}
+CFS_MINUTOS = 180          # tempo padrão do simulado modelo (o aluno pode mudar na tela)
+PORTUGUES = "Língua Portuguesa"
+FOLGA_SEG = 30             # tolerância para a última marcação chegar depois do fim do tempo
+REVISAO_POR_PAGINA = 5
+FUSO = ZoneInfo("America/Campo_Grande")
+
+
+def _local(dt):
+    return dt.astimezone(FUSO) if dt is not None else None
+
+
+def _fmt_tempo(seg) -> str:
+    if seg is None:
+        return "—"
+    seg = int(seg)
+    h, m = divmod(seg // 60, 60)
+    return f"{h}h{m:02d}" if h else f"{m} min" if m else f"{seg} s"
+
+
+def _nota_txt(acertos: int, total: int) -> str:
+    return f"{10 * acertos / total:.1f}".replace(".", ",") if total else "—"
+
+
+# ------------------------------------------------------------------ banco e sorteio
+def _banco_simulado(uid: int, status: list[str], so_ineditas: bool, nao_repetir: bool) -> list[dict]:
+    """Questões que podem entrar no simulado (uma linha por questão, com a lei/matéria e os assuntos)."""
+    return db.consultar(
+        """SELECT q.id, m.nome AS materia, md5(q.texto_apoio) AS texto,
+                  MIN(COALESCE(d.sigla, m.nome)) AS grupo, MIN(COALESCE(d.id, 0)) AS ordem_grupo,
+                  array_agg(DISTINCT qa.assunto_id) AS assuntos
+           FROM questao q
+           JOIN materia m ON m.id = q.materia_id
+           JOIN questao_assunto qa ON qa.questao_id = q.id
+           JOIN assunto a ON a.id = qa.assunto_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE q.status::text = ANY(%(st)s) AND """ + FILTRO_ORIGEM + """
+             AND (NOT %(nr)s OR (
+                  NOT EXISTS (SELECT 1 FROM resposta r WHERE r.usuario_id = %(u)s AND r.questao_id = q.id)
+                  AND NOT EXISTS (SELECT 1 FROM simulado_questao sq JOIN simulado s ON s.id = sq.simulado_id
+                                  WHERE s.usuario_id = %(u)s AND s.status = 'finalizado' AND sq.questao_id = q.id)))
+           GROUP BY q.id, m.nome""",
+        {"st": status, "orig": "inedita" if so_ineditas else "", "nr": nao_repetir, "u": uid},
+    )
+
+
+def _ordem_prova(lista: list[dict]) -> list[dict]:
+    """Português primeiro (questões do mesmo texto juntas), depois Legislação lei por lei, como na prova."""
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    for q in lista:
+        q.setdefault("_r", random.random())
+    return sorted(lista, key=lambda q: (q["materia"] != PORTUGUES, pos.get(q["grupo"], len(pos)), q["ordem_grupo"],
+                                        q["grupo"], q["texto"] is None, q["texto"] or "", q["_r"]))
+
+
+def _sortear_cfs(banco: list[dict]) -> tuple[list[dict], list[str]]:
+    avisos, escolhidas = [], []
+    port = [q for q in banco if q["materia"] == PORTUGUES]
+    random.shuffle(port)
+    blocos: dict[str, list] = {}
+    for q in port:
+        if q["texto"]:
+            blocos.setdefault(q["texto"], []).append(q)
+    textos = list(blocos.values())
+    random.shuffle(textos)
+    for b in textos:                                   # questões de texto, um texto de cada vez
+        falta = CFS_PORT_TEXTO - len(escolhidas)
+        if falta <= 0:
+            break
+        escolhidas += b[:falta]
+    usados = {q["id"] for q in escolhidas}
+    resto_port = [q for q in port if q["id"] not in usados]
+    resto_port.sort(key=lambda q: q["texto"] is not None)   # primeiro as sem texto, depois o que sobrar
+    escolhidas += resto_port[:CFS_PORTUGUES - len(escolhidas)]
+    if len(escolhidas) < CFS_PORTUGUES:
+        avisos.append(f"Português: só havia {len(escolhidas)} questões disponíveis (o modelo pede {CFS_PORTUGUES}).")
+
+    usados = {q["id"] for q in escolhidas}
+    leg = [q for q in banco if q["materia"] != PORTUGUES and q["id"] not in usados]
+    random.shuffle(leg)
+    faltou = []
+    for sigla, k in CFS_LEGISLACAO.items():
+        cands = [q for q in leg if q["grupo"] == sigla and q["id"] not in usados][:k]
+        escolhidas += cands
+        usados |= {q["id"] for q in cands}
+        if len(cands) < k:
+            faltou.append(f"{sigla} ({len(cands)} de {k})")
+    meta = CFS_PORTUGUES + sum(CFS_LEGISLACAO.values())
+    n_leg_meta = sum(CFS_LEGISLACAO.values())
+    n_leg = sum(q["materia"] != PORTUGUES for q in escolhidas)
+    if n_leg < n_leg_meta:                              # completa com outras leis
+        extra = [q for q in leg if q["id"] not in usados][:n_leg_meta - n_leg]
+        escolhidas += extra
+    if faltou:
+        avisos.append("Sem questões suficientes em " + ", ".join(faltou) + ": completei com outras leis do edital.")
+    if len(escolhidas) < meta:
+        avisos.append(f"O simulado ficou com {len(escolhidas)} questões (o modelo tem {meta}).")
+    return _ordem_prova(escolhidas), avisos
+
+
+def _sortear_personalizado(banco: list[dict], grupos: list[str], assuntos: set[int], n: int) -> tuple[list[dict], int]:
+    """Distribui igualmente entre as matérias/leis escolhidas (o que faltar numa, completa com as outras)."""
+    cands = [q for q in banco if (not grupos or q["grupo"] in grupos) and (not assuntos or set(q["assuntos"]) & assuntos)]
+    baldes: dict[str, list] = {}
+    for q in cands:
+        baldes.setdefault(q["grupo"], []).append(q)
+    for b in baldes.values():
+        random.shuffle(b)
+    ordem = list(baldes)
+    random.shuffle(ordem)
+    escolhidas: list[dict] = []
+    while len(escolhidas) < n and any(baldes.values()):
+        for g in ordem:
+            if baldes[g] and len(escolhidas) < n:
+                escolhidas.append(baldes[g].pop())
+    return _ordem_prova(escolhidas), len(cands)
+
+
+# ------------------------------------------------------------------ gravação
+def _criar_simulado(uid: int, modelo: str, titulo: str, questoes: list[dict], minutos: int | None, config: dict) -> int:
+    def fn(conn):
+        sid = conn.execute(
+            """INSERT INTO simulado (usuario_id, edital_id, modelo, titulo, duracao_min, config, total)
+               VALUES (%s, (SELECT id FROM edital ORDER BY ano DESC, id DESC LIMIT 1), %s, %s, %s, %s::jsonb, %s)
+               RETURNING id""",
+            (uid, modelo, titulo, minutos, json.dumps(config, ensure_ascii=False), len(questoes)),
+        ).fetchone()["id"]
+        with conn.cursor() as cur:
+            cur.executemany("INSERT INTO simulado_questao (simulado_id, ordem, questao_id) VALUES (%s, %s, %s)",
+                            [(sid, i, q["id"]) for i, q in enumerate(questoes, start=1)])
+        return sid
+    return db.transacao(fn)
+
+
+def _simulado_aberto(uid: int) -> dict | None:
+    return db.um(
+        """SELECT id, modelo, titulo, duracao_min, total, EXTRACT(EPOCH FROM now() - iniciado_em)::int AS decorrido
+           FROM simulado WHERE usuario_id = %s AND status = 'em_andamento' ORDER BY id DESC LIMIT 1""", (uid,))
+
+
+def _questoes_simulado(sid: int) -> list[dict]:
+    return db.consultar(
+        """SELECT sq.ordem, sq.alternativa_id, sq.acertou, q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado,
+                  q.texto_apoio, q.comentario, q.dica, q.status::text AS status, q.origem::text AS origem, q.fonte,
+                  m.nome AS materia,
+                  (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
+                    WHERE qa.questao_id = q.id) AS assuntos
+           FROM simulado_questao sq JOIN questao q ON q.id = sq.questao_id JOIN materia m ON m.id = q.materia_id
+           WHERE sq.simulado_id = %s ORDER BY sq.ordem""", (sid,))
+
+
+def _marcar(sid: int, qid: int, chave: str, opcoes: dict):
+    """Salva a marcação na hora (callback do botão de opção). Depois do fim do tempo, não grava mais."""
+    rotulo = st.session_state.get(chave)
+    alt = opcoes.get(rotulo) if rotulo else None
+    db.executar(
+        """UPDATE simulado_questao sq SET alternativa_id = %s, marcada_em = now()
+           FROM simulado s
+           WHERE s.id = sq.simulado_id AND sq.simulado_id = %s AND sq.questao_id = %s AND s.status = 'em_andamento'
+             AND (s.duracao_min IS NULL OR now() <= s.iniciado_em + make_interval(mins => s.duracao_min) + make_interval(secs => %s))""",
+        (alt, sid, qid, FOLGA_SEG))
+
+
+def _em_branco(sid: int, qid: int, chave: str):
+    st.session_state[chave] = None
+    _marcar(sid, qid, chave, {})
+
+
+def _entregar(sid: int, uid: int, por_tempo: bool = False) -> bool:
+    """Fecha o simulado, corrige e lança as respostas no desempenho do aluno. Só funciona uma vez."""
+    def fn(conn):
+        ok = conn.execute(
+            """UPDATE simulado SET status = 'finalizado', finalizado_em = now(), por_tempo = %s,
+                      tempo_seg = LEAST(EXTRACT(EPOCH FROM now() - iniciado_em)::int, COALESCE(duracao_min * 60, 2147483647))
+               WHERE id = %s AND usuario_id = %s AND status = 'em_andamento' RETURNING id""",
+            (por_tempo, sid, uid)).fetchone()
+        if not ok:
+            return False
+        conn.execute("""UPDATE simulado_questao sq SET acertou = a.correta FROM alternativa a
+                        WHERE sq.simulado_id = %s AND a.id = sq.alternativa_id""", (sid,))
+        conn.execute("""INSERT INTO resposta (usuario_id, questao_id, alternativa_id, acertou, simulado_id, respondida_em)
+                        SELECT %s, sq.questao_id, sq.alternativa_id, sq.acertou, %s, COALESCE(sq.marcada_em, now())
+                        FROM simulado_questao sq WHERE sq.simulado_id = %s AND sq.alternativa_id IS NOT NULL""",
+                     (uid, sid, sid))
+        conn.execute("""UPDATE simulado SET
+                            acertos = (SELECT COUNT(*) FROM simulado_questao WHERE simulado_id = %s AND acertou),
+                            total   = (SELECT COUNT(*) FROM simulado_questao WHERE simulado_id = %s)
+                        WHERE id = %s""", (sid, sid, sid))
+        return True
+    return db.transacao(fn)
+
+
+def _depois_de_entregar(sid: int):
+    st.session_state["sim_ver"] = sid
+    st.session_state.pop("filtro_ativo", None)          # a lista de "Resolver questões" passa a ver as novas respostas
+    for k in [k for k in st.session_state if str(k).startswith(f"sim_{sid}_")]:
+        del st.session_state[k]
+
+
+# ------------------------------------------------------------------ prova
+def _cronometro(restante: int | None, decorrido: int):
+    """Relógio que corre no navegador (não recarrega a página). Fica vermelho nos 5 minutos finais."""
+    rest = "null" if restante is None else int(restante)
+    components.html(
+        f"""<style>body{{margin:0;font:600 1.2rem ui-monospace,Menlo,Consolas,monospace;color:#4B5A23}}
+        @media (prefers-color-scheme: dark){{body{{color:#B5C77A}}}}</style>
+        <div id="c">⏱</div>
+        <script>
+        const ini = Date.now(), rest = {rest}, dec = {int(decorrido)}, el = document.getElementById('c');
+        function f(s){{s = Math.max(0, Math.floor(s)); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+          return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0');}}
+        function tick(){{ const p = (Date.now() - ini) / 1000;
+          if (rest === null) {{ el.textContent = '⏱ ' + f(dec + p) + ' (sem limite de tempo)'; return; }}
+          const r = rest - p;
+          el.textContent = r > 0 ? '⏱ Faltam ' + f(r) : '⏱ Tempo esgotado: entregando...';
+          el.style.color = r <= 300 ? '#C0392B' : ''; }}
+        tick(); setInterval(tick, 1000);
+        </script>""",
+        height=36,
+    )
+
+
+@st.fragment(run_every=10)
+def _vigia_tempo(fim_epoch: float):
+    """A cada 10 s confere se o tempo acabou; se acabou, recarrega a tela, que entrega o simulado sozinha."""
+    if time.time() >= fim_epoch:
+        st.rerun()
+
+
+def _mapa(qs: list[dict], atual: int | None = None, corrigido: bool = False):
+    cel = []
+    for i, q in enumerate(qs):
+        if corrigido:
+            cls = "branco" if q["alternativa_id"] is None else ("certa" if q["acertou"] else "errada")
+        else:
+            cls = "ok" if q["alternativa_id"] else ""
+        if i == atual:
+            cls += " atual"
+        cel.append(f'<span class="mq {cls}">{i + 1}</span>')
+    st.markdown(f'<div class="mapa">{"".join(cel)}</div>', unsafe_allow_html=True)
+
+
+def _ir(chave: str, valor: int):
+    st.session_state[chave] = valor
+
+
+def _clique_entregar(sid: int, uid: int):
+    _entregar(sid, uid)
+    _depois_de_entregar(sid)
+
+
+def _clique_descartar(sid: int, uid: int):
+    db.executar("UPDATE simulado SET status = 'descartado', finalizado_em = now() "
+                "WHERE id = %s AND usuario_id = %s AND status = 'em_andamento'", (sid, uid))
+    for k in [k for k in st.session_state if str(k).startswith(f"sim_{sid}_")]:
+        del st.session_state[k]
+
+
+def _prova(sim: dict, usuario: dict) -> bool:
+    """Tela da prova. Devolve False se o tempo tinha acabado (aí o simulado é entregue e o resultado aparece)."""
+    sid, uid = sim["id"], usuario["id"]
+    restante = None if sim["duracao_min"] is None else sim["duracao_min"] * 60 - sim["decorrido"]
+    if restante is not None and restante <= 0:
+        _entregar(sid, uid, por_tempo=True)
+        _depois_de_entregar(sid)
+        st.session_state["sim_msg"] = "O tempo acabou e o simulado foi entregue automaticamente."
+        return False
+
+    for aviso in st.session_state.pop("sim_avisos", []):
+        st.info(aviso)
+    qs = _questoes_simulado(sid)
+    n = len(qs)
+    feitas = sum(q["alternativa_id"] is not None for q in qs)
+
+    st.subheader(sim["titulo"])
+    c1, c2 = st.columns([1.2, 1])
+    with c1:
+        _cronometro(restante, sim["decorrido"])
+    c2.progress(feitas / n if n else 0, text=f"Respondidas: {feitas} de {n}")
+    if restante is not None:
+        _vigia_tempo(time.time() + restante)
+    st.caption("Gabarito e comentários só aparecem quando você entregar. Cada marcação fica salva na hora: "
+               "se a internet cair, é só entrar de novo que o simulado continua de onde parou.")
+
+    chave_pos = f"sim_{sid}_pos"
+    if st.session_state.get(chave_pos) not in range(n):
+        st.session_state[chave_pos] = 0
+    _mapa(qs, st.session_state[chave_pos])
+    # Rótulo fixo de propósito: se ele mudasse ao responder, o Streamlit perderia a posição e voltaria para a 1.
+    # Quem mostra o que já foi respondido é o mapa acima.
+    pos = st.selectbox("Ir para a questão", list(range(n)), key=chave_pos,
+                       format_func=lambda i: f"Questão {i + 1} · {qs[i]['materia']}")
+    q = qs[pos]
+
+    if q["texto_apoio"]:
+        mesmo = [i for i, x in enumerate(qs) if x["texto_apoio"] == q["texto_apoio"]]
+        _texto_apoio(q, expandido=pos == mesmo[0])
+        if len(mesmo) > 1:
+            st.caption(f"Este texto vale para as questões {mesmo[0] + 1} a {mesmo[-1] + 1}.")
+    _cartao(q, cabecalho=f"Questão {pos + 1} de {n} · {q['materia']}")
+
+    alts = _alternativas(q["id"])
+    opcoes = {f"{a['letra']}) {a['texto']}": a["id"] for a in alts}
+    chave = f"sim_{sid}_q{q['id']}"
+    if chave not in st.session_state:
+        st.session_state[chave] = next((r for r, i in opcoes.items() if i == q["alternativa_id"]), None)
+    st.radio("Sua resposta", list(opcoes), key=chave, on_change=_marcar, args=(sid, q["id"], chave, opcoes),
+             label_visibility="collapsed")
+
+    b1, b2, b3 = st.columns(3)
+    b1.button("◀ Anterior", disabled=pos == 0, width="stretch", key=f"sim_{sid}_ant",
+              on_click=_ir, args=(chave_pos, pos - 1))
+    b2.button("Deixar em branco", disabled=q["alternativa_id"] is None, width="stretch", key=f"sim_{sid}_branco",
+              on_click=_em_branco, args=(sid, q["id"], chave))
+    b3.button("Próxima ▶", disabled=pos >= n - 1, width="stretch", key=f"sim_{sid}_prox",
+              on_click=_ir, args=(chave_pos, pos + 1))
+
+    st.divider()
+    brancos = n - feitas
+    with st.container(border=True):
+        st.markdown("**Entregar o simulado**")
+        pode = True
+        if brancos:
+            pode = st.checkbox(f"Entregar mesmo com {brancos} questão(ões) em branco", key=f"sim_{sid}_conf")
+        st.button("Entregar e ver o resultado", type="primary", disabled=not pode, key=f"sim_{sid}_entregar",
+                  on_click=_clique_entregar, args=(sid, uid))
+    with st.expander("Desistir deste simulado"):
+        st.caption("O simulado é descartado: nada entra no seu desempenho e as questões continuam como não feitas.")
+        if st.toggle("Quero descartar este simulado", key=f"sim_{sid}_desistir"):
+            st.button("Descartar simulado", key=f"sim_{sid}_descartar", on_click=_clique_descartar, args=(sid, uid))
+    return True
+
+
+# ------------------------------------------------------------------ resultado
+def _resultado(sid: int, usuario: dict):
+    s = db.um("""SELECT id, modelo, titulo, iniciado_em, tempo_seg, por_tempo, duracao_min, status
+                 FROM simulado WHERE id = %s AND usuario_id = %s""", (sid, usuario["id"]))
+    if not s or s["status"] != "finalizado":
+        st.info("Simulado não encontrado.")
+        return
+    msg = st.session_state.pop("sim_msg", None)
+    if msg:
+        st.warning(msg)
+    qs = _questoes_simulado(sid)
+    total = len(qs)
+    acertos = sum(bool(q["acertou"]) for q in qs)
+    brancos = sum(q["alternativa_id"] is None for q in qs)
+    pct = 100 * acertos / total if total else 0
+
+    st.subheader(f"Resultado · {s['titulo']}")
+    extra = " · entregue automaticamente quando o tempo acabou" if s["por_tempo"] else ""
+    st.caption(f"Feito em {_local(s['iniciado_em']):%d/%m/%Y às %H:%M} · tempo usado: {_fmt_tempo(s['tempo_seg'])}"
+               + (f" de {_fmt_tempo(s['duracao_min'] * 60)}" if s["duracao_min"] else "") + extra)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Nota (0 a 10)", _nota_txt(acertos, total))
+    c2.metric("Acertos", f"{acertos} de {total} ({pct:.0f}%)")
+    c3.metric("Erros", total - acertos - brancos)
+    c4.metric("Em branco", brancos)
+
+    df = pd.DataFrame([{"materia": q["materia"], "acertou": bool(q["acertou"])} for q in qs])
+    por_mat = df.groupby("materia")["acertou"].agg(["sum", "count"]).reset_index()
+    if s["modelo"] == "cfs":
+        ed = db.um("SELECT nota_minima_pct FROM edital ORDER BY ano DESC, id DESC LIMIT 1")
+        minimo = float(ed["nota_minima_pct"]) if ed and ed["nota_minima_pct"] is not None else 50.0
+        zerou = por_mat[por_mat["sum"] == 0]["materia"].tolist()
+        partes = " · ".join(f"{r.materia}: {int(r.sum)} de {int(r.count)}" for r in por_mat.itertuples())
+        if pct >= minimo and not zerou:
+            st.success(f"Pela regra do edital (pelo menos {minimo:.0f}% e sem zerar matéria) você estaria aprovado. {partes}")
+        else:
+            motivo = f"zerou {', '.join(zerou)}" if zerou else f"ficou abaixo de {minimo:.0f}%"
+            st.error(f"Pela regra do edital você ainda não passaria: {motivo}. {partes}")
+
+    ass = db.consultar(
+        """SELECT COALESCE(d.sigla, m.nome) AS grupo, a.nome AS assunto, COUNT(*) AS questoes,
+                  COUNT(*) FILTER (WHERE sq.acertou) AS acertos
+           FROM simulado_questao sq JOIN questao_assunto qa ON qa.questao_id = sq.questao_id
+           JOIN assunto a ON a.id = qa.assunto_id JOIN materia m ON m.id = a.materia_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE sq.simulado_id = %s GROUP BY 1, 2""", (sid,))
+    da = pd.DataFrame(ass)
+    if not da.empty:
+        da["pct"] = (100 * da["acertos"] / da["questoes"]).round(0)
+        dg = da.groupby("grupo")[["questoes", "acertos"]].sum().reset_index()
+        dg["pct"] = (100 * dg["acertos"] / dg["questoes"]).round(0)
+        barra = st.column_config.ProgressColumn("% de acerto", min_value=0, max_value=100, format="%d%%")
+        st.markdown("**Desempenho por matéria / lei**")
+        st.dataframe(dg.sort_values(["pct", "questoes"], ascending=[True, False]).rename(
+            columns={"grupo": "Matéria / lei", "questoes": "Questões", "acertos": "Acertos"}),
+            hide_index=True, width="stretch", column_config={"pct": barra})
+        st.markdown("**Desempenho por assunto** (do mais fraco para o mais forte)")
+        st.dataframe(da.sort_values(["pct", "questoes"], ascending=[True, False]).rename(
+            columns={"grupo": "Lei", "assunto": "Assunto", "questoes": "Questões", "acertos": "Acertos"}),
+            hide_index=True, width="stretch", column_config={"pct": barra})
+
+    st.subheader("Revisão com gabarito e comentários")
+    _mapa(qs, corrigido=True)
+    st.caption("Verde: acertou · vermelho: errou · cinza: em branco.")
+    filtros = {"Todas": lambda q: True,
+               "Só as que errei": lambda q: q["alternativa_id"] is not None and not q["acertou"],
+               "Só as em branco": lambda q: q["alternativa_id"] is None,
+               "Só as que acertei": lambda q: bool(q["acertou"])}
+    f = st.radio("Mostrar", list(filtros), horizontal=True, key=f"simrev_{sid}_f")
+    sel = [i for i, q in enumerate(qs) if filtros[f](q)]
+    if not sel:
+        st.info("Nenhuma questão nesse filtro.")
+        return
+    chave_p = f"simrev_{sid}_p"
+    if st.session_state.get(f"simrev_{sid}_fant") != f:
+        st.session_state[f"simrev_{sid}_fant"] = f
+        st.session_state[chave_p] = 0
+    total_pag = (len(sel) + REVISAO_POR_PAGINA - 1) // REVISAO_POR_PAGINA
+    pag = min(st.session_state.get(chave_p, 0), total_pag - 1)
+    fundo = marca_dagua(usuario["nome"], usuario["login"])
+    for i in sel[pag * REVISAO_POR_PAGINA:(pag + 1) * REVISAO_POR_PAGINA]:
+        q = qs[i]
+        st.divider()
+        st.markdown(f"**Questão {i + 1}** · {esc(q['materia'])}")
+        _texto_apoio(q)
+        _cartao(q)
+        _correcao(q, _alternativas(q["id"]), q["alternativa_id"], fundo)
+        _estatistica_turma(q["id"])
+        _reportar(q, usuario, st)
+    st.divider()
+    a, b, c = st.columns([1, 2, 1])
+    a.button("◀ Anteriores", disabled=pag == 0, width="stretch", key=f"simrev_{sid}_ant", on_click=_ir, args=(chave_p, pag - 1))
+    b.markdown(f"<div style='text-align:center;padding-top:6px'>Página {pag + 1} de {total_pag} · {len(sel)} questões</div>",
+               unsafe_allow_html=True)
+    c.button("Próximas ▶", disabled=pag >= total_pag - 1, width="stretch", key=f"simrev_{sid}_prox",
+             on_click=_ir, args=(chave_p, pag + 1))
+
+
+# ------------------------------------------------------------------ montagem
+def _limpa_escolha(chave: str, validas):
+    v = st.session_state.get(chave)
+    if isinstance(v, list):
+        st.session_state[chave] = [x for x in v if x in validas]
+
+
+def _montagem(usuario: dict):
+    uid, perfil = usuario["id"], usuario["perfil"]
+    st.caption("Prova com cronômetro e sem gabarito durante a resolução. No fim: nota, desempenho por assunto e "
+               "revisão com os comentários. Tudo fica guardado em **Meu desempenho**.")
+    incluir = True
+    if perfil != "aluno":
+        incluir = st.toggle("Incluir questões ainda em revisão", value=True, key="sim_rev",
+                            help="Alunos só recebem questões aprovadas.")
+    status = status_visiveis(perfil, incluir)
+    c1, c2 = st.columns(2)
+    so_ined = c1.toggle("Só questões inéditas", key="sim_ined", help="Deixa de fora as questões de provas anteriores.")
+    nao_rep = c2.toggle("Não repetir questões que já fiz", key="sim_nrep",
+                        help="Deixa de fora tudo o que você já respondeu, no app ou em simulados entregues.")
+    banco = _banco_simulado(uid, status, so_ined, nao_rep)
+    st.caption(f"{len(banco)} questões disponíveis com essas opções.")
+    if not banco:
+        st.info("Não há questões disponíveis com essas opções. Desmarque \"Não repetir\" ou \"Só inéditas\".")
+        return
+    config = {"so_ineditas": so_ined, "nao_repetir": nao_rep, "status": status}
+
+    t1, t2 = st.tabs(["🎯 Simulado modelo CFS", "🛠️ Montar meu simulado"])
+    with t1:
+        n_leg = sum(CFS_LEGISLACAO.values())
+        st.markdown(f"**{CFS_PORTUGUES + n_leg} questões, como na prova do CFS 2026:** {CFS_PORTUGUES} de Língua "
+                    f"Portuguesa ({CFS_PORT_TEXTO} a partir de textos) e {n_leg} de Legislação, na mesma "
+                    "distribuição de leis da prova.")
+        with st.expander("Ver quantas questões de cada lei"):
+            st.dataframe(pd.DataFrame([{"Lei": k, "Questões": v} for k, v in CFS_LEGISLACAO.items()]),
+                         hide_index=True, width="stretch")
+            st.caption("As 2 questões da Portaria 167 (fora do edital) viraram 1 da CE/MS e 1 do Dec. 10.769/02.")
+        st.number_input("Tempo de prova (minutos)", 10, 360, CFS_MINUTOS, step=10, key="sim_cfs_min")
+        st.button("Começar simulado modelo CFS", type="primary", key="sim_cfs_ir",
+                  on_click=_comecar_cfs, args=(uid, banco, config))
+
+    with t2:
+        arvore = [g for g in _arvore(status, "inedita" if so_ined else "")]
+        cont_g: dict[str, int] = {}
+        cont_a: dict[int, int] = {}
+        for q in banco:
+            cont_g[q["grupo"]] = cont_g.get(q["grupo"], 0) + 1
+            for a in q["assuntos"]:
+                cont_a[a] = cont_a.get(a, 0) + 1
+        grupos_ok = {g["sigla"]: g for g in arvore if cont_g.get(g["sigla"])}
+        # Rótulos sem contagem: se a contagem mudasse (ex.: ao ligar "não repetir"), o Streamlit perderia a escolha.
+        _limpa_escolha("sim_grupos", grupos_ok)
+        grupos = st.multiselect(
+            "Matérias / leis", list(grupos_ok), key="sim_grupos", placeholder="Todas (marque para escolher só algumas)",
+            format_func=lambda s: s + (f" · {grupos_ok[s]['popular']}" if grupos_ok[s]["popular"]
+                                       and grupos_ok[s]["popular"] != s else ""))
+        subs = {a["id"]: (g["sigla"], a["nome"]) for s in grupos for g in [grupos_ok[s]] for a in g["subs"]
+                if cont_a.get(a["id"])}
+        _limpa_escolha("sim_assuntos", subs)
+        assuntos = st.multiselect(
+            "Assuntos (opcional)", list(subs), key="sim_assuntos", disabled=not grupos,
+            placeholder="Todos os assuntos das leis escolhidas" if grupos else "Escolha primeiro as matérias/leis",
+            format_func=lambda i: f"{subs[i][0]} › {subs[i][1]}")
+        n_escolha = sum(1 for q in banco if (not grupos or q["grupo"] in grupos)
+                        and (not assuntos or set(q["assuntos"]) & set(assuntos)))
+        st.caption(f"{n_escolha} questões disponíveis nessa escolha.")
+        c1, c2, c3 = st.columns([1, 1, 1])
+        qtd = c1.number_input("Quantidade de questões", 5, 100, 20, step=5, key="sim_qtd")
+        cron = c2.toggle("Com cronômetro", value=True, key="sim_cron")
+        c3.number_input("Tempo (minutos)", 5, 360, 60, step=5, key="sim_min", disabled=not cron)
+        ritmo = CFS_MINUTOS / (CFS_PORTUGUES + sum(CFS_LEGISLACAO.values()))
+        st.caption(f"No ritmo do simulado modelo ({ritmo:.1f} min por questão), {qtd} questões pedem cerca de "
+                   f"{round(qtd * ritmo)} min. As questões são divididas igualmente entre as matérias/leis escolhidas.")
+        st.button("Começar meu simulado", type="primary", key="sim_pers_ir",
+                  on_click=_comecar_personalizado, args=(uid, banco, config))
+
+
+# Os botões de começar rodam como callback: o simulado já nasce antes de a tela ser desenhada de novo.
+def _comecar_cfs(uid: int, banco: list[dict], config: dict):
+    qs, avisos = _sortear_cfs(banco)
+    if len(qs) < 10:
+        st.session_state["sim_erro"] = "Poucas questões disponíveis para montar o simulado modelo. Desmarque alguma opção acima."
+        return
+    _criar_simulado(uid, "cfs", "Simulado modelo CFS", qs, int(st.session_state.get("sim_cfs_min", CFS_MINUTOS)), config)
+    st.session_state["sim_avisos"] = avisos
+
+
+def _comecar_personalizado(uid: int, banco: list[dict], config: dict):
+    ss = st.session_state
+    grupos, assuntos, qtd = ss.get("sim_grupos") or [], ss.get("sim_assuntos") or [], int(ss.get("sim_qtd", 20))
+    qs, disponiveis = _sortear_personalizado(banco, grupos, set(assuntos), qtd)
+    if not qs:
+        ss["sim_erro"] = "Nenhuma questão com essas escolhas."
+        return
+    nome = (", ".join(grupos[:3]) + ("…" if len(grupos) > 3 else "")) if grupos else "todas as matérias"
+    minutos = int(ss.get("sim_min", 60)) if ss.get("sim_cron", True) else None
+    _criar_simulado(uid, "personalizado", f"Simulado personalizado · {nome}", qs, minutos,
+                    config | {"grupos": grupos, "assuntos": assuntos, "quantidade": qtd})
+    ss["sim_avisos"] = [f"Só havia {disponiveis} questões com essas escolhas: o simulado ficou com {len(qs)}."] \
+        if len(qs) < qtd else []
+
+
+def tela_simulados(usuario: dict):
+    st.header("Simulados")
+    if not st.session_state.get("sim_ver"):
+        aberto = _simulado_aberto(usuario["id"])
+        if aberto and _prova(aberto, usuario):
+            return
+    ver = st.session_state.get("sim_ver")
+    if ver:
+        st.button("◀ Voltar para os simulados", key="sim_voltar", on_click=lambda: st.session_state.pop("sim_ver", None))
+        _resultado(ver, usuario)
+        return
+    erro = st.session_state.pop("sim_erro", None)
+    if erro:
+        st.error(erro)
+    _montagem(usuario)
+
+
+def _abrir_resultado(chave: str):
+    st.session_state["sim_ver"] = st.session_state[chave]
+    st.session_state["menu"] = "Simulados"
+
+
+def _historico_simulados(usuario: dict):
+    sims = db.consultar(
+        """SELECT id, modelo, titulo, iniciado_em, total, acertos, tempo_seg, por_tempo
+           FROM simulado WHERE usuario_id = %s AND status = 'finalizado' ORDER BY iniciado_em DESC""", (usuario["id"],))
+    st.subheader("Meus simulados")
+    if not sims:
+        st.caption("Você ainda não entregou nenhum simulado. Vá em **Simulados** para fazer o primeiro.")
+        return
+    linhas = [{"Data": f"{_local(s['iniciado_em']):%d/%m/%Y %H:%M}",
+               "Simulado": "Modelo CFS" if s["modelo"] == "cfs" else s["titulo"].replace("Simulado personalizado · ", ""),
+               "Questões": s["total"], "Acertos": s["acertos"], "Nota": _nota_txt(s["acertos"] or 0, s["total"] or 0),
+               "% de acerto": round(100 * (s["acertos"] or 0) / s["total"]) if s["total"] else 0,
+               "Tempo": _fmt_tempo(s["tempo_seg"]) + (" (esgotou)" if s["por_tempo"] else "")} for s in sims]
+    st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch",
+                 column_config={"% de acerto": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%d%%")})
+    if len(sims) >= 2:
+        evol = pd.DataFrame([{"Simulado": i + 1, "% de acerto": l["% de acerto"]}
+                             for i, l in enumerate(reversed(linhas))]).set_index("Simulado")
+        st.caption("Evolução (do primeiro para o último simulado)")
+        st.line_chart(evol, y_label="% de acerto", x_label="Simulado")
+    rot = {s["id"]: f"{l['Data']} · {l['Simulado']} · nota {l['Nota']}" for s, l in zip(sims, linhas)}
+    c1, c2 = st.columns([2, 1])
+    c1.selectbox("Abrir um simulado", list(rot), format_func=rot.get, key="hist_sim", label_visibility="collapsed")
+    c2.button("Ver resultado e revisão", key="hist_abrir", width="stretch", on_click=_abrir_resultado, args=("hist_sim",))
 
 
 # ======================================================================
@@ -970,11 +1594,14 @@ def tela_desempenho(usuario: dict):
                    FROM resposta WHERE usuario_id = %s""", (uid,))
     if not tot["n"]:
         st.info("Você ainda não respondeu nenhuma questão. Vá em **Resolver questões** para começar.")
+        _historico_simulados(usuario)
         return
     c1, c2, c3 = st.columns(3)
     c1.metric("Respostas", tot["n"])
     c2.metric("Acertos", f"{100 * tot['ok'] / tot['n']:.0f}%")
     c3.metric("Questões diferentes", tot["distintas"])
+
+    _historico_simulados(usuario)
 
     tipo = db.consultar(
         """SELECT CASE q.tipo WHEN 'caso_pratico' THEN 'Caso prático' WHEN 'portugues' THEN 'Português' ELSE 'Lei seca' END AS tipo,
@@ -1229,7 +1856,7 @@ if usuario["trocar_senha"]:
 aplicar_marca_dagua(usuario["nome"], usuario["login"])
 
 # 6) Menu conforme o perfil.
-TELAS = {"Resolver questões": tela_questoes, "Meu desempenho": tela_desempenho}
+TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Meu desempenho": tela_desempenho}
 if usuario["perfil"] in ("admin", "revisor"):
     TELAS["Revisão da equipe"] = tela_revisao
 if usuario["perfil"] == "admin":
