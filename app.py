@@ -1323,6 +1323,231 @@ def _historico_simulados(usuario: dict):
 
 
 # ======================================================================
+# TELAS_MATERIAIS
+# ======================================================================
+# Resumos e mapas mentais em PDF. O arquivo fica "limpo" no banco; na hora do download o app carimba
+# em todas as páginas o nome, o usuário, a data e um código único (registrado em material_download).
+TIPOS_MATERIAL = {"resumo": "Resumo em PDF", "mapa": "Mapa mental"}
+LIMITE_MATERIAL_MB = 15
+
+
+@st.cache_resource(show_spinner=False)
+def _garante_materiais() -> bool:
+    db.executar(
+        """CREATE TABLE IF NOT EXISTS material_estudo (
+               id SERIAL PRIMARY KEY, titulo TEXT NOT NULL UNIQUE, lei TEXT NOT NULL,
+               tipo TEXT NOT NULL CHECK (tipo IN ('resumo', 'mapa')), descricao TEXT, arquivo BYTEA NOT NULL,
+               tamanho INT NOT NULL, paginas INT, publicado BOOLEAN NOT NULL DEFAULT FALSE, ordem INT NOT NULL DEFAULT 0,
+               enviado_por INT REFERENCES usuario(id), criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+               atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    db.executar(
+        """CREATE TABLE IF NOT EXISTS material_download (
+               id BIGSERIAL PRIMARY KEY, material_id INT NOT NULL REFERENCES material_estudo(id) ON DELETE CASCADE,
+               usuario_id INT NOT NULL REFERENCES usuario(id), codigo TEXT NOT NULL UNIQUE,
+               baixado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    return True
+
+
+def _pagina_marca(largura: float, altura: float, nome: str, login: str, codigo: str, quando: str):
+    """Uma página transparente com a marca-d'água (texto diagonal repetido) e a faixa de licença no topo."""
+    from io import BytesIO
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=(largura, altura))
+    texto = f"{nome} · {login} · {codigo}"
+    c.saveState()
+    c.setFillColorRGB(0.35, 0.35, 0.35)
+    c.setFillAlpha(0.075)
+    c.setFont("Helvetica-Bold", 17)
+    c.translate(largura / 2, altura / 2)
+    c.rotate(32)
+    passo_x, passo_y = c.stringWidth(texto, "Helvetica-Bold", 17) + 70, 120
+    diag = (largura ** 2 + altura ** 2) ** 0.5
+    y = -diag / 2
+    linha = 0
+    while y < diag / 2:
+        x = -diag / 2 - (passo_x / 2 if linha % 2 else 0)
+        while x < diag / 2:
+            c.drawString(x, y, texto)
+            x += passo_x
+        y += passo_y
+        linha += 1
+    c.restoreState()
+    c.setFillColorRGB(0.29, 0.35, 0.14)
+    c.setFillAlpha(0.9)
+    c.setFont("Helvetica", 6.5)
+    c.drawCentredString(largura / 2, altura - 12,
+                        f"Licenciado para {nome} ({login}) em {quando} · código {codigo} · "
+                        "uso pessoal: proibido compartilhar ou reproduzir")
+    c.save()
+    return PdfReader(BytesIO(buf.getvalue())).pages[0]
+
+
+def carimbar_pdf(dados: bytes, titulo: str, nome: str, login: str, codigo: str, quando: str) -> bytes:
+    from io import BytesIO
+    from pypdf import PdfReader, PdfWriter
+
+    leitor = PdfReader(BytesIO(dados))
+    escritor = PdfWriter()
+    marcas = {}
+    for pag in leitor.pages:
+        w, h = float(pag.mediabox.width), float(pag.mediabox.height)
+        chave = (round(w), round(h))
+        if chave not in marcas:
+            marcas[chave] = _pagina_marca(w, h, nome, login, codigo, quando)
+        pag.merge_page(marcas[chave])
+        escritor.add_page(pag)
+    for pag in escritor.pages:
+        pag.compress_content_streams()
+    escritor.compress_identical_objects(remove_identicals=True, remove_orphans=True)
+    escritor.add_metadata({"/Title": titulo, "/Author": NOME_APP,
+                           "/Subject": f"Licenciado para {nome} ({login}) · código {codigo}"})
+    saida = BytesIO()
+    escritor.write(saida)
+    return saida.getvalue()
+
+
+def _nome_arquivo(titulo: str, login: str) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", titulo.lower().translate(str.maketrans("áàâãéêíóôõúüç", "aaaaeeiooouuc"))).strip("-")
+    return f"{base}-{login}.pdf"
+
+
+def _preparar_material(m: dict, usuario: dict):
+    """Gera o PDF carimbado para este usuário e registra o download com um código único."""
+    arq = db.um("SELECT arquivo FROM material_estudo WHERE id = %s", (m["id"],))
+    codigo = secrets.token_hex(3).upper()
+    while db.um("SELECT 1 AS ok FROM material_download WHERE codigo = %s", (codigo,)):
+        codigo = secrets.token_hex(3).upper()
+    quando = f"{_local(pd.Timestamp.now(tz='UTC').to_pydatetime()):%d/%m/%Y %H:%M}"
+    pdf = carimbar_pdf(bytes(arq["arquivo"]), m["titulo"], usuario["nome"], usuario["login"], codigo, quando)
+    db.executar("INSERT INTO material_download (material_id, usuario_id, codigo) VALUES (%s, %s, %s)",
+                (m["id"], usuario["id"], codigo))
+    st.session_state[f"mat_pdf_{m['id']}"] = (pdf, codigo)
+
+
+def tela_materiais(usuario: dict):
+    st.header("Materiais")
+    _garante_materiais()
+    equipe = usuario["perfil"] in ("admin", "revisor")
+    st.caption("Resumos e mapas mentais feitos a partir do texto oficial das leis. Cada PDF sai com o **seu nome e um "
+               "código** em todas as páginas: é para seu estudo, não compartilhe.")
+    if usuario["perfil"] == "admin":
+        with st.expander("⚙️ Gerenciar materiais (só administrador)"):
+            _gerenciar_materiais(usuario)
+
+    mats = db.consultar(
+        """SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado
+           FROM material_estudo WHERE publicado OR %s ORDER BY ordem, lei, tipo DESC, titulo""", (equipe,))
+    if not mats:
+        st.info("Ainda não há materiais publicados. Eles vão aparecer aqui.")
+        return
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    leis = sorted({m["lei"] for m in mats}, key=lambda s: (pos.get(s, len(pos)), s))
+    for lei in leis:
+        st.subheader(lei)
+        for m in [m for m in mats if m["lei"] == lei]:
+            with st.container(border=True):
+                rascunho = "" if m["publicado"] else " · 🔒 rascunho (alunos ainda não veem)"
+                st.markdown(f"**{esc(m['titulo'])}**", unsafe_allow_html=True)
+                st.caption(f"{TIPOS_MATERIAL.get(m['tipo'], m['tipo'])} · {m['paginas'] or '?'} página(s) · "
+                           f"{_mb(m['tamanho'])}{rascunho}")
+                if m["descricao"]:
+                    st.write(m["descricao"])
+                pronto = st.session_state.get(f"mat_pdf_{m['id']}")
+                c1, c2 = st.columns([1, 1.4])
+                if c1.button("Preparar meu PDF", key=f"mat_prep_{m['id']}", width="stretch",
+                             type="secondary" if pronto else "primary"):
+                    with st.spinner("Colocando seu nome no PDF..."):
+                        _preparar_material(m, usuario)
+                    pronto = st.session_state[f"mat_pdf_{m['id']}"]
+                if pronto:
+                    c2.download_button("📥 Baixar o PDF", data=pronto[0], file_name=_nome_arquivo(m["titulo"], usuario["login"]),
+                                       mime="application/pdf", key=f"mat_dl_{m['id']}", width="stretch", type="primary")
+                    st.caption(f"Pronto. Código deste PDF: **{pronto[1]}**.")
+
+
+def _gerenciar_materiais(usuario: dict):
+    leis = ["Língua Portuguesa"] + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
+    with st.form("mat_envio", clear_on_submit=True):
+        st.markdown("**Enviar material**")
+        arq = st.file_uploader("PDF (sem marca-d'água: o app coloca na hora do download)", type=["pdf"], key="mat_arq")
+        c1, c2, c3 = st.columns([1.2, 1, 1])
+        lei = c1.selectbox("Lei / matéria", leis, key="mat_lei")
+        tipo = _chave(TIPOS_MATERIAL, c2.selectbox("Tipo", list(TIPOS_MATERIAL.values()), key="mat_tipo"))
+        publicar = c3.checkbox("Publicar já para os alunos", key="mat_pub")
+        titulo = st.text_input("Título (ex.: LC 190/14 · Resumo esquematizado)", key="mat_tit")
+        descricao = st.text_area("Descrição curta (opcional)", key="mat_desc", height=68)
+        enviar = st.form_submit_button("Guardar material", type="primary")
+    if enviar:
+        from io import BytesIO
+        from pypdf import PdfReader
+        if not arq or not titulo.strip():
+            st.warning("Escolha o PDF e escreva o título.")
+        else:
+            dados = arq.getvalue()
+            try:
+                paginas = len(PdfReader(BytesIO(dados)).pages)
+            except Exception:
+                paginas = None
+            if paginas is None:
+                st.error("Esse arquivo não parece ser um PDF válido.")
+            elif len(dados) > LIMITE_MATERIAL_MB * 1048576:
+                st.error(f"PDF grande demais (limite de {LIMITE_MATERIAL_MB} MB).")
+            else:
+                db.executar(
+                    """INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado, enviado_por)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (titulo) DO UPDATE SET lei = EXCLUDED.lei, tipo = EXCLUDED.tipo,
+                           descricao = EXCLUDED.descricao, arquivo = EXCLUDED.arquivo, tamanho = EXCLUDED.tamanho,
+                           paginas = EXCLUDED.paginas, publicado = EXCLUDED.publicado, atualizado_em = now()""",
+                    (titulo.strip(), lei, tipo, descricao.strip() or None, dados, len(dados), paginas, publicar, usuario["id"]))
+                st.success(f"Material guardado ({paginas} páginas)." + ("" if publicar else " Ainda como rascunho."))
+
+    lista = db.consultar(
+        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.tamanho,
+                  COUNT(d.id) AS downloads, COUNT(DISTINCT d.usuario_id) AS pessoas
+           FROM material_estudo m LEFT JOIN material_download d ON d.material_id = m.id
+           GROUP BY m.id ORDER BY m.ordem, m.lei, m.titulo""")
+    if not lista:
+        return
+    st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
+                                "Situação": "Publicado" if m["publicado"] else "Rascunho", "Páginas": m["paginas"],
+                                "Downloads": m["downloads"], "Pessoas": m["pessoas"]} for m in lista]),
+                 hide_index=True, width="stretch")
+    rot = {m["id"]: f"{m['titulo']} ({'publicado' if m['publicado'] else 'rascunho'})" for m in lista}
+    mid = st.selectbox("Escolha um material", list(rot), format_func=rot.get, key="mat_sel")
+    m = next(x for x in lista if x["id"] == mid)
+    c1, c2 = st.columns(2)
+    if m["publicado"]:
+        if c1.button("Tirar do ar (voltar a rascunho)", key=f"mat_off_{mid}", width="stretch"):
+            db.executar("UPDATE material_estudo SET publicado = FALSE, atualizado_em = now() WHERE id = %s", (mid,))
+            st.rerun()
+    elif c1.button("Publicar para os alunos", key=f"mat_on_{mid}", type="primary", width="stretch"):
+        db.executar("UPDATE material_estudo SET publicado = TRUE, atualizado_em = now() WHERE id = %s", (mid,))
+        st.rerun()
+    if c2.toggle("Quero apagar este material", key=f"mat_apagar_t_{mid}"):
+        if c2.button("Apagar definitivamente", key=f"mat_apagar_{mid}", width="stretch"):
+            db.executar("DELETE FROM material_estudo WHERE id = %s", (mid,))
+            st.session_state.pop(f"mat_pdf_{mid}", None)
+            st.rerun()
+
+    st.markdown("**Rastrear um PDF que vazou**")
+    cod = st.text_input("Código impresso no topo das páginas", key="mat_rastro", max_chars=6,
+                        placeholder="ex.: A3F09C").strip().upper()
+    if cod:
+        r = db.um("""SELECT u.nome, u.login, m.titulo, d.baixado_em FROM material_download d
+                     JOIN usuario u ON u.id = d.usuario_id JOIN material_estudo m ON m.id = d.material_id
+                     WHERE d.codigo = %s""", (cod,))
+        if r:
+            st.warning(f"Código {cod}: **{esc(r['nome'])}** ({r['login']}) baixou \"{esc(r['titulo'])}\" "
+                       f"em {_local(r['baixado_em']):%d/%m/%Y às %H:%M}.")
+        else:
+            st.info("Nenhum download com esse código.")
+
+
+# ======================================================================
 # TELAS_GESTAO
 # ======================================================================
 STATUS = {"em_revisao": "Em revisão", "aprovada": "Aprovada", "desatualizada": "Desatualizada",
@@ -1856,7 +2081,8 @@ if usuario["trocar_senha"]:
 aplicar_marca_dagua(usuario["nome"], usuario["login"])
 
 # 6) Menu conforme o perfil.
-TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Meu desempenho": tela_desempenho}
+TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Materiais": tela_materiais,
+         "Meu desempenho": tela_desempenho}
 if usuario["perfil"] in ("admin", "revisor"):
     TELAS["Revisão da equipe"] = tela_revisao
 if usuario["perfil"] == "admin":
