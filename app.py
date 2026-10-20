@@ -1327,7 +1327,8 @@ def _historico_simulados(usuario: dict):
 # ======================================================================
 # Resumos e mapas mentais em PDF. O arquivo fica "limpo" no banco; na hora do download o app carimba
 # em todas as páginas o nome, o usuário, a data e um código único (registrado em material_download).
-TIPOS_MATERIAL = {"resumo": "Resumo em PDF", "mapa": "Mapa mental"}
+TIPOS_MATERIAL = {"lei": "Lei seca comentada", "resumo": "Resumo em PDF", "mapa": "Mapa mental"}
+ORDEM_TIPO_SQL = "CASE tipo WHEN 'lei' THEN 1 WHEN 'resumo' THEN 2 ELSE 3 END"
 LIMITE_MATERIAL_MB = 15
 
 
@@ -1336,7 +1337,7 @@ def _garante_materiais() -> bool:
     db.executar(
         """CREATE TABLE IF NOT EXISTS material_estudo (
                id SERIAL PRIMARY KEY, titulo TEXT NOT NULL UNIQUE, lei TEXT NOT NULL,
-               tipo TEXT NOT NULL CHECK (tipo IN ('resumo', 'mapa')), descricao TEXT, arquivo BYTEA NOT NULL,
+               tipo TEXT NOT NULL, descricao TEXT, arquivo BYTEA NOT NULL,
                tamanho INT NOT NULL, paginas INT, publicado BOOLEAN NOT NULL DEFAULT FALSE, ordem INT NOT NULL DEFAULT 0,
                enviado_por INT REFERENCES usuario(id), criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
                atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
@@ -1345,6 +1346,9 @@ def _garante_materiais() -> bool:
                id BIGSERIAL PRIMARY KEY, material_id INT NOT NULL REFERENCES material_estudo(id) ON DELETE CASCADE,
                usuario_id INT NOT NULL REFERENCES usuario(id), codigo TEXT NOT NULL UNIQUE,
                baixado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    # tipos aceitos (inclui 'lei' = lei seca comentada); refaz a regra caso a tabela venha da versão anterior
+    db.executar("ALTER TABLE material_estudo DROP CONSTRAINT IF EXISTS material_estudo_tipo_check")
+    db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa'))")
     return True
 
 
@@ -1438,8 +1442,8 @@ def tela_materiais(usuario: dict):
             _gerenciar_materiais(usuario)
 
     mats = db.consultar(
-        """SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado
-           FROM material_estudo WHERE publicado OR %s ORDER BY ordem, lei, tipo DESC, titulo""", (equipe,))
+        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado FROM material_estudo "
+        f"WHERE publicado OR %s ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo", (equipe,))
     if not mats:
         st.info("Ainda não há materiais publicados. Eles vão aparecer aqui.")
         return
