@@ -244,8 +244,26 @@ button[kind="primary"],button[kind="primaryFormSubmit"]{background:#4B5A23!impor
 .mq.certa{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);font-weight:600}
 .mq.errada{background:var(--erro-bg);color:var(--erro);border-color:var(--erro);font-weight:600}
 .mq.atual{outline:2px solid var(--bronze);outline-offset:1px;font-weight:700}
+.rx-grupo{margin:10px 0 12px}
+.rx-cab{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.95rem;margin-bottom:5px}
+.rx-pop{font-weight:400;color:var(--texto-suave);font-size:.85rem}
+.rx-res{margin-left:auto;font-weight:600;font-size:.82rem;color:var(--texto-suave)}
+.rx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
+.rx-chip{border-radius:8px;padding:6px 9px;border:1px solid var(--linha);display:flex;flex-direction:column;gap:2px;font-size:.8rem;line-height:1.3}
+.rx-chip .rx-num{font-weight:700;font-size:.78rem}
+.rx-num{color:var(--texto-suave);font-size:.8rem;margin-left:4px}
+.rx-dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;flex:none}
+.rx-leg{font-size:.75rem;color:var(--texto-suave);margin:4px 0 8px}
+.rx-leg .rx-dot{margin:0 3px 0 6px}
+.rx-chip.rx-vermelho{background:var(--erro-bg);border-color:var(--erro)} .rx-chip.rx-vermelho .rx-num{color:var(--erro)}
+.rx-chip.rx-amarelo{background:#FBF1D6;border-color:#D9A21B} .rx-chip.rx-amarelo .rx-num{color:#8A6A1F}
+.rx-chip.rx-verde{background:var(--ok-bg);border-color:var(--ok)} .rx-chip.rx-verde .rx-num{color:var(--ok)}
+.rx-chip.rx-cinza{background:rgba(128,128,128,.08)} .rx-chip.rx-branco{opacity:.65}
+.rx-dot.rx-vermelho{background:var(--erro)} .rx-dot.rx-amarelo{background:#D9A21B} .rx-dot.rx-verde{background:var(--ok)}
+.rx-dot.rx-cinza{background:#9E9E9E} .rx-dot.rx-branco{background:transparent;border:1px solid #9E9E9E}
 @media (prefers-color-scheme: dark){
  :root{--verde:#B5C77A;--verde-claro:#2A331C;--ok:#7FD39A;--ok-bg:#173222;--erro:#F19A90;--erro-bg:#3A1C19;--lei:#20261F;--linha:#2E372F;--texto-suave:#9AA597;--bronze:#D9B45E}
+ .rx-chip.rx-amarelo{background:#352A12;border-color:#B98A1E} .rx-chip.rx-amarelo .rx-num{color:#E8C26A}
  .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4} .etq.acervo{background:#332B1C;color:#E0C995}}
 </style>
 """
@@ -1181,6 +1199,9 @@ def _limpa_escolha(chave: str, validas):
 
 def _montagem(usuario: dict):
     uid, perfil = usuario["id"], usuario["perfil"]
+    if st.session_state.pop("sim_aviso_rx", False):
+        st.info("Seus pontos fracos do Raio-X já estão marcados na aba **🛠️ Montar meu simulado**. "
+                "Confira a quantidade e o tempo e comece.")
     st.caption("Prova com cronômetro e sem gabarito durante a resolução. No fim: nota, desempenho por assunto e "
                "revisão com os comentários. Tudo fica guardado em **Meu desempenho**.")
     incluir = True
@@ -1830,6 +1851,7 @@ def tela_desempenho(usuario: dict):
     c2.metric("Acertos", f"{100 * tot['ok'] / tot['n']:.0f}%")
     c3.metric("Questões diferentes", tot["distintas"])
 
+    _raio_x(usuario)
     _historico_simulados(usuario)
 
     tipo = db.consultar(
@@ -1845,11 +1867,208 @@ def tela_desempenho(usuario: dict):
         """SELECT a.nome AS assunto, COUNT(*) AS respostas, ROUND(100.0 * AVG(r.acertou::int), 0) AS pct
            FROM resposta r JOIN questao_assunto qa ON qa.questao_id = r.questao_id JOIN assunto a ON a.id = qa.assunto_id
            WHERE r.usuario_id = %s GROUP BY a.nome ORDER BY pct ASC, respostas DESC""", (uid,))
-    st.subheader("Por assunto (do mais fraco para o mais forte)")
-    df = pd.DataFrame(ass)
-    st.bar_chart(df.set_index("assunto")["pct"], horizontal=True, y_label="", x_label="% de acerto")
-    st.dataframe(df.rename(columns={"assunto": "Assunto", "respostas": "Respostas", "pct": "% de acerto"}),
-                 hide_index=True, width="stretch")
+    with st.expander("Tabela de todas as respostas por assunto"):
+        df = pd.DataFrame(ass)
+        st.dataframe(df.rename(columns={"assunto": "Assunto", "respostas": "Respostas", "pct": "% de acerto"}),
+                     hide_index=True, width="stretch")
+
+
+# ----------------------------------------------------------------------- RAIO-X DO DESEMPENHO
+# Para cada lei/matéria, cada assunto ganha uma cor pelo acerto do aluno, considerando a ÚLTIMA resposta de cada questão
+# (assim o Raio-X melhora quando o aluno refaz e acerta). Poucos dados (< RX_MINIMO questões) ficam em cinza.
+RX_MINIMO = 3
+RX_FAIXAS = [(50, "vermelho", "Prioridade"), (70, "amarelo", "Atenção"), (101, "verde", "Bom")]
+
+
+def _rx_cor(pct, n) -> tuple[str, str]:
+    if n == 0:
+        return "branco", "Não estudado"
+    if n < RX_MINIMO:
+        return "cinza", "Poucos dados"
+    return next((c, r) for lim, c, r in RX_FAIXAS if pct < lim)
+
+
+def _rx_dados(usuario: dict) -> list[dict]:
+    status = status_visiveis(usuario["perfil"], True)
+    linhas = db.consultar(
+        """WITH ultima AS (
+               SELECT DISTINCT ON (r.questao_id) r.questao_id, r.acertou
+               FROM resposta r WHERE r.usuario_id = %(u)s ORDER BY r.questao_id, r.respondida_em DESC),
+           disp AS (
+               SELECT qa.assunto_id, COUNT(DISTINCT q.id) AS total
+               FROM questao_assunto qa JOIN questao q ON q.id = qa.questao_id
+               WHERE q.status::text = ANY(%(st)s) AND q.origem::text <> 'material' GROUP BY 1),
+           feito AS (
+               SELECT qa.assunto_id, COUNT(*) AS n, SUM(u.acertou::int) AS ok
+               FROM ultima u JOIN questao_assunto qa ON qa.questao_id = u.questao_id GROUP BY 1)
+           SELECT a.id, a.nome, a.ordem, COALESCE(d.sigla, m.nome) AS grupo, COALESCE(d.id, 0) AS ordem_grupo,
+                  d.nome_popular, disp.total, COALESCE(f.n, 0) AS n, COALESCE(f.ok, 0) AS ok
+           FROM assunto a JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
+           JOIN disp ON disp.assunto_id = a.id LEFT JOIN feito f ON f.assunto_id = a.id""",
+        {"u": usuario["id"], "st": status})
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    grupos: dict[str, dict] = {}
+    for l in linhas:
+        l["pct"] = round(100 * l["ok"] / l["n"]) if l["n"] else None
+        l["cor"], l["rotulo_cor"] = _rx_cor(l["pct"], l["n"])
+        g = grupos.setdefault(l["grupo"], {"sigla": l["grupo"], "popular": l["nome_popular"], "ordem": l["ordem_grupo"],
+                                           "subs": [], "n": 0, "ok": 0})
+        g["subs"].append(l)
+        g["n"] += l["n"]
+        g["ok"] += l["ok"]
+    lista = sorted(grupos.values(), key=lambda g: (pos.get(g["sigla"], len(pos)), g["ordem"], g["sigla"]))
+    for g in lista:
+        g["subs"].sort(key=lambda a: (a["ordem"], a["nome"]))
+        g["pct"] = round(100 * g["ok"] / g["n"]) if g["n"] else None
+        g["cor"], _ = _rx_cor(g["pct"], g["n"])
+    return lista
+
+
+def _rx_treinar(sigla: str, assunto_id: int, perfil: str):
+    """Leva o aluno para Resolver questões já filtrado no assunto escolhido."""
+    arv = _arvore(status_visiveis(perfil, True), "")
+    g = next((x for x in arv if x["sigla"] == sigla), None)
+    if g is None:
+        return
+    st.session_state["f_orig"] = ORIGENS[""]
+    st.session_state["f_grupo"] = g["rotulo"]
+    st.session_state[f"f_sub_{sigla}"] = [a["rotulo"] for a in g["subs"] if a["id"] == assunto_id]
+    st.session_state.pop("filtro_ativo", None)
+    st.session_state["menu"] = "Resolver questões"
+
+
+def _rx_simulado(fracos: list[dict]):
+    """Leva o aluno para Simulados com as leis e os assuntos mais fracos já marcados."""
+    st.session_state["sim_grupos"] = list(dict.fromkeys(a["grupo"] for a in fracos))
+    st.session_state["sim_assuntos"] = [a["id"] for a in fracos]
+    st.session_state["sim_qtd"] = 20
+    st.session_state.pop("sim_ver", None)
+    st.session_state["sim_aviso_rx"] = True
+    st.session_state["menu"] = "Simulados"
+
+
+def _rx_pdf(usuario: dict, grupos: list[dict]) -> bytes:
+    """Raio-X em PDF (A4), com o nome do aluno no cabeçalho de cada página."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    cores = {"vermelho": (0.64, 0.20, 0.16), "amarelo": (0.85, 0.62, 0.10), "verde": (0.12, 0.42, 0.23),
+             "cinza": (0.62, 0.62, 0.62), "branco": (0.86, 0.86, 0.86)}
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    w, h = A4
+    quando = f"{_local(pd.Timestamp.now(tz='UTC').to_pydatetime()):%d/%m/%Y %H:%M}"
+
+    def cabecalho():
+        c.setFillColorRGB(0.29, 0.35, 0.14)
+        c.rect(0, h - 58, w, 58, stroke=0, fill=1)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont("Helvetica-Bold", 15)
+        c.drawString(40, h - 30, "Raio-X do desempenho")
+        c.setFont("Helvetica", 9)
+        c.drawString(40, h - 46, f"{usuario['nome']} ({usuario['login']}) · {quando} · {NOME_APP}")
+        y = h - 76
+        c.setFont("Helvetica", 7.5)
+        x = 40
+        for cor, txt in (("vermelho", "abaixo de 50%: prioridade"), ("amarelo", "50 a 69%: atenção"),
+                         ("verde", "70% ou mais: bom"), ("cinza", f"menos de {RX_MINIMO} questões"),
+                         ("branco", "não estudado")):
+            c.setFillColorRGB(*cores[cor])
+            c.rect(x, y - 1, 8, 8, stroke=0, fill=1)
+            c.setFillColorRGB(0.2, 0.2, 0.2)
+            c.drawString(x + 11, y, txt)
+            x += c.stringWidth(txt, "Helvetica", 7.5) + 26
+        return y - 18
+
+    y = cabecalho()
+    for g in grupos:
+        if y < 90:
+            c.showPage()
+            y = cabecalho()
+        titulo = g["sigla"] + (f" · {g['popular']}" if g["popular"] and g["popular"] != g["sigla"] else "")
+        c.setFillColorRGB(0.2, 0.25, 0.09)
+        c.setFont("Helvetica-Bold", 10.5)
+        c.drawString(40, y, titulo[:80])
+        c.setFont("Helvetica", 8.5)
+        resumo = f"{g['pct']}% de acerto · {g['n']} questões" if g["n"] else "ainda não estudado"
+        c.drawRightString(w - 40, y, resumo)
+        y -= 14
+        for a in g["subs"]:
+            if y < 50:
+                c.showPage()
+                y = cabecalho()
+            nome = a["nome"] if len(a["nome"]) <= 70 else a["nome"][:67] + "..."
+            c.setFillColorRGB(0.15, 0.15, 0.15)
+            c.setFont("Helvetica", 8)
+            c.drawString(52, y, nome)
+            larg = 120
+            c.setFillColorRGB(0.92, 0.92, 0.92)
+            c.rect(w - 40 - larg - 70, y - 1.5, larg, 8, stroke=0, fill=1)
+            if a["n"]:
+                c.setFillColorRGB(*cores[a["cor"]])
+                c.rect(w - 40 - larg - 70, y - 1.5, larg * (a["pct"] or 0) / 100, 8, stroke=0, fill=1)
+            c.setFillColorRGB(0.25, 0.25, 0.25)
+            c.drawRightString(w - 40, y, f"{a['pct']}% · {a['n']}/{a['total']}" if a["n"] else f"0/{a['total']}")
+            y -= 12
+        y -= 8
+    c.save()
+    return buf.getvalue()
+
+
+def _raio_x(usuario: dict):
+    st.subheader("Raio-X do desempenho")
+    st.caption("Cada assunto ganha uma cor pelo seu acerto, contando a sua última resposta em cada questão: refez e "
+               "acertou, o Raio-X melhora. Use para decidir o que estudar primeiro.")
+    grupos = _rx_dados(usuario)
+    if not grupos:
+        st.info("Ainda não há questões disponíveis para montar o Raio-X.")
+        return
+    estudados = [g for g in grupos if g["n"]]
+    if estudados:
+        mostrar = st.radio("Mostrar", ["Só o que já estudei", "Todas as matérias e leis"], horizontal=True,
+                           key="rx_mostrar", label_visibility="collapsed")
+        vis = estudados if mostrar == "Só o que já estudei" else grupos
+    else:
+        st.info("Você ainda não respondeu questões. Abaixo estão todos os assuntos: resolva algumas questões e "
+                "eles vão ganhando cor.")
+        vis = grupos
+
+    fracos = sorted([a for g in grupos for a in g["subs"] if a["n"] >= RX_MINIMO and a["pct"] < 70],
+                    key=lambda a: (a["pct"], -a["n"]))[:5]
+    if fracos:
+        with st.container(border=True):
+            st.markdown("**Prioridades de estudo** (os assuntos em que você mais erra)")
+            for a in fracos:
+                c1, c2 = st.columns([3.2, 1])
+                c1.markdown(f'<span class="rx-dot rx-{a["cor"]}"></span> <b>{esc(a["grupo"])}</b> › {esc(a["nome"])} '
+                            f'<span class="rx-num">{a["pct"]}% em {a["n"]} questões</span>', unsafe_allow_html=True)
+                c2.button("Treinar", key=f"rx_treinar_{a['id']}", width="stretch",
+                          on_click=_rx_treinar, args=(a["grupo"], a["id"], usuario["perfil"]))
+            st.button("Montar um simulado com meus pontos fracos", key="rx_simulado", type="primary",
+                      on_click=_rx_simulado, args=(fracos,))
+    elif estudados:
+        st.success(f"Nenhum assunto abaixo de 70% com pelo menos {RX_MINIMO} questões. Continue assim.")
+
+    partes = []
+    for g in vis:
+        resumo = f"{g['pct']}% · {g['n']} questões" if g["n"] else "não estudado"
+        titulo = esc(g["sigla"]) + (f' <span class="rx-pop">· {esc(g["popular"])}</span>'
+                                    if g["popular"] and g["popular"] != g["sigla"] else "")
+        chips = "".join(
+            f'<div class="rx-chip rx-{a["cor"]}" title="{esc(a["rotulo_cor"])}"><span class="rx-nome">{esc(a["nome"])}</span>'
+            f'<span class="rx-num">{(str(a["pct"]) + "%") if a["n"] else "—"} · {a["n"]}/{a["total"]}</span></div>'
+            for a in g["subs"])
+        partes.append(f'<div class="rx-grupo"><div class="rx-cab"><span class="rx-dot rx-{g["cor"]}"></span>{titulo}'
+                      f'<span class="rx-res">{resumo}</span></div><div class="rx-grid">{chips}</div></div>')
+    st.markdown("".join(partes) or "<p>Nada para mostrar.</p>", unsafe_allow_html=True)
+    st.markdown('<div class="rx-leg"><span class="rx-dot rx-vermelho"></span>abaixo de 50% · '
+                '<span class="rx-dot rx-amarelo"></span>50 a 69% · <span class="rx-dot rx-verde"></span>70% ou mais · '
+                f'<span class="rx-dot rx-cinza"></span>menos de {RX_MINIMO} questões · '
+                '<span class="rx-dot rx-branco"></span>não estudado · números: acerto · feitas/disponíveis</div>',
+                unsafe_allow_html=True)
+    st.download_button("📥 Baixar meu Raio-X em PDF", data=_rx_pdf(usuario, grupos),
+                       file_name=f"raio-x-{usuario['login']}.pdf", mime="application/pdf", key="rx_pdf")
 
 
 # ======================================================================= USUÁRIOS (ADMIN)
