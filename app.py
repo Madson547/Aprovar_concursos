@@ -1,5 +1,5 @@
 """
-Aprovar Concursos — banco de questões comentadas do CFS PMMS.
+Aprova Militar — banco de questões comentadas do CFS PMMS.
 ARQUIVO ÚNICO: suba no GitHub só este app.py e o requirements.txt.
 
 No Streamlit Cloud, em Settings > Secrets, cole:
@@ -215,7 +215,7 @@ auth = SimpleNamespace(MAX_TENTATIVAS=MAX_TENTATIVAS, MINUTOS_BLOQUEIO=MINUTOS_B
 # ======================================================================
 # ESTILO
 # ======================================================================
-NOME_APP = "Aprovar Concursos"
+NOME_APP = "Aprova Militar"
 SUBTITULO = "CFS PMMS · Banco de questões comentadas"
 
 CSS = """
@@ -305,10 +305,34 @@ def esc(t) -> str:
 # TELAS_ACESSO
 # ======================================================================
 LOGIN_OK = re.compile(r"^[a-z0-9._-]{3,30}$")
+# Concurso que o aluno vai fazer (escolhido no cadastro e em Minha conta). Hoje o conteúdo é todo do CFS PMMS.
+CONCURSOS = {"cfs": "CFS · Curso de Formação de Sargentos", "cfc": "CFC · Curso de Formação de Cabos",
+             "cho": "CHO · Curso de Habilitação de Oficiais", "formacao": "Curso de Formação de Soldados"}
+CONCURSOS_CURTO = {"cfs": "CFS", "cfc": "CFC", "cho": "CHO", "formacao": "Formação"}
+CONCURSOS_COM_CONTEUDO = {"cfs"}
+
+
+@st.cache_resource(show_spinner=False)
+def logo_app(tam: int = 256):
+    """Logotipo desenhado no próprio código (escudo com ✓ sobre fundo verde-oliva): ícone da aba e da tela de entrada."""
+    from PIL import Image, ImageDraw
+    k = tam / 100
+    img = Image.new("RGBA", (tam, tam), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([0, 0, tam - 1, tam - 1], radius=int(22 * k), fill=(75, 90, 35, 255))
+    escudo = [(50, 12), (82, 23), (80, 55), (68, 75), (50, 88), (32, 75), (20, 55), (18, 23)]
+    d.polygon([(x * k, y * k) for x, y in escudo], fill=(242, 241, 232, 255))
+    d.polygon([(x * k, y * k) for x, y in [(50, 19), (75, 28), (73.5, 54), (63.5, 70.5), (50, 81), (36.5, 70.5),
+                                            (26.5, 54), (25, 28)]], fill=(138, 106, 31, 255))
+    d.line([(35 * k, 50 * k), (46 * k, 62 * k), (67 * k, 37 * k)], fill=(255, 255, 255, 255), width=int(8 * k),
+           joint="curve")
+    return img
 
 
 def _cabecalho():
-    st.title(NOME_APP)
+    c1, c2 = st.columns([1, 7], vertical_alignment="center")
+    c1.image(logo_app(), width=64)
+    c2.title(NOME_APP)
     st.caption(SUBTITULO)
 
 
@@ -342,6 +366,59 @@ def tela_primeiro_acesso():
 
 def tela_login():
     _cabecalho()
+    aberto = config_app("cadastro_aberto", "1") == "1"
+    if aberto:
+        t_entrar, t_criar = st.tabs(["Entrar", "Criar conta"])
+        with t_criar:
+            _criar_conta()
+        with t_entrar:
+            _form_login()
+    else:
+        _form_login()
+
+
+def _criar_conta():
+    st.caption(f"Crie sua conta e use o app de graça por **{AVALIACAO_DIAS} dias**: questões comentadas, simulados e "
+               "Raio-X do desempenho. Depois, é só adquirir o acesso pelo Pix.")
+    with st.form("cadastro", clear_on_submit=False):
+        nome = st.text_input("Nome e graduação (ex.: Cb PM João Silva)", key="cd_nome")
+        concurso = _chave(CONCURSOS, st.selectbox("Qual concurso você vai fazer?", list(CONCURSOS.values()), key="cd_conc"))
+        whatsapp = st.text_input("WhatsApp com DDD (ex.: 67 99999-0000)", key="cd_zap")
+        login = st.text_input("Crie um usuário (letras minúsculas e números, ex.: joaosilva)", key="cd_login")
+        s1 = st.text_input("Crie uma senha (mínimo 8 caracteres, com letras e números)", type="password", key="cd_s1")
+        s2 = st.text_input("Repita a senha", type="password", key="cd_s2")
+        aceite = st.checkbox("Entendo que o acesso é pessoal: compartilhar login, questões ou PDFs leva ao bloqueio da conta.",
+                             key="cd_ok")
+        ok = st.form_submit_button("Criar minha conta", type="primary", width="stretch")
+    if not ok:
+        return
+    login_n = auth.normalizar_login(login)
+    zap = re.sub(r"\D", "", whatsapp or "")
+    if zap and not zap.startswith("55"):
+        zap = "55" + zap
+    erro = ("Preencha o nome e a graduação." if len((nome or "").strip()) < 5 else
+            "Informe o WhatsApp com DDD." if not 12 <= len(zap) <= 13 else
+            "Usuário inválido: de 3 a 30 caracteres entre letras minúsculas, números, ponto, hífen ou sublinhado."
+            if not LOGIN_OK.match(login_n) else
+            "Esse usuário já existe. Escolha outro." if auth.login_existe(login_n) else
+            auth.problema_na_senha(s1 or "") or ("As senhas não conferem." if s1 != s2 else None) or
+            ("Marque a caixa de concordância." if not aceite else None))
+    if not erro and db.um("SELECT 1 AS ok FROM usuario WHERE whatsapp = %s", (zap,)):
+        erro = "Já existe uma conta com esse WhatsApp. Se esqueceu a senha, fale com o administrador."
+    if erro:
+        st.error(erro)
+        return
+    uid = auth.criar_usuario(nome, login_n, "aluno", s1, trocar=False)
+    db.executar("""UPDATE usuario SET whatsapp = %s, concurso = %s, acesso_tipo = 'avaliacao',
+                   acesso_ate = now() + make_interval(days => %s), ultimo_acesso = now() WHERE id = %s""",
+                (zap, concurso, AVALIACAO_DIAS, uid))
+    auth.registrar("cadastro_proprio", uid, login_n)
+    st.session_state["usuario"] = auth.recarregar(uid)
+    st.session_state["boas_vindas"] = True
+    st.rerun()
+
+
+def _form_login():
     with st.form("login"):
         login = st.text_input("Usuário", key="lg_login")
         senha = st.text_input("Senha", type="password", key="lg_senha")
@@ -1476,7 +1553,21 @@ def _garante_extras() -> bool:
     """Colunas novas que o app cria sozinho se o SQL ainda não tiver sido rodado no banco."""
     db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS essencial BOOLEAN NOT NULL DEFAULT FALSE")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_ate TIMESTAMPTZ")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_tipo TEXT")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS whatsapp TEXT")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS concurso TEXT NOT NULL DEFAULT 'cfs'")
+    db.executar("CREATE TABLE IF NOT EXISTS app_config (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)")
     return True
+
+
+def config_app(chave: str, padrao: str) -> str:
+    r = db.um("SELECT valor FROM app_config WHERE chave = %s", (chave,))
+    return r["valor"] if r else padrao
+
+
+def definir_config(chave: str, valor: str):
+    db.executar("INSERT INTO app_config (chave, valor) VALUES (%s, %s) ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor",
+                (chave, valor))
 
 
 TURMA_MIN_RESP = 30      # respostas de um assunto para entrar em "onde a turma mais erra"
@@ -1565,6 +1656,13 @@ def tela_materiais(usuario: dict):
     if usuario["perfil"] == "admin":
         with st.expander("⚙️ Gerenciar materiais (só administrador)"):
             _gerenciar_materiais(usuario)
+    avaliacao = em_avaliacao(usuario)
+    if avaliacao:
+        with st.container(border=True):
+            st.markdown("**Você está na avaliação grátis.** Questões, simulados e Raio-X estão liberados; os PDFs podem "
+                        "ser baixados depois da aquisição.")
+            with st.popover("💳 Adquirir acesso"):
+                _bloco_pagamento(usuario)
 
     mats = db.consultar(
         "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado FROM material_estudo "
@@ -1585,6 +1683,10 @@ def tela_materiais(usuario: dict):
                            f"{_mb(m['tamanho'])}{rascunho}")
                 if m["descricao"]:
                     st.write(m["descricao"])
+                if avaliacao:
+                    st.caption("🔒 Na avaliação grátis o material fica só para consulta da lista. O download do PDF é "
+                               "liberado na aquisição do acesso.")
+                    continue
                 pronto = st.session_state.get(f"mat_pdf_{m['id']}")
                 c1, c2 = st.columns([1, 1.4])
                 if c1.button("Preparar meu PDF", key=f"mat_prep_{m['id']}", width="stretch",
@@ -2186,9 +2288,14 @@ ACESSO_OPCOES = {"avaliacao": f"Avaliação grátis ({AVALIACAO_DIAS} dias)", "l
 
 
 def _acesso(uid: int) -> dict:
-    a = db.um("SELECT acesso_ate, (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS vencido FROM usuario WHERE id = %s",
-              (uid,))
-    return a or {"acesso_ate": None, "vencido": False}
+    a = db.um("""SELECT acesso_ate, acesso_tipo, concurso, (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS vencido
+                 FROM usuario WHERE id = %s""", (uid,))
+    return a or {"acesso_ate": None, "acesso_tipo": None, "concurso": "cfs", "vencido": False}
+
+
+def em_avaliacao(usuario: dict) -> bool:
+    """Aluno na avaliação grátis: usa tudo, menos baixar os PDFs."""
+    return usuario["perfil"] == "aluno" and _acesso(usuario["id"])["acesso_tipo"] == "avaliacao"
 
 
 def _pix_cfg() -> dict | None:
@@ -2297,14 +2404,19 @@ def _aviso_prazo(usuario: dict, acesso: dict):
 def _rotulo_acesso(c: dict) -> str:
     if c["perfil"] != "aluno":
         return "equipe"
+    tipo = " (avaliação)" if c.get("acesso_tipo") == "avaliacao" else ""
     if c["acesso_ate"] is None:
-        return "sem prazo"
+        return "sem prazo" + tipo
     d = _local(c["acesso_ate"])
-    return f"encerrado em {d:%d/%m %H:%M}" if c["acesso_vencido"] else f"até {d:%d/%m/%Y %H:%M}"
+    return (f"encerrado em {d:%d/%m %H:%M}" if c["acesso_vencido"] else f"até {d:%d/%m/%Y %H:%M}") + tipo
 
 
-def _definir_acesso(alvo_id: int, ate, evento: str):
-    db.executar("UPDATE usuario SET acesso_ate = %s WHERE id = %s", (ate, alvo_id))
+def _definir_acesso(alvo_id: int, ate, evento: str, tipo: str | None = "pago"):
+    """tipo: 'avaliacao' (sem download de PDF) ou 'pago'. tipo=None mantém o que estava (ex.: encerrar agora)."""
+    if tipo is None:
+        db.executar("UPDATE usuario SET acesso_ate = %s WHERE id = %s", (ate, alvo_id))
+    else:
+        db.executar("UPDATE usuario SET acesso_ate = %s, acesso_tipo = %s WHERE id = %s", (ate, tipo, alvo_id))
     auth.registrar(evento, alvo_id)
 
 
@@ -2320,13 +2432,13 @@ def _gerenciar_acesso(alvo: dict):
         st.rerun()
     if a2.button(f"Avaliação de {AVALIACAO_DIAS} dias", key=f"acav_{alvo['id']}", width="stretch",
                  help=f"Libera {AVALIACAO_DIAS} dias a partir de agora."):
-        _definir_acesso(alvo["id"], agora + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao")
+        _definir_acesso(alvo["id"], agora + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao", "avaliacao")
         st.rerun()
     if a3.button("Sem prazo", key=f"aclivre_{alvo['id']}", width="stretch"):
         _definir_acesso(alvo["id"], None, "acesso_sem_prazo")
         st.rerun()
     if a4.button("Encerrar agora", key=f"acfim_{alvo['id']}", width="stretch"):
-        _definir_acesso(alvo["id"], agora, "acesso_encerrado")
+        _definir_acesso(alvo["id"], agora, "acesso_encerrado", None)
         st.rerun()
     d1, d2 = st.columns([1.4, 1])
     data = d1.date_input("Ou liberar até a data", value=(_local(base) + timedelta(days=30)).date(), format="DD/MM/YYYY",
@@ -2339,7 +2451,13 @@ def _gerenciar_acesso(alvo: dict):
 
 def tela_usuarios(usuario: dict):
     st.header("Usuários")
-    st.caption("Só entra no app quem você cadastrar aqui. A senha provisória aparece uma única vez: envie em particular.")
+    st.caption("A senha provisória aparece uma única vez: envie em particular.")
+    aberto = config_app("cadastro_aberto", "1") == "1"
+    novo = st.toggle(f"Cadastro aberto na tela de entrada (quem se cadastra ganha {AVALIACAO_DIAS} dias de avaliação)",
+                     value=aberto, key="cfg_cadastro")
+    if novo != aberto:
+        definir_config("cadastro_aberto", "1" if novo else "0")
+        auth.registrar("cadastro_aberto" if novo else "cadastro_fechado", usuario["id"])
 
     with st.form("novo_usuario", clear_on_submit=True):
         st.markdown("**Cadastrar pessoa**")
@@ -2363,12 +2481,13 @@ def tela_usuarios(usuario: dict):
             uid = auth.criar_usuario(nome, login_n, perfil, senha, trocar=True)
             auth.registrar("usuario_criado", uid)
             if perfil == "aluno" and acesso_ini == "avaliacao":
-                _definir_acesso(uid, datetime.now(timezone.utc) + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao")
+                _definir_acesso(uid, datetime.now(timezone.utc) + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao",
+                                "avaliacao")
             st.session_state["senha_mostrar"] = (nome.strip(), login_n, senha)
     _mostrar_senha()
 
     contas = db.consultar(
-        """SELECT id, nome, login, perfil, ativo, ultimo_acesso, acesso_ate,
+        """SELECT id, nome, login, perfil, ativo, ultimo_acesso, acesso_ate, acesso_tipo, whatsapp, concurso,
                   (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS acesso_vencido,
                   (bloqueado_ate IS NOT NULL AND bloqueado_ate > now()) AS bloqueado,
                   (SELECT COUNT(*) FROM resposta r WHERE r.usuario_id = u.id) AS respostas,
@@ -2376,13 +2495,17 @@ def tela_usuarios(usuario: dict):
            FROM usuario u WHERE login IS NOT NULL ORDER BY ativo DESC, nome""")
     df = pd.DataFrame(contas)
     df["acesso"] = [_rotulo_acesso(c) for c in contas]
+    df["concurso"] = df["concurso"].map(lambda c: CONCURSOS_CURTO.get(c, c))
+    df["whatsapp"] = df["whatsapp"].fillna("")
     st.dataframe(
         df.assign(perfil=df["perfil"].map(auth.PERFIS),
                   ativo=df["ativo"].map({True: "Ativo", False: "Desativado"}),
                   bloqueado=df["bloqueado"].map({True: "Bloqueado", False: ""}),
                   ultimo_acesso=df["ultimo_acesso"].apply(lambda d: f"{d:%d/%m/%Y %H:%M}" if pd.notna(d) else "nunca"))
-          [["nome", "login", "perfil", "ativo", "acesso", "bloqueado", "ultimo_acesso", "respostas", "pareceres"]]
+          [["nome", "login", "perfil", "concurso", "whatsapp", "ativo", "acesso", "bloqueado", "ultimo_acesso", "respostas",
+            "pareceres"]]
           .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação", "acesso": "Acesso",
+                           "concurso": "Concurso", "whatsapp": "WhatsApp",
                            "bloqueado": "Bloqueio", "ultimo_acesso": "Último acesso", "respostas": "Respostas",
                            "pareceres": "Pareceres"}),
         hide_index=True, width="stretch")
@@ -2540,6 +2663,16 @@ def tela_biblioteca(usuario: dict):
 def tela_conta(usuario: dict):
     st.header("Minha conta")
     st.write(f"**{usuario['nome']}** · usuário `{usuario['login']}` · {auth.PERFIS[usuario['perfil']]}")
+    atual = _acesso(usuario["id"])["concurso"] or "cfs"
+    escolha = _chave(CONCURSOS, st.selectbox("Concurso que vou fazer", list(CONCURSOS.values()),
+                                             index=list(CONCURSOS).index(atual) if atual in CONCURSOS else 0,
+                                             key="mc_conc"))
+    if escolha != atual:
+        db.executar("UPDATE usuario SET concurso = %s WHERE id = %s", (escolha, usuario["id"]))
+        st.success("Concurso atualizado.")
+    if escolha not in CONCURSOS_COM_CONTEUDO:
+        st.info(f"O conteúdo próprio do {CONCURSOS_CURTO[escolha]} está em preparação. Enquanto isso, use o do CFS PMMS: "
+                "a legislação da PMMS é a mesma base.")
     st.subheader("Trocar senha")
     tela_trocar_senha(usuario, obrigatoria=False)
 
@@ -2547,7 +2680,7 @@ def tela_conta(usuario: dict):
 # ======================================================================
 # APP
 # ======================================================================
-st.set_page_config(page_title=NOME_APP, page_icon="📘", layout="centered")
+st.set_page_config(page_title=NOME_APP, page_icon=logo_app(64), layout="centered")
 aplicar()
 
 # 1) Ainda não há administrador: só mostra a criação dele.
@@ -2585,6 +2718,10 @@ if usuario["trocar_senha"]:
 # 5) Marca d'água com o nome de quem está logado, em toda a tela.
 aplicar_marca_dagua(usuario["nome"], usuario["login"])
 
+if st.session_state.pop("boas_vindas", False):
+    st.success(f"Conta criada! Bem-vindo(a), {usuario['nome']}. Você tem {AVALIACAO_DIAS} dias de acesso grátis para avaliar "
+               "o app. Comece por **Resolver questões** ou monte um **Simulado**.")
+
 # 6) Menu conforme o perfil.
 TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Materiais": tela_materiais,
          "Meu desempenho": tela_desempenho}
@@ -2599,6 +2736,10 @@ with st.sidebar:
     st.markdown(f"### {NOME_APP}")
     st.caption(SUBTITULO)
     st.write(f"👤 **{usuario['nome']}**  \n{auth.PERFIS[usuario['perfil']]}")
+    if usuario["perfil"] == "aluno":
+        conc = acesso.get("concurso") or "cfs"
+        st.caption(f"🎯 Concurso: **{CONCURSOS_CURTO.get(conc, conc)}**"
+                   + ("" if conc in CONCURSOS_COM_CONTEUDO else " · conteúdo em preparação (use o do CFS)"))
     if usuario["perfil"] == "aluno" and acesso["acesso_ate"] is not None:
         _aviso_prazo(usuario, acesso)
     escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed")
