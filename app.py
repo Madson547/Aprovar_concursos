@@ -470,6 +470,16 @@ ROTULO_TIPO = {"lei_seca": ("lei", "Lei seca"), "caso_pratico": ("caso", "Caso p
 ORIGENS = {"": "Inéditas e provas anteriores", "inedita": "Só inéditas", "prova_anterior": "Só provas anteriores",
            "material": "Questões antigas (acervo)", "todas": "Todas, incluindo o acervo"}
 FILTRO_ORIGEM = """(%(orig)s = 'todas' OR (%(orig)s = '' AND q.origem::text <> 'material') OR q.origem::text = %(orig)s)"""
+# Avaliação grátis: o aluno só enxerga a AMOSTRA (questões essenciais + as marcadas como amostra), nunca o banco inteiro.
+FILTRO_AMOSTRA = " AND (q.essencial OR q.amostra) "
+
+
+def _so_amostra() -> bool:
+    return bool(st.session_state.get("so_amostra"))
+
+
+def _filtro_origem() -> str:
+    return FILTRO_ORIGEM + (FILTRO_AMOSTRA if _so_amostra() else "")
 SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "erradas": "Errei na última tentativa",
              "essenciais": "⭐ Só as essenciais"}
 # Ordem dos itens principais do filtro (o que não está aqui vem depois, na ordem do edital)
@@ -519,7 +529,7 @@ def _arvore(status: list[str], origem: str = "") -> list[dict]:
            LEFT JOIN diploma d ON d.id = a.diploma_id
            JOIN questao_assunto qa ON qa.assunto_id = a.id
            JOIN questao q ON q.id = qa.questao_id
-           WHERE q.status::text = ANY(%(st)s) AND """ + FILTRO_ORIGEM + """
+           WHERE q.status::text = ANY(%(st)s) AND """ + _filtro_origem() + """
            GROUP BY a.id, a.nome, a.ordem, d.sigla, m.nome, d.nome_popular, d.id""",
         {"st": status, "orig": origem},
     )
@@ -542,14 +552,14 @@ def _arvore(status: list[str], origem: str = "") -> list[dict]:
 def _questoes(uid: int, status: list[str], assuntos, tipo: str, origem: str, situacao: str) -> list[dict]:
     return db.consultar(
         """SELECT q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado, q.texto_apoio, q.comentario, q.dica,
-                  q.status::text AS status, q.origem::text AS origem, q.fonte, q.essencial,
+                  q.status::text AS status, q.origem::text AS origem, q.fonte, q.essencial, q.amostra,
                   (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
                     WHERE qa.questao_id = q.id) AS assuntos
            FROM questao q
            WHERE q.status::text = ANY(%(st)s)
              AND (%(ass)s::int[] IS NULL OR EXISTS (SELECT 1 FROM questao_assunto qa WHERE qa.questao_id = q.id AND qa.assunto_id = ANY(%(ass)s::int[])))
              AND (%(tipo)s = '' OR q.tipo = %(tipo)s)
-             AND """ + FILTRO_ORIGEM + """
+             AND """ + _filtro_origem() + """
              AND (%(sit)s = 'todas' OR (%(sit)s = 'essenciais' AND q.essencial)
                   OR (%(sit)s = 'nao_respondidas' AND NOT EXISTS (SELECT 1 FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s))
                   OR (%(sit)s = 'erradas' AND (SELECT r.acertou FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s
@@ -622,7 +632,7 @@ def tela_questoes(usuario: dict):
     situacao = _chave(SITUACOES, c3.selectbox("Situação", list(SITUACOES.values()), key="f_sit"))
     por_pagina = c4.selectbox("Por página", POR_PAGINA, index=1, key="f_pp")
 
-    filtro = (tuple(status), tuple(assuntos) if assuntos else None, tipo, origem, situacao, por_pagina)
+    filtro = (tuple(status), tuple(assuntos) if assuntos else None, tipo, origem, situacao, por_pagina, _so_amostra())
     if st.session_state.get("filtro_ativo") != filtro:
         st.session_state["filtro_ativo"] = filtro
         st.session_state["pagina"] = 0
@@ -699,13 +709,23 @@ def _marcar_essencial(q: dict):
     q["essencial"] = novo
 
 
+def _marcar_amostra(q: dict):
+    novo = bool(st.session_state.get(f"amo_{q['id']}"))
+    db.executar("UPDATE questao SET amostra = %s WHERE id = %s", (novo, q["id"]))
+    q["amostra"] = novo
+
+
 def _questao(q: dict, usuario: dict):
     fundo = marca_dagua(usuario["nome"], usuario["login"])
     _texto_apoio(q)
     _cartao(q)
     if usuario["perfil"] in ("admin", "revisor"):
-        st.toggle("⭐ Essencial (entra em \"Questões essenciais\" da lei)", value=bool(q.get("essencial")),
+        e1, e2 = st.columns(2)
+        e1.toggle("⭐ Essencial (entra em \"Questões essenciais\" da lei)", value=bool(q.get("essencial")),
                   key=f"ess_{q['id']}", on_change=_marcar_essencial, args=(q,))
+        e2.toggle("🎁 Amostra grátis (aparece na avaliação)", value=bool(q.get("amostra") or q.get("essencial")),
+                  disabled=bool(q.get("essencial")), key=f"amo_{q['id']}", on_change=_marcar_amostra, args=(q,),
+                  help="Toda essencial já entra na avaliação grátis.")
 
     alts = _alternativas(q["id"])
     respondidas = st.session_state.setdefault("respondidas", {})
@@ -886,7 +906,7 @@ def _banco_simulado(uid: int, status: list[str], so_ineditas: bool, nao_repetir:
            JOIN questao_assunto qa ON qa.questao_id = q.id
            JOIN assunto a ON a.id = qa.assunto_id
            LEFT JOIN diploma d ON d.id = a.diploma_id
-           WHERE q.status::text = ANY(%(st)s) AND """ + FILTRO_ORIGEM + """
+           WHERE q.status::text = ANY(%(st)s) AND """ + _filtro_origem() + """
              AND (NOT %(nr)s OR (
                   NOT EXISTS (SELECT 1 FROM resposta r WHERE r.usuario_id = %(u)s AND r.questao_id = q.id)
                   AND NOT EXISTS (SELECT 1 FROM simulado_questao sq JOIN simulado s ON s.id = sq.simulado_id
@@ -969,7 +989,11 @@ def _sortear_personalizado(banco: list[dict], grupos: list[str], assuntos: set[i
 
 
 # ------------------------------------------------------------------ gravação
-def _criar_simulado(uid: int, modelo: str, titulo: str, questoes: list[dict], minutos: int | None, config: dict) -> int:
+def _criar_simulado(uid: int, modelo: str, titulo: str, questoes: list[dict], minutos: int | None, config: dict) -> int | None:
+    if _so_amostra() and _simulados_feitos(uid) >= AVALIACAO_SIMULADOS:
+        st.session_state["sim_erro"] = "O simulado da avaliação grátis já foi usado."
+        return None
+
     def fn(conn):
         sid = conn.execute(
             """INSERT INTO simulado (usuario_id, edital_id, modelo, titulo, duracao_min, config, total)
@@ -1290,6 +1314,14 @@ def _limpa_escolha(chave: str, validas):
 
 def _montagem(usuario: dict):
     uid, perfil = usuario["id"], usuario["perfil"]
+    if _so_amostra() and _simulados_feitos(uid) >= AVALIACAO_SIMULADOS:
+        st.info(f"Na avaliação grátis você pode fazer {AVALIACAO_SIMULADOS} simulado, e ele já foi feito (o resultado está "
+                "em **Meu desempenho**). Adquira o acesso para fazer quantos simulados quiser, com as mais de 2.000 questões.")
+        with st.popover("💳 Adquirir acesso"):
+            _bloco_pagamento(usuario)
+        return
+    if _so_amostra():
+        st.caption(f"🎁 Avaliação grátis: {AVALIACAO_SIMULADOS} simulado, montado com as questões da avaliação.")
     lei_aviso = st.session_state.pop("sim_aviso_lei", None)
     if lei_aviso:
         st.info(f"Simulado da lei **{lei_aviso}** já marcado na aba **🛠️ Montar meu simulado**, só com inéditas. "
@@ -1554,6 +1586,7 @@ def _garante_extras() -> bool:
     db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS essencial BOOLEAN NOT NULL DEFAULT FALSE")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_ate TIMESTAMPTZ")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_tipo TEXT")
+    db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS amostra BOOLEAN NOT NULL DEFAULT FALSE")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS whatsapp TEXT")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS concurso TEXT NOT NULL DEFAULT 'cfs'")
     db.executar("CREATE TABLE IF NOT EXISTS app_config (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)")
@@ -1630,7 +1663,8 @@ def _revisao_lei(sigla: str, usuario: dict):
                   COUNT(DISTINCT q.id) FILTER (WHERE q.origem::text = 'inedita') AS ined
            FROM questao q JOIN questao_assunto qa ON qa.questao_id = q.id JOIN assunto a ON a.id = qa.assunto_id
            JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
-           WHERE q.status::text = ANY(%s) AND COALESCE(d.sigla, m.nome) = %s""", (status, sigla))
+           WHERE q.status::text = ANY(%s) AND COALESCE(d.sigla, m.nome) = %s""" + (FILTRO_AMOSTRA if _so_amostra() else ""),
+        (status, sigla))
     if not c or not (c["ess"] or c["ined"]):
         return
     with st.container(border=True):
@@ -1661,10 +1695,11 @@ def tela_materiais(usuario: dict):
         with st.expander("⚙️ Gerenciar materiais (só administrador)"):
             _gerenciar_materiais(usuario)
     avaliacao = em_avaliacao(usuario)
+    baixados = _pdfs_baixados(usuario["id"]) if avaliacao else set()
     if avaliacao:
         with st.container(border=True):
-            st.markdown("**Você está na avaliação grátis.** Questões, simulados e Raio-X estão liberados; os PDFs podem "
-                        "ser baixados depois da aquisição.")
+            st.markdown("**Você está na avaliação grátis.** Pode baixar **1 PDF** (um resumo ou um mapa mental, da lei que "
+                        "escolher). A lei seca comentada, o relatório e todos os outros PDFs são liberados na aquisição.")
             with st.popover("💳 Adquirir acesso"):
                 _bloco_pagamento(usuario)
 
@@ -1690,9 +1725,13 @@ def tela_materiais(usuario: dict):
                 if usuario["perfil"] == "admin":
                     _acoes_material(m, usuario)
                 if avaliacao:
-                    st.caption("🔒 Na avaliação grátis o material fica só para consulta da lista. O download do PDF é "
-                               "liberado na aquisição do acesso.")
-                    continue
+                    if m["tipo"] not in AVALIACAO_TIPOS_PDF:
+                        st.caption("🔒 A lei seca comentada e o relatório de revisão são liberados na aquisição do acesso.")
+                        continue
+                    if baixados and m["id"] not in baixados and len(baixados) >= AVALIACAO_PDFS:
+                        st.caption("🔒 Você já usou o seu PDF grátis da avaliação. Os demais são liberados na aquisição.")
+                        continue
+                    st.caption("🎁 Na avaliação você pode baixar **1** resumo ou mapa mental, de uma lei à sua escolha.")
                 pronto = st.session_state.get(f"mat_pdf_{m['id']}")
                 c1, c2 = st.columns([1, 1.4])
                 if c1.button("Preparar meu PDF", key=f"mat_prep_{m['id']}", width="stretch",
@@ -2200,7 +2239,8 @@ def _rx_dados(usuario: dict) -> list[dict]:
            disp AS (
                SELECT qa.assunto_id, COUNT(DISTINCT q.id) AS total
                FROM questao_assunto qa JOIN questao q ON q.id = qa.questao_id
-               WHERE q.status::text = ANY(%(st)s) AND q.origem::text <> 'material' GROUP BY 1),
+               WHERE q.status::text = ANY(%(st)s) AND q.origem::text <> 'material' """
+        + (FILTRO_AMOSTRA if _so_amostra() else "") + """ GROUP BY 1),
            feito AS (
                SELECT qa.assunto_id, COUNT(*) AS n, SUM(u.acertou::int) AS ok
                FROM ultima u JOIN questao_assunto qa ON qa.questao_id = u.questao_id GROUP BY 1)
@@ -2591,6 +2631,30 @@ def _aviso_prazo(usuario: dict, acesso: dict):
         _bloco_pagamento(usuario)
 
 
+AVALIACAO_SIMULADOS = 1
+AVALIACAO_PDFS = 1
+AVALIACAO_TIPOS_PDF = ("resumo", "mapa")      # a lei seca comentada e o relatório ficam só para quem adquiriu
+
+
+def _contador_amostra(usuario: dict):
+    r = db.um("""SELECT (SELECT COUNT(*) FROM questao q WHERE q.status = 'aprovada' AND (q.essencial OR q.amostra)) AS total,
+                        (SELECT COUNT(DISTINCT r.questao_id) FROM resposta r JOIN questao q ON q.id = r.questao_id
+                          WHERE r.usuario_id = %s AND (q.essencial OR q.amostra)) AS feitas""", (usuario["id"],))
+    total, feitas = r["total"], min(r["feitas"], r["total"])
+    st.progress(feitas / total if total else 0, text=f"🎁 Avaliação: {feitas} de {total} questões grátis")
+    if total and feitas >= total:
+        st.caption("Você fez todas as questões da avaliação. Adquira o acesso para liberar as mais de 2.000 do banco.")
+
+
+def _simulados_feitos(uid: int) -> int:
+    return db.um("SELECT COUNT(*) AS n FROM simulado WHERE usuario_id = %s AND status <> 'descartado'", (uid,))["n"]
+
+
+def _pdfs_baixados(uid: int) -> set[int]:
+    return {r["material_id"] for r in db.consultar("SELECT DISTINCT material_id FROM material_download WHERE usuario_id = %s",
+                                                    (uid,))}
+
+
 def _rotulo_acesso(c: dict) -> str:
     if c["perfil"] != "aluno":
         return "equipe"
@@ -2934,6 +2998,8 @@ if usuario["perfil"] == "aluno" and acesso["vencido"]:
     tela_acesso_encerrado(usuario, acesso)
     st.stop()
 
+st.session_state["so_amostra"] = usuario["perfil"] == "aluno" and acesso.get("acesso_tipo") == "avaliacao"
+
 # 4) Senha provisória: obriga a trocar antes de qualquer coisa.
 if usuario["trocar_senha"]:
     tela_trocar_senha(usuario, obrigatoria=True)
@@ -2967,6 +3033,8 @@ with st.sidebar:
                    + ("" if conc in CONCURSOS_COM_CONTEUDO else " · conteúdo em preparação (use o do CFS)"))
     if usuario["perfil"] == "aluno" and acesso["acesso_ate"] is not None:
         _aviso_prazo(usuario, acesso)
+    if _so_amostra():
+        _contador_amostra(usuario)
     escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed")
     if st.button("Sair", width="stretch"):
         auth.registrar("logout", usuario["id"])
