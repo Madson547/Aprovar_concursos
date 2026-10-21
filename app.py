@@ -1683,6 +1683,8 @@ def tela_materiais(usuario: dict):
                            f"{_mb(m['tamanho'])}{rascunho}")
                 if m["descricao"]:
                     st.write(m["descricao"])
+                if usuario["perfil"] == "admin":
+                    _acoes_material(m, usuario)
                 if avaliacao:
                     st.caption("🔒 Na avaliação grátis o material fica só para consulta da lista. O download do PDF é "
                                "liberado na aquisição do acesso.")
@@ -1700,58 +1702,55 @@ def tela_materiais(usuario: dict):
                     st.caption(f"Pronto. Código deste PDF: **{pronto[1]}**.")
 
 
-def _gerenciar_materiais(usuario: dict):
-    leis = ["Língua Portuguesa"] + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
-    with st.form("mat_envio", clear_on_submit=True):
-        st.markdown("**Enviar material**")
-        arq = st.file_uploader("PDF (sem marca-d'água: o app coloca na hora do download)", type=["pdf"], key="mat_arq")
-        c1, c2, c3 = st.columns([1.2, 1, 1])
-        lei = c1.selectbox("Lei / matéria", leis, key="mat_lei")
-        tipo = _chave(TIPOS_MATERIAL, c2.selectbox("Tipo", list(TIPOS_MATERIAL.values()), key="mat_tipo"))
-        publicar = c3.checkbox("Publicar já para os alunos", key="mat_pub")
-        titulo = st.text_input("Título (ex.: LC 190/14 · Resumo esquematizado)", key="mat_tit")
-        descricao = st.text_area("Descrição curta (opcional)", key="mat_desc", height=68)
-        enviar = st.form_submit_button("Guardar material", type="primary")
-    if enviar:
-        from io import BytesIO
-        from pypdf import PdfReader
-        if not arq or not titulo.strip():
-            st.warning("Escolha o PDF e escreva o título.")
-        else:
-            dados = arq.getvalue()
-            try:
-                paginas = len(PdfReader(BytesIO(dados)).pages)
-            except Exception:
-                paginas = None
-            if paginas is None:
-                st.error("Esse arquivo não parece ser um PDF válido.")
-            elif len(dados) > LIMITE_MATERIAL_MB * 1048576:
-                st.error(f"PDF grande demais (limite de {LIMITE_MATERIAL_MB} MB).")
-            else:
-                db.executar(
-                    """INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado, enviado_por)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (titulo) DO UPDATE SET lei = EXCLUDED.lei, tipo = EXCLUDED.tipo,
-                           descricao = EXCLUDED.descricao, arquivo = EXCLUDED.arquivo, tamanho = EXCLUDED.tamanho,
-                           paginas = EXCLUDED.paginas, publicado = EXCLUDED.publicado, atualizado_em = now()""",
-                    (titulo.strip(), lei, tipo, descricao.strip() or None, dados, len(dados), paginas, publicar, usuario["id"]))
-                st.success(f"Material guardado ({paginas} páginas)." + ("" if publicar else " Ainda como rascunho."))
+PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "LC 053/90", "mariadapenha": "Lei 11.340/06",
+                     "rdpmms": "RDPMMS", "cppm": "CPPM", "cpm": "CPM", "drogas": "Lei 11.343/06",
+                     "desarmamento": "Lei 10.826/03", "tortura": "Lei 9.455/97", "cf": "CF/88", "ce": "CE/MS",
+                     "lc127": "LC 127/08", "dec1261": "Dec. 1.261/81", "dec1093": "Dec. 1.093/81",
+                     "dec10769": "Dec. 10.769/02", "portugues": "Língua Portuguesa"}
+TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
+               "relatorio": "Relatório de revisão"}
 
-    lista = db.consultar(
-        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.tamanho,
-                  COUNT(d.id) AS downloads, COUNT(DISTINCT d.usuario_id) AS pessoas
-           FROM material_estudo m LEFT JOIN material_download d ON d.material_id = m.id
-           GROUP BY m.id ORDER BY m.ordem, m.lei, m.titulo""")
-    if not lista:
-        return
-    st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
-                                "Situação": "Publicado" if m["publicado"] else "Rascunho", "Páginas": m["paginas"],
-                                "Downloads": m["downloads"], "Pessoas": m["pessoas"]} for m in lista]),
-                 hide_index=True, width="stretch")
-    rot = {m["id"]: f"{m['titulo']} ({'publicado' if m['publicado'] else 'rascunho'})" for m in lista}
-    mid = st.selectbox("Escolha um material", list(rot), format_func=rot.get, key="mat_sel")
-    m = next(x for x in lista if x["id"] == mid)
-    c1, c2 = st.columns(2)
+
+def _leis_material() -> list[str]:
+    return ["Língua Portuguesa"] + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
+
+
+def _adivinhar_material(nome_arquivo: str, leis: list[str]) -> tuple[str, str, str]:
+    """'lc190_resumo.pdf' → ('LC 190/14 · Resumo esquematizado', 'LC 190/14', 'resumo'). O que não reconhecer vai como 'Geral'."""
+    base = re.sub(r"\s*\(\d+\)$", "", re.sub(r"\.pdf$", "", nome_arquivo.strip().lower()))
+    partes = re.split(r"[_\-\s]+", base)
+    tipo = next((t for t in ("relatorio", "resumo", "mapa", "lei") if t in partes), "resumo")
+    lei = next((PREFIXOS_MATERIAL[p] for p in partes if p in PREFIXOS_MATERIAL), "Geral")
+    if lei not in leis:
+        lei = "Geral"
+    titulo = f"{lei} · {TITULO_TIPO[tipo]}" if lei != "Geral" else nome_arquivo.rsplit(".", 1)[0]
+    return titulo, lei, tipo
+
+
+def _ler_pdf(dados: bytes) -> int | None:
+    from io import BytesIO
+    from pypdf import PdfReader
+    try:
+        return len(PdfReader(BytesIO(dados)).pages)
+    except Exception:
+        return None
+
+
+def _guardar_material(titulo, lei, tipo, descricao, dados, paginas, publicar, uid):
+    db.executar(
+        """INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado, enviado_por)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (titulo) DO UPDATE SET lei = EXCLUDED.lei, tipo = EXCLUDED.tipo,
+               descricao = COALESCE(EXCLUDED.descricao, material_estudo.descricao), arquivo = EXCLUDED.arquivo,
+               tamanho = EXCLUDED.tamanho, paginas = EXCLUDED.paginas, publicado = EXCLUDED.publicado,
+               atualizado_em = now()""",
+        (titulo, lei, tipo, descricao, dados, len(dados), paginas, publicar, uid))
+
+
+def _acoes_material(m: dict, usuario: dict):
+    """Botões do administrador em cada material: publicar/tirar do ar, editar (renomear, trocar o PDF) e excluir."""
+    mid = m["id"]
+    c1, c2, c3 = st.columns(3)
     if m["publicado"]:
         if c1.button("Tirar do ar (voltar a rascunho)", key=f"mat_off_{mid}", width="stretch"):
             db.executar("UPDATE material_estudo SET publicado = FALSE, atualizado_em = now() WHERE id = %s", (mid,))
@@ -1759,11 +1758,104 @@ def _gerenciar_materiais(usuario: dict):
     elif c1.button("Publicar para os alunos", key=f"mat_on_{mid}", type="primary", width="stretch"):
         db.executar("UPDATE material_estudo SET publicado = TRUE, atualizado_em = now() WHERE id = %s", (mid,))
         st.rerun()
-    if c2.toggle("Quero apagar este material", key=f"mat_apagar_t_{mid}"):
-        if c2.button("Apagar definitivamente", key=f"mat_apagar_{mid}", width="stretch"):
+    with c2.popover("✏️ Editar", width="stretch"):
+        leis = _leis_material()
+        with st.form(f"mat_ed_{mid}"):
+            titulo = st.text_input("Título", value=m["titulo"], key=f"mat_ed_tit_{mid}")
+            lei = st.selectbox("Lei / matéria", leis, index=leis.index(m["lei"]) if m["lei"] in leis else len(leis) - 1,
+                               key=f"mat_ed_lei_{mid}")
+            tipos = list(TIPOS_MATERIAL)
+            tipo = st.selectbox("Tipo", tipos, index=tipos.index(m["tipo"]) if m["tipo"] in tipos else 0,
+                                format_func=TIPOS_MATERIAL.get, key=f"mat_ed_tipo_{mid}")
+            desc = st.text_area("Descrição curta (opcional)", value=m["descricao"] or "", height=68, key=f"mat_ed_desc_{mid}")
+            arq = st.file_uploader("Trocar o PDF (opcional)", type=["pdf"], key=f"mat_ed_arq_{mid}")
+            salvar = st.form_submit_button("Salvar alterações", type="primary")
+        if salvar:
+            titulo = titulo.strip()
+            outro = db.um("SELECT id FROM material_estudo WHERE titulo = %s AND id <> %s", (titulo, mid))
+            if not titulo or outro:
+                st.error("Título vazio ou já usado por outro material.")
+            else:
+                db.executar("""UPDATE material_estudo SET titulo = %s, lei = %s, tipo = %s, descricao = %s,
+                               atualizado_em = now() WHERE id = %s""", (titulo, lei, tipo, desc.strip() or None, mid))
+                if arq is not None:
+                    dados = arq.getvalue()
+                    pag = _ler_pdf(dados)
+                    if pag is None or len(dados) > LIMITE_MATERIAL_MB * 1048576:
+                        st.error("O PDF novo não foi aceito (inválido ou grande demais); o resto foi salvo.")
+                        return
+                    db.executar("UPDATE material_estudo SET arquivo = %s, tamanho = %s, paginas = %s WHERE id = %s",
+                                (dados, len(dados), pag, mid))
+                st.session_state.pop(f"mat_pdf_{mid}", None)
+                st.rerun()
+    with c3.popover("🗑️ Excluir", width="stretch"):
+        st.markdown(f"Excluir **{esc(m['titulo'])}**? Some para os alunos e apaga o registro dos downloads.",
+                    unsafe_allow_html=True)
+        if st.button("Apagar definitivamente", key=f"mat_apagar_{mid}", type="primary", width="stretch"):
             db.executar("DELETE FROM material_estudo WHERE id = %s", (mid,))
             st.session_state.pop(f"mat_pdf_{mid}", None)
             st.rerun()
+
+
+def _gerenciar_materiais(usuario: dict):
+    """Envio em lote: escolhe vários PDFs de uma vez; o app sugere título, lei e tipo pelo nome do arquivo
+    (ex.: lc190_resumo.pdf) e você confere/renomeia na tabela antes de guardar. Título igual substitui o PDF antigo."""
+    leis = _leis_material()
+    st.markdown("**Enviar materiais** (pode escolher vários PDFs de uma vez)")
+    rodada = st.session_state.setdefault("mat_lote_n", 0)
+    arqs = st.file_uploader("PDFs sem marca-d'água (o app coloca na hora do download)", type=["pdf"],
+                            accept_multiple_files=True, key=f"mat_lote_{rodada}")
+    if arqs:
+        linhas = []
+        for a in arqs:
+            titulo, lei, tipo = _adivinhar_material(a.name, leis)
+            linhas.append({"Arquivo": a.name, "Título": titulo, "Lei": lei, "Tipo": TIPOS_MATERIAL[tipo], "Publicar": True})
+        st.caption("Confira e, se quiser, mude o título, a lei e o tipo direto na tabela. Material com o mesmo título de "
+                   "um que já existe tem o PDF substituído (bom para atualizar).")
+        tabela = st.data_editor(
+            pd.DataFrame(linhas), hide_index=True, width="stretch", key=f"mat_lote_tab_{rodada}",
+            column_config={"Arquivo": st.column_config.TextColumn(disabled=True),
+                           "Lei": st.column_config.SelectboxColumn(options=leis, required=True),
+                           "Tipo": st.column_config.SelectboxColumn(options=list(TIPOS_MATERIAL.values()), required=True),
+                           "Publicar": st.column_config.CheckboxColumn()})
+        if st.button(f"Guardar {len(arqs)} material(is)", type="primary", key=f"mat_lote_ok_{rodada}"):
+            titulos = [str(t).strip() for t in tabela["Título"]]
+            if any(not t for t in titulos) or len(set(titulos)) != len(titulos):
+                st.error("Há título vazio ou repetido na tabela. Ajuste antes de guardar.")
+                return
+            erros, ok = [], 0
+            por_nome = {a.name: a for a in arqs}
+            for _, r in tabela.iterrows():
+                dados = por_nome[r["Arquivo"]].getvalue()
+                pag = _ler_pdf(dados)
+                if pag is None:
+                    erros.append(f"{r['Arquivo']}: não parece ser um PDF válido")
+                elif len(dados) > LIMITE_MATERIAL_MB * 1048576:
+                    erros.append(f"{r['Arquivo']}: grande demais (limite de {LIMITE_MATERIAL_MB} MB)")
+                else:
+                    _guardar_material(str(r["Título"]).strip(), r["Lei"], _chave(TIPOS_MATERIAL, r["Tipo"]), None, dados,
+                                      pag, bool(r["Publicar"]), usuario["id"])
+                    ok += 1
+            st.session_state["mat_lote_msg"] = (ok, erros)
+            st.session_state["mat_lote_n"] = rodada + 1
+            st.rerun()
+    msg = st.session_state.pop("mat_lote_msg", None)
+    if msg:
+        st.success(f"{msg[0]} material(is) guardado(s).")
+        for e in msg[1]:
+            st.error(e)
+    st.caption("Para renomear, trocar o PDF, publicar ou excluir, use os botões de cada material na lista abaixo.")
+
+    lista = db.consultar(
+        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas,
+                  COUNT(d.id) AS downloads, COUNT(DISTINCT d.usuario_id) AS pessoas
+           FROM material_estudo m LEFT JOIN material_download d ON d.material_id = m.id
+           GROUP BY m.id ORDER BY m.ordem, m.lei, m.titulo""")
+    if lista:
+        st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
+                                    "Situação": "Publicado" if m["publicado"] else "Rascunho", "Páginas": m["paginas"],
+                                    "Downloads": m["downloads"], "Pessoas": m["pessoas"]} for m in lista]),
+                     hide_index=True, width="stretch")
 
     st.markdown("**Rastrear um PDF que vazou**")
     cod = st.text_input("Código impresso no topo das páginas", key="mat_rastro", max_chars=6,
