@@ -18,6 +18,8 @@ import re
 import secrets
 import string
 import time
+import unicodedata
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -1473,6 +1475,7 @@ def _preparar_material(m: dict, usuario: dict):
 def _garante_extras() -> bool:
     """Colunas novas que o app cria sozinho se o SQL ainda não tiver sido rodado no banco."""
     db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS essencial BOOLEAN NOT NULL DEFAULT FALSE")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_ate TIMESTAMPTZ")
     return True
 
 
@@ -2174,16 +2177,178 @@ def _raio_x(usuario: dict):
 
 
 # ======================================================================= USUÁRIOS (ADMIN)
+# ======================================================================= ACESSO E PAGAMENTO
+# Aluno com usuario.acesso_ate preenchido só usa o app até essa data (NULL = sem prazo). Equipe nunca é bloqueada.
+# Pagamento: Pix com QR Code gerado pelo próprio app (sem intermediário e sem taxa). O aluno paga, manda o comprovante
+# pelo WhatsApp e o administrador libera em Usuários. Dados do Pix ficam nos Secrets do Streamlit, seção [pix].
+AVALIACAO_DIAS = 2
+ACESSO_OPCOES = {"avaliacao": f"Avaliação grátis ({AVALIACAO_DIAS} dias)", "livre": "Sem prazo"}
+
+
+def _acesso(uid: int) -> dict:
+    a = db.um("SELECT acesso_ate, (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS vencido FROM usuario WHERE id = %s",
+              (uid,))
+    return a or {"acesso_ate": None, "vencido": False}
+
+
+def _pix_cfg() -> dict | None:
+    try:
+        cfg = {k: str(v) for k, v in dict(st.secrets.get("pix", {})).items()}
+    except Exception:
+        cfg = {}
+    return cfg if cfg.get("chave") else None
+
+
+def _sem_acento(t: str) -> str:
+    t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode()
+    return re.sub(r"[^A-Za-z0-9 ]", "", t).upper().strip()
+
+
+def _crc16(dados: str) -> str:
+    crc = 0xFFFF
+    for b in dados.encode("utf-8"):
+        crc ^= b << 8
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x1021) if crc & 0x8000 else (crc << 1)
+            crc &= 0xFFFF
+    return f"{crc:04X}"
+
+
+def pix_copia_e_cola(chave: str, nome: str, cidade: str, valor: str | None = None, txid: str = "***") -> str:
+    """Código Pix estático (padrão BR Code do Banco Central), o mesmo que o app do banco gera para "Receber"."""
+    campo = lambda i, v: f"{i}{len(v):02d}{v}"
+    conta = campo("00", "br.gov.bcb.pix") + campo("01", chave.strip())
+    p = campo("00", "01") + campo("26", conta) + campo("52", "0000") + campo("53", "986")
+    if valor:
+        p += campo("54", f"{float(str(valor).replace(',', '.')):.2f}")
+    p += campo("58", "BR") + campo("59", _sem_acento(nome)[:25]) + campo("60", _sem_acento(cidade)[:15])
+    p += campo("62", campo("05", re.sub(r"[^A-Za-z0-9]", "", txid)[:25] or "***"))
+    p += "6304"
+    return p + _crc16(p)
+
+
+def _qr_img(texto: str, tamanho: int = 230) -> str:
+    """QR Code como <img> SVG (usa o reportlab, que o app já tem)."""
+    from reportlab.graphics import renderSVG
+    from reportlab.graphics.barcode.qr import QrCodeWidget
+    from reportlab.graphics.shapes import Drawing
+
+    w = QrCodeWidget(texto)
+    x0, y0, x1, y1 = w.getBounds()
+    d = Drawing(tamanho, tamanho, transform=[tamanho / (x1 - x0), 0, 0, tamanho / (y1 - y0), 0, 0])
+    d.add(w)
+    svg = renderSVG.drawToString(d)
+    return (f'<img alt="QR Code Pix" style="background:#fff;padding:6px;border-radius:8px" '
+            f'src="data:image/svg+xml;base64,{base64.b64encode(svg.encode()).decode()}">')
+
+
+def _bloco_pagamento(usuario: dict):
+    cfg = _pix_cfg()
+    if not cfg:
+        st.info("Para adquirir o acesso, fale com o administrador do app.")
+        return
+    if cfg.get("oferta"):
+        st.markdown(f"**{esc(cfg['oferta'])}**", unsafe_allow_html=True)
+    valor = cfg.get("valor")
+    if valor:
+        st.markdown(f"Valor: **R$ {float(valor.replace(',', '.')):.2f}**".replace(".", ","))
+    codigo = pix_copia_e_cola(cfg["chave"], cfg.get("nome", NOME_APP), cfg.get("cidade", "CAMPO GRANDE"), valor,
+                              txid=usuario["login"])
+    c1, c2 = st.columns([1, 1.5])
+    c1.markdown(_qr_img(codigo), unsafe_allow_html=True)
+    with c2:
+        st.markdown("**1.** Abra o app do seu banco, escolha **Pix → Ler QR Code** (ou **Pix copia e cola**) e pague.  \n"
+                    f"**2.** Mande o comprovante pelo WhatsApp, informando o seu usuário: **{esc(usuario['login'])}**.  \n"
+                    "**3.** Assim que o pagamento for conferido, o seu acesso é liberado. É só entrar de novo.")
+        if cfg.get("whatsapp"):
+            from urllib.parse import quote
+            msg = (f"Olá! Fiz o Pix do {NOME_APP}. Meu usuário é {usuario['login']} "
+                   f"({usuario['nome']}). Segue o comprovante.")
+            st.link_button("📲 Enviar comprovante pelo WhatsApp",
+                           f"https://wa.me/{re.sub(r'[^0-9]', '', cfg['whatsapp'])}?text={quote(msg)}",
+                           type="primary", width="stretch")
+    st.caption("Pix copia e cola:")
+    st.code(codigo, language=None)
+
+
+def tela_acesso_encerrado(usuario: dict, acesso: dict):
+    _cabecalho()
+    quando = _local(acesso["acesso_ate"])
+    st.warning(f"Olá, {usuario['nome']}. O seu acesso ao app terminou em **{quando:%d/%m/%Y às %H:%M}**. "
+               "Suas respostas, simulados e o seu Raio-X continuam guardados: quando o acesso for liberado, "
+               "está tudo lá.")
+    st.subheader("Como continuar")
+    _bloco_pagamento(usuario)
+    if st.button("Sair", key="ae_sair"):
+        auth.registrar("logout", usuario["id"])
+        st.session_state.clear()
+        st.rerun()
+
+
+def _aviso_prazo(usuario: dict, acesso: dict):
+    resta = acesso["acesso_ate"] - datetime.now(timezone.utc)
+    horas = max(0, int(resta.total_seconds() // 3600))
+    tempo = f"{horas // 24} dia(s) e {horas % 24} h" if horas >= 24 else f"{horas} h"
+    st.caption(f"⏳ Seu acesso vai até **{_local(acesso['acesso_ate']):%d/%m %H:%M}** (faltam {tempo}).")
+    with st.popover("💳 Adquirir acesso", width="stretch"):
+        _bloco_pagamento(usuario)
+
+
+def _rotulo_acesso(c: dict) -> str:
+    if c["perfil"] != "aluno":
+        return "equipe"
+    if c["acesso_ate"] is None:
+        return "sem prazo"
+    d = _local(c["acesso_ate"])
+    return f"encerrado em {d:%d/%m %H:%M}" if c["acesso_vencido"] else f"até {d:%d/%m/%Y %H:%M}"
+
+
+def _definir_acesso(alvo_id: int, ate, evento: str):
+    db.executar("UPDATE usuario SET acesso_ate = %s WHERE id = %s", (ate, alvo_id))
+    auth.registrar(evento, alvo_id)
+
+
+def _gerenciar_acesso(alvo: dict):
+    """Liberar, estender ou encerrar o acesso de um aluno (avaliação grátis ou período pago)."""
+    st.markdown(f"**Acesso de {esc(alvo['nome'])}:** {_rotulo_acesso(alvo)}", unsafe_allow_html=True)
+    agora = datetime.now(timezone.utc)
+    base = max(agora, alvo["acesso_ate"]) if alvo["acesso_ate"] is not None else agora
+    a1, a2, a3, a4 = st.columns(4)
+    if a1.button("Liberar +30 dias", key=f"ac30_{alvo['id']}", width="stretch",
+                 help="Soma 30 dias ao prazo atual (ou a partir de agora, se já venceu)."):
+        _definir_acesso(alvo["id"], base + timedelta(days=30), "acesso_mais_30")
+        st.rerun()
+    if a2.button(f"Avaliação de {AVALIACAO_DIAS} dias", key=f"acav_{alvo['id']}", width="stretch",
+                 help=f"Libera {AVALIACAO_DIAS} dias a partir de agora."):
+        _definir_acesso(alvo["id"], agora + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao")
+        st.rerun()
+    if a3.button("Sem prazo", key=f"aclivre_{alvo['id']}", width="stretch"):
+        _definir_acesso(alvo["id"], None, "acesso_sem_prazo")
+        st.rerun()
+    if a4.button("Encerrar agora", key=f"acfim_{alvo['id']}", width="stretch"):
+        _definir_acesso(alvo["id"], agora, "acesso_encerrado")
+        st.rerun()
+    d1, d2 = st.columns([1.4, 1])
+    data = d1.date_input("Ou liberar até a data", value=(_local(base) + timedelta(days=30)).date(), format="DD/MM/YYYY",
+                         key=f"acdata_{alvo['id']}")
+    if d2.button("Liberar até essa data", key=f"acdt_{alvo['id']}", width="stretch"):
+        ate = datetime(data.year, data.month, data.day, 23, 59, tzinfo=FUSO)
+        _definir_acesso(alvo["id"], ate, "acesso_ate_data")
+        st.rerun()
+
+
 def tela_usuarios(usuario: dict):
     st.header("Usuários")
     st.caption("Só entra no app quem você cadastrar aqui. A senha provisória aparece uma única vez: envie em particular.")
 
     with st.form("novo_usuario", clear_on_submit=True):
         st.markdown("**Cadastrar pessoa**")
-        c1, c2, c3 = st.columns([2, 1.5, 1])
+        c1, c2, c3, c4 = st.columns([2, 1.4, 1, 1.4])
         nome = c1.text_input("Nome (ex.: Cb PM Lozo)", key="nu_nome")
         login = c2.text_input("Usuário (ex.: lozo)", key="nu_login")
-        perfil = _chave(auth.PERFIS, c3.selectbox("Perfil", list(auth.PERFIS.values()), index=1, key="nu_perfil"))
+        perfil = _chave(auth.PERFIS, c3.selectbox("Perfil", list(auth.PERFIS.values()), index=2, key="nu_perfil"))
+        acesso_ini = _chave(ACESSO_OPCOES, c4.selectbox("Acesso (aluno)", list(ACESSO_OPCOES.values()), key="nu_acesso",
+                                                        help="Avaliação grátis: o app bloqueia sozinho no fim do prazo."))
         criar = st.form_submit_button("Cadastrar", type="primary")
     if criar:
         login_n = auth.normalizar_login(login)
@@ -2197,23 +2362,27 @@ def tela_usuarios(usuario: dict):
             senha = auth.senha_provisoria()
             uid = auth.criar_usuario(nome, login_n, perfil, senha, trocar=True)
             auth.registrar("usuario_criado", uid)
+            if perfil == "aluno" and acesso_ini == "avaliacao":
+                _definir_acesso(uid, datetime.now(timezone.utc) + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao")
             st.session_state["senha_mostrar"] = (nome.strip(), login_n, senha)
     _mostrar_senha()
 
     contas = db.consultar(
-        """SELECT id, nome, login, perfil, ativo, ultimo_acesso,
+        """SELECT id, nome, login, perfil, ativo, ultimo_acesso, acesso_ate,
+                  (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS acesso_vencido,
                   (bloqueado_ate IS NOT NULL AND bloqueado_ate > now()) AS bloqueado,
                   (SELECT COUNT(*) FROM resposta r WHERE r.usuario_id = u.id) AS respostas,
                   (SELECT COUNT(*) FROM parecer p WHERE p.usuario_id = u.id) AS pareceres
            FROM usuario u WHERE login IS NOT NULL ORDER BY ativo DESC, nome""")
     df = pd.DataFrame(contas)
+    df["acesso"] = [_rotulo_acesso(c) for c in contas]
     st.dataframe(
         df.assign(perfil=df["perfil"].map(auth.PERFIS),
                   ativo=df["ativo"].map({True: "Ativo", False: "Desativado"}),
                   bloqueado=df["bloqueado"].map({True: "Bloqueado", False: ""}),
                   ultimo_acesso=df["ultimo_acesso"].apply(lambda d: f"{d:%d/%m/%Y %H:%M}" if pd.notna(d) else "nunca"))
-          [["nome", "login", "perfil", "ativo", "bloqueado", "ultimo_acesso", "respostas", "pareceres"]]
-          .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação",
+          [["nome", "login", "perfil", "ativo", "acesso", "bloqueado", "ultimo_acesso", "respostas", "pareceres"]]
+          .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação", "acesso": "Acesso",
                            "bloqueado": "Bloqueio", "ultimo_acesso": "Último acesso", "respostas": "Respostas",
                            "pareceres": "Pareceres"}),
         hide_index=True, width="stretch")
@@ -2246,6 +2415,9 @@ def tela_usuarios(usuario: dict):
         db.executar("UPDATE usuario SET perfil = %s WHERE id = %s", (novo_perfil, alvo_id))
         auth.registrar(f"perfil_{novo_perfil}", alvo_id)
         st.rerun()
+    if alvo["perfil"] == "aluno":
+        with st.container(border=True):
+            _gerenciar_acesso(alvo)
 
     with st.expander("Registro de acessos (últimos 100)"):
         log = db.consultar(
@@ -2383,6 +2555,8 @@ if not auth.existe_admin():
     tela_primeiro_acesso()
     st.stop()
 
+_garante_extras()
+
 # 2) Sem login: tela de entrada.
 sessao = st.session_state.get("usuario")
 if not sessao:
@@ -2397,6 +2571,12 @@ if usuario is None:
     st.stop()
 st.session_state["usuario"] = usuario
 
+# 3b) Aluno com o acesso vencido (fim da avaliação grátis ou do período pago): só vê como adquirir.
+acesso = _acesso(usuario["id"])
+if usuario["perfil"] == "aluno" and acesso["vencido"]:
+    tela_acesso_encerrado(usuario, acesso)
+    st.stop()
+
 # 4) Senha provisória: obriga a trocar antes de qualquer coisa.
 if usuario["trocar_senha"]:
     tela_trocar_senha(usuario, obrigatoria=True)
@@ -2404,8 +2584,6 @@ if usuario["trocar_senha"]:
 
 # 5) Marca d'água com o nome de quem está logado, em toda a tela.
 aplicar_marca_dagua(usuario["nome"], usuario["login"])
-
-_garante_extras()
 
 # 6) Menu conforme o perfil.
 TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Materiais": tela_materiais,
@@ -2421,6 +2599,8 @@ with st.sidebar:
     st.markdown(f"### {NOME_APP}")
     st.caption(SUBTITULO)
     st.write(f"👤 **{usuario['nome']}**  \n{auth.PERFIS[usuario['perfil']]}")
+    if usuario["perfil"] == "aluno" and acesso["acesso_ate"] is not None:
+        _aviso_prazo(usuario, acesso)
     escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed")
     if st.button("Sair", width="stretch"):
         auth.registrar("logout", usuario["id"])
