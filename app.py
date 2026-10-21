@@ -2550,6 +2550,20 @@ def tela_usuarios(usuario: dict):
     if novo != aberto:
         definir_config("cadastro_aberto", "1" if novo else "0")
         auth.registrar("cadastro_aberto" if novo else "cadastro_fechado", usuario["id"])
+    tot = db.um("""SELECT COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo) AS alunos,
+                          COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo AND acesso_tipo = 'avaliacao'
+                                           AND acesso_ate > now()) AS avaliacao,
+                          COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo AND COALESCE(acesso_tipo, '') <> 'avaliacao'
+                                           AND (acesso_ate IS NULL OR acesso_ate > now())) AS liberados,
+                          COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo AND acesso_ate <= now()) AS vencidos,
+                          COUNT(*) FILTER (WHERE perfil <> 'aluno' AND ativo) AS equipe
+                   FROM usuario WHERE login IS NOT NULL""")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("Alunos", tot["alunos"])
+    m2.metric("Em avaliação", tot["avaliacao"])
+    m3.metric("Com acesso liberado", tot["liberados"])
+    m4.metric("Acesso vencido", tot["vencidos"])
+    m5.metric("Equipe", tot["equipe"])
 
     with st.form("novo_usuario", clear_on_submit=True):
         st.markdown("**Cadastrar pessoa**")
