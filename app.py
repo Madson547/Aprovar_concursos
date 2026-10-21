@@ -230,6 +230,7 @@ CSS = """
 .etq{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 8px;margin-left:6px}
 .etq.lei{background:var(--verde-claro);color:var(--verde)} .etq.caso{background:#F5E8C8;color:#8A5A00}
 .etq.rev{background:#E8E2F4;color:#4B3A7A} .etq.port{background:#DCEBF7;color:#1F4E79} .etq.prova{background:#FBE3E3;color:#8B1E1E} .etq.acervo{background:#ECE6DA;color:#6B5320}
+.etq.ess{background:#FBF1D6;color:#8A6A1F}
 .alt{border:1px solid var(--linha);border-radius:8px;padding:9px 12px;margin:6px 0;line-height:1.5}
 .alt.certa{border-color:var(--ok);background:var(--ok-bg)} .alt.errada{border-color:var(--erro);background:var(--erro-bg)}
 .alt .why{display:block;font-size:.88rem;color:var(--texto-suave);margin-top:4px}
@@ -264,7 +265,7 @@ button[kind="primary"],button[kind="primaryFormSubmit"]{background:#4B5A23!impor
 @media (prefers-color-scheme: dark){
  :root{--verde:#B5C77A;--verde-claro:#2A331C;--ok:#7FD39A;--ok-bg:#173222;--erro:#F19A90;--erro-bg:#3A1C19;--lei:#20261F;--linha:#2E372F;--texto-suave:#9AA597;--bronze:#D9B45E}
  .rx-chip.rx-amarelo{background:#352A12;border-color:#B98A1E} .rx-chip.rx-amarelo .rx-num{color:#E8C26A}
- .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4} .etq.acervo{background:#332B1C;color:#E0C995}}
+ .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4} .etq.acervo{background:#332B1C;color:#E0C995} .etq.ess{background:#352A12;color:#E8C26A}}
 </style>
 """
 
@@ -390,7 +391,8 @@ ROTULO_TIPO = {"lei_seca": ("lei", "Lei seca"), "caso_pratico": ("caso", "Caso p
 ORIGENS = {"": "Inéditas e provas anteriores", "inedita": "Só inéditas", "prova_anterior": "Só provas anteriores",
            "material": "Questões antigas (acervo)", "todas": "Todas, incluindo o acervo"}
 FILTRO_ORIGEM = """(%(orig)s = 'todas' OR (%(orig)s = '' AND q.origem::text <> 'material') OR q.origem::text = %(orig)s)"""
-SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "erradas": "Errei na última tentativa"}
+SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "erradas": "Errei na última tentativa",
+             "essenciais": "⭐ Só as essenciais"}
 # Ordem dos itens principais do filtro (o que não está aqui vem depois, na ordem do edital)
 ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM"]
 
@@ -461,7 +463,7 @@ def _arvore(status: list[str], origem: str = "") -> list[dict]:
 def _questoes(uid: int, status: list[str], assuntos, tipo: str, origem: str, situacao: str) -> list[dict]:
     return db.consultar(
         """SELECT q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado, q.texto_apoio, q.comentario, q.dica,
-                  q.status::text AS status, q.origem::text AS origem, q.fonte,
+                  q.status::text AS status, q.origem::text AS origem, q.fonte, q.essencial,
                   (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
                     WHERE qa.questao_id = q.id) AS assuntos
            FROM questao q
@@ -469,7 +471,7 @@ def _questoes(uid: int, status: list[str], assuntos, tipo: str, origem: str, sit
              AND (%(ass)s::int[] IS NULL OR EXISTS (SELECT 1 FROM questao_assunto qa WHERE qa.questao_id = q.id AND qa.assunto_id = ANY(%(ass)s::int[])))
              AND (%(tipo)s = '' OR q.tipo = %(tipo)s)
              AND """ + FILTRO_ORIGEM + """
-             AND (%(sit)s = 'todas'
+             AND (%(sit)s = 'todas' OR (%(sit)s = 'essenciais' AND q.essencial)
                   OR (%(sit)s = 'nao_respondidas' AND NOT EXISTS (SELECT 1 FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s))
                   OR (%(sit)s = 'erradas' AND (SELECT r.acertou FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s
                                                ORDER BY r.respondida_em DESC LIMIT 1) = FALSE))
@@ -601,8 +603,9 @@ def _cartao(q: dict, cabecalho: str | None = None):
         etq_rev = '<span class="etq rev">Em revisão</span>' if q["status"] == "em_revisao" else ""
         etq_prova = f'<span class="etq prova">{esc(q["fonte"])}</span>' if q["origem"] == "prova_anterior" else ""
         etq_acervo = '<span class="etq acervo">Acervo</span>' if q["origem"] == "material" else ""
+        etq_ess = '<span class="etq ess">⭐ Essencial</span>' if q.get("essencial") else ""
         topo = (f'<span><span class="cod">{esc(q["codigo"])}</span> · {esc(q["assuntos"])}</span>'
-                f'<span>{DIF.get(q["dificuldade"], "")}{etq_tipo}{etq_prova}{etq_acervo}{etq_rev}</span>')
+                f'<span>{DIF.get(q["dificuldade"], "")}{etq_ess}{etq_tipo}{etq_prova}{etq_acervo}{etq_rev}</span>')
     st.markdown(
         f"""<div class="cartao">
               <div class="topo">{topo}</div>
@@ -611,10 +614,19 @@ def _cartao(q: dict, cabecalho: str | None = None):
     )
 
 
+def _marcar_essencial(q: dict):
+    novo = bool(st.session_state.get(f"ess_{q['id']}"))
+    db.executar("UPDATE questao SET essencial = %s WHERE id = %s", (novo, q["id"]))
+    q["essencial"] = novo
+
+
 def _questao(q: dict, usuario: dict):
     fundo = marca_dagua(usuario["nome"], usuario["login"])
     _texto_apoio(q)
     _cartao(q)
+    if usuario["perfil"] in ("admin", "revisor"):
+        st.toggle("⭐ Essencial (entra em \"Questões essenciais\" da lei)", value=bool(q.get("essencial")),
+                  key=f"ess_{q['id']}", on_change=_marcar_essencial, args=(q,))
 
     alts = _alternativas(q["id"])
     respondidas = st.session_state.setdefault("respondidas", {})
@@ -1199,6 +1211,10 @@ def _limpa_escolha(chave: str, validas):
 
 def _montagem(usuario: dict):
     uid, perfil = usuario["id"], usuario["perfil"]
+    lei_aviso = st.session_state.pop("sim_aviso_lei", None)
+    if lei_aviso:
+        st.info(f"Simulado da lei **{lei_aviso}** já marcado na aba **🛠️ Montar meu simulado**, só com inéditas. "
+                "Confira a quantidade e o tempo e comece.")
     if st.session_state.pop("sim_aviso_rx", False):
         st.info("Seus pontos fracos do Raio-X já estão marcados na aba **🛠️ Montar meu simulado**. "
                 "Confira a quantidade e o tempo e comece.")
@@ -1348,8 +1364,9 @@ def _historico_simulados(usuario: dict):
 # ======================================================================
 # Resumos e mapas mentais em PDF. O arquivo fica "limpo" no banco; na hora do download o app carimba
 # em todas as páginas o nome, o usuário, a data e um código único (registrado em material_download).
-TIPOS_MATERIAL = {"lei": "Lei seca comentada", "resumo": "Resumo em PDF", "mapa": "Mapa mental"}
-ORDEM_TIPO_SQL = "CASE tipo WHEN 'lei' THEN 1 WHEN 'resumo' THEN 2 ELSE 3 END"
+TIPOS_MATERIAL = {"lei": "Lei seca comentada", "resumo": "Resumo em PDF", "mapa": "Mapa mental",
+                  "relatorio": "Relatório de revisão"}
+ORDEM_TIPO_SQL = "CASE tipo WHEN 'lei' THEN 1 WHEN 'resumo' THEN 2 WHEN 'mapa' THEN 3 ELSE 4 END"
 LIMITE_MATERIAL_MB = 15
 
 
@@ -1369,7 +1386,7 @@ def _garante_materiais() -> bool:
                baixado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
     # tipos aceitos (inclui 'lei' = lei seca comentada); refaz a regra caso a tabela venha da versão anterior
     db.executar("ALTER TABLE material_estudo DROP CONSTRAINT IF EXISTS material_estudo_tipo_check")
-    db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa'))")
+    db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio'))")
     return True
 
 
@@ -1452,11 +1469,95 @@ def _preparar_material(m: dict, usuario: dict):
     st.session_state[f"mat_pdf_{m['id']}"] = (pdf, codigo)
 
 
+@st.cache_resource
+def _garante_extras() -> bool:
+    """Colunas novas que o app cria sozinho se o SQL ainda não tiver sido rodado no banco."""
+    db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS essencial BOOLEAN NOT NULL DEFAULT FALSE")
+    return True
+
+
+TURMA_MIN_RESP = 30      # respostas de um assunto para entrar em "onde a turma mais erra"
+TURMA_MIN_ALUNOS = 5     # pessoas diferentes respondendo esse assunto
+
+
+def _turma_erra(sigla: str, status: list[str]) -> list[dict]:
+    """Assuntos da lei em que a turma mais erra (última resposta de cada pessoa em cada questão)."""
+    return db.consultar(
+        """WITH ult AS (
+               SELECT DISTINCT ON (r.usuario_id, r.questao_id) r.usuario_id, r.questao_id, r.acertou
+               FROM resposta r JOIN questao q ON q.id = r.questao_id
+               WHERE q.status::text = ANY(%(st)s)
+               ORDER BY r.usuario_id, r.questao_id, r.respondida_em DESC)
+           SELECT a.id, a.nome, COUNT(*) AS n, COUNT(DISTINCT u.usuario_id) AS pessoas,
+                  ROUND(100.0 * AVG(u.acertou::int)) AS pct
+           FROM ult u JOIN questao_assunto qa ON qa.questao_id = u.questao_id JOIN assunto a ON a.id = qa.assunto_id
+           JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE COALESCE(d.sigla, m.nome) = %(g)s
+           GROUP BY a.id, a.nome
+           HAVING COUNT(*) >= %(mr)s AND COUNT(DISTINCT u.usuario_id) >= %(ma)s
+           ORDER BY pct, n DESC LIMIT 3""",
+        {"st": status, "g": sigla, "mr": TURMA_MIN_RESP, "ma": TURMA_MIN_ALUNOS})
+
+
+def _ir_essenciais(sigla: str, perfil: str):
+    """Abre Resolver questões só com as essenciais da lei."""
+    arv = _arvore(status_visiveis(perfil, True), "")
+    g = next((x for x in arv if x["sigla"] == sigla), None)
+    if g is None:
+        return
+    st.session_state["f_orig"] = ORIGENS[""]
+    st.session_state["f_grupo"] = g["rotulo"]
+    st.session_state[f"f_sub_{sigla}"] = []
+    st.session_state["f_sit"] = SITUACOES["essenciais"]
+    st.session_state.pop("filtro_ativo", None)
+    st.session_state["menu"] = "Resolver questões"
+
+
+def _ir_simulado_lei(sigla: str, qtd: int):
+    """Abre Simulados com a lei marcada, só inéditas."""
+    st.session_state["sim_grupos"] = [sigla]
+    st.session_state["sim_assuntos"] = []
+    st.session_state["sim_qtd"] = qtd
+    st.session_state["sim_ined"] = True
+    st.session_state.pop("sim_ver", None)
+    st.session_state["sim_aviso_lei"] = sigla
+    st.session_state["menu"] = "Simulados"
+
+
+def _revisao_lei(sigla: str, usuario: dict):
+    """Bloco "Revisão da lei" na aba Materiais: essenciais, simulado da lei e onde a turma mais erra."""
+    status = status_visiveis(usuario["perfil"], True)
+    c = db.um(
+        """SELECT COUNT(DISTINCT q.id) FILTER (WHERE q.essencial) AS ess,
+                  COUNT(DISTINCT q.id) FILTER (WHERE q.origem::text = 'inedita') AS ined
+           FROM questao q JOIN questao_assunto qa ON qa.questao_id = q.id JOIN assunto a ON a.id = qa.assunto_id
+           JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE q.status::text = ANY(%s) AND COALESCE(d.sigla, m.nome) = %s""", (status, sigla))
+    if not c or not (c["ess"] or c["ined"]):
+        return
+    with st.container(border=True):
+        st.markdown("**🎯 Revisão da lei**")
+        b1, b2 = st.columns(2)
+        b1.button(f"⭐ Questões essenciais ({c['ess']})", key=f"rv_ess_{sigla}", width="stretch",
+                  disabled=not c["ess"], on_click=_ir_essenciais, args=(sigla, usuario["perfil"]),
+                  help="As questões que a equipe separou como indispensáveis para a prova.")
+        qtd = max(5, min(20, (c["ined"] // 5) * 5))
+        b2.button(f"📝 Simulado da lei ({qtd} inéditas)", key=f"rv_sim_{sigla}", width="stretch",
+                  disabled=c["ined"] < 5, on_click=_ir_simulado_lei, args=(sigla, qtd))
+        turma = _turma_erra(sigla, status)
+        if turma:
+            st.markdown("Onde a turma mais erra nesta lei: " + " · ".join(
+                f"<b>{esc(t['nome'])}</b> ({int(t['pct'])}% de acerto)" for t in turma), unsafe_allow_html=True)
+        else:
+            st.caption("\"Onde a turma mais erra\" aparece aqui quando houver respostas suficientes nesta lei.")
+
+
 def tela_materiais(usuario: dict):
     st.header("Materiais")
     _garante_materiais()
     equipe = usuario["perfil"] in ("admin", "revisor")
-    st.caption("Resumos e mapas mentais feitos a partir do texto oficial das leis. Cada PDF sai com o **seu nome e um "
+    st.caption("Lei seca comentada, resumos, mapas mentais e relatórios de revisão, feitos a partir do texto oficial "
+               "das leis. Cada PDF sai com o **seu nome e um "
                "código** em todas as páginas: é para seu estudo, não compartilhe.")
     if usuario["perfil"] == "admin":
         with st.expander("⚙️ Gerenciar materiais (só administrador)"):
@@ -1472,6 +1573,7 @@ def tela_materiais(usuario: dict):
     leis = sorted({m["lei"] for m in mats}, key=lambda s: (pos.get(s, len(pos)), s))
     for lei in leis:
         st.subheader(lei)
+        _revisao_lei(lei, usuario)
         for m in [m for m in mats if m["lei"] == lei]:
             with st.container(border=True):
                 rascunho = "" if m["publicado"] else " · 🔒 rascunho (alunos ainda não veem)"
@@ -2302,6 +2404,8 @@ if usuario["trocar_senha"]:
 
 # 5) Marca d'água com o nome de quem está logado, em toda a tela.
 aplicar_marca_dagua(usuario["nome"], usuario["login"])
+
+_garante_extras()
 
 # 6) Menu conforme o perfil.
 TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Materiais": tela_materiais,
