@@ -1557,6 +1557,10 @@ def _garante_extras() -> bool:
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS whatsapp TEXT")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS concurso TEXT NOT NULL DEFAULT 'cfs'")
     db.executar("CREATE TABLE IF NOT EXISTS app_config (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)")
+    db.executar("""CREATE TABLE IF NOT EXISTS pagamento (
+                       id SERIAL PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+                       valor NUMERIC(10,2) NOT NULL CHECK (valor > 0), pago_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+                       acesso_ate TIMESTAMPTZ, descricao TEXT, registrado_por INT REFERENCES usuario(id))""")
     return True
 
 
@@ -2371,6 +2375,100 @@ def _raio_x(usuario: dict):
 
 
 # ======================================================================= USUÁRIOS (ADMIN)
+# ======================================================================= FINANCEIRO (só admin)
+def tela_financeiro(usuario: dict):
+    st.header("Financeiro")
+    st.caption("Cadastros e pagamentos por período. Cada liberação de acesso feita em Usuários com valor maior que zero "
+               "entra aqui automaticamente; pagamentos avulsos podem ser lançados abaixo.")
+    hoje = _local(datetime.now(timezone.utc)).date()
+    periodos = {"Este mês": (hoje.replace(day=1), hoje),
+                "Mês passado": ((hoje.replace(day=1) - timedelta(days=1)).replace(day=1), hoje.replace(day=1) - timedelta(days=1)),
+                "Últimos 7 dias": (hoje - timedelta(days=6), hoje),
+                "Este ano": (hoje.replace(month=1, day=1), hoje),
+                "Tudo": (datetime(2026, 1, 1).date(), hoje),
+                "Escolher datas": None}
+    esc_p = st.radio("Período", list(periodos), horizontal=True, key="fin_periodo")
+    if periodos[esc_p] is None:
+        c1, c2 = st.columns(2)
+        ini = c1.date_input("De", value=hoje.replace(day=1), format="DD/MM/YYYY", key="fin_ini")
+        fim = c2.date_input("Até", value=hoje, format="DD/MM/YYYY", key="fin_fim")
+    else:
+        ini, fim = periodos[esc_p]
+    t0 = datetime(ini.year, ini.month, ini.day, tzinfo=FUSO)
+    t1 = datetime(fim.year, fim.month, fim.day, tzinfo=FUSO) + timedelta(days=1)
+    r = db.um("""SELECT (SELECT COUNT(*) FROM usuario WHERE perfil = 'aluno' AND criado_em >= %(a)s AND criado_em < %(b)s) AS cadastros,
+                        (SELECT COUNT(*) FROM pagamento WHERE pago_em >= %(a)s AND pago_em < %(b)s) AS pagamentos,
+                        (SELECT COALESCE(SUM(valor), 0) FROM pagamento WHERE pago_em >= %(a)s AND pago_em < %(b)s) AS receita,
+                        (SELECT COUNT(DISTINCT usuario_id) FROM pagamento WHERE pago_em >= %(a)s AND pago_em < %(b)s) AS pagantes,
+                        (SELECT COUNT(*) FROM usuario WHERE perfil = 'aluno') AS alunos_total,
+                        (SELECT COALESCE(SUM(valor), 0) FROM pagamento) AS receita_total""", {"a": t0, "b": t1})
+    real = lambda v: f"R$ {float(v):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Receita no período", real(r["receita"]))
+    m2.metric("Pagamentos", r["pagamentos"])
+    m3.metric("Novos alunos", r["cadastros"])
+    m4.metric("Ticket médio", real(r["receita"] / r["pagamentos"]) if r["pagamentos"] else "—")
+    st.caption(f"Desde o início: **{real(r['receita_total'])}** recebidos · **{r['alunos_total']}** alunos cadastrados.")
+
+    mensal = db.consultar(
+        """SELECT to_char(date_trunc('month', pago_em AT TIME ZONE 'America/Campo_Grande'), 'YYYY-MM') AS mes,
+                  SUM(valor)::float AS receita, COUNT(*) AS pagamentos
+           FROM pagamento GROUP BY 1 ORDER BY 1""")
+    cad = db.consultar(
+        """SELECT to_char(date_trunc('month', criado_em AT TIME ZONE 'America/Campo_Grande'), 'YYYY-MM') AS mes,
+                  COUNT(*) AS cadastros FROM usuario WHERE perfil = 'aluno' GROUP BY 1 ORDER BY 1""")
+    if mensal or cad:
+        df = pd.merge(pd.DataFrame(mensal or [], columns=["mes", "receita", "pagamentos"]),
+                      pd.DataFrame(cad or [], columns=["mes", "cadastros"]), on="mes", how="outer").fillna(0).sort_values("mes")
+        st.subheader("Mês a mês")
+        st.bar_chart(df.set_index("mes")["receita"], y_label="Receita (R$)", x_label="")
+        st.dataframe(df.assign(receita=df["receita"].map(real), pagamentos=df["pagamentos"].astype(int),
+                               cadastros=df["cadastros"].astype(int))
+                       .rename(columns={"mes": "Mês", "receita": "Receita", "pagamentos": "Pagamentos",
+                                        "cadastros": "Novos alunos"}), hide_index=True, width="stretch")
+
+    st.subheader("Pagamentos do período")
+    pags = db.consultar(
+        """SELECT p.id, p.pago_em, u.nome, u.login, p.valor::float AS valor, p.descricao, p.acesso_ate
+           FROM pagamento p JOIN usuario u ON u.id = p.usuario_id
+           WHERE p.pago_em >= %s AND p.pago_em < %s ORDER BY p.pago_em DESC""", (t0, t1))
+    if pags:
+        dp = pd.DataFrame(pags)
+        vis = pd.DataFrame({"Data": dp["pago_em"].map(lambda d: f"{_local(d):%d/%m/%Y %H:%M}"), "Aluno": dp["nome"],
+                            "Usuário": dp["login"], "Valor": dp["valor"].map(real), "Descrição": dp["descricao"].fillna(""),
+                            "Acesso até": dp["acesso_ate"].map(lambda d: f"{_local(d):%d/%m/%Y}" if pd.notna(d) else "sem prazo")})
+        st.dataframe(vis, hide_index=True, width="stretch")
+        st.download_button("📥 Baixar planilha (CSV)", vis.to_csv(index=False, sep=";").encode("utf-8-sig"),
+                           file_name=f"pagamentos_{ini:%Y%m%d}_{fim:%Y%m%d}.csv", mime="text/csv", key="fin_csv")
+        with st.expander("Corrigir um lançamento errado"):
+            rot = {p["id"]: f"{_local(p['pago_em']):%d/%m %H:%M} · {p['nome']} · {real(p['valor'])}" for p in pags}
+            pid = st.selectbox("Lançamento", list(rot), format_func=rot.get, key="fin_del_sel")
+            if st.button("Excluir este lançamento", key="fin_del"):
+                db.executar("DELETE FROM pagamento WHERE id = %s", (pid,))
+                auth.registrar("pagamento_excluido", usuario["id"])
+                st.rerun()
+    else:
+        st.info("Nenhum pagamento neste período.")
+
+    with st.expander("Lançar pagamento avulso (sem mexer no acesso)"):
+        alunos = db.consultar("SELECT id, nome, login FROM usuario WHERE perfil = 'aluno' ORDER BY nome")
+        if alunos:
+            with st.form("fin_avulso", clear_on_submit=True):
+                rot_a = {a["id"]: f"{a['nome']} ({a['login']})" for a in alunos}
+                aid = st.selectbox("Aluno", list(rot_a), format_func=rot_a.get, key="fin_av_aluno")
+                c1, c2 = st.columns(2)
+                val = c1.number_input("Valor (R$)", min_value=0.0, step=10.0, value=_valor_padrao(), format="%.2f",
+                                      key="fin_av_valor")
+                data_p = c2.date_input("Data do pagamento", value=hoje, format="DD/MM/YYYY", key="fin_av_data")
+                desc = st.text_input("Descrição", value="Pagamento avulso", key="fin_av_desc")
+                if st.form_submit_button("Lançar", type="primary") and val > 0:
+                    db.executar("""INSERT INTO pagamento (usuario_id, valor, pago_em, descricao, registrado_por)
+                                   VALUES (%s, %s, %s, %s, %s)""",
+                                (aid, round(val, 2), datetime(data_p.year, data_p.month, data_p.day, 12, tzinfo=FUSO),
+                                 desc.strip() or None, usuario["id"]))
+                    st.rerun()
+
+
 # ======================================================================= ACESSO E PAGAMENTO
 # Aluno com usuario.acesso_ate preenchido só usa o app até essa data (NULL = sem prazo). Equipe nunca é bloqueada.
 # Pagamento: Pix com QR Code gerado pelo próprio app (sem intermediário e sem taxa). O aluno paga, manda o comprovante
@@ -2512,15 +2610,33 @@ def _definir_acesso(alvo_id: int, ate, evento: str, tipo: str | None = "pago"):
     auth.registrar(evento, alvo_id)
 
 
-def _gerenciar_acesso(alvo: dict):
-    """Liberar, estender ou encerrar o acesso de um aluno (avaliação grátis ou período pago)."""
+def _registrar_pagamento(alvo_id: int, valor: float, ate, descricao: str, admin_id: int):
+    if valor and valor > 0:
+        db.executar("""INSERT INTO pagamento (usuario_id, valor, acesso_ate, descricao, registrado_por)
+                       VALUES (%s, %s, %s, %s, %s)""", (alvo_id, round(float(valor), 2), ate, descricao, admin_id))
+
+
+def _valor_padrao() -> float:
+    try:
+        return float(str((_pix_cfg() or {}).get("valor", "0")).replace(",", "."))
+    except ValueError:
+        return 0.0
+
+
+def _gerenciar_acesso(alvo: dict, admin: dict | None = None):
+    """Liberar, estender ou encerrar o acesso de um aluno (avaliação grátis ou período pago).
+    Ao liberar (+30 dias, sem prazo, até a data), o valor informado entra no Financeiro (0 = cortesia, não registra)."""
     st.markdown(f"**Acesso de {esc(alvo['nome'])}:** {_rotulo_acesso(alvo)}", unsafe_allow_html=True)
+    admin_id = admin["id"] if admin else None
+    valor = st.number_input("Valor recebido nesta liberação (R$) · deixe 0 para cortesia", min_value=0.0, step=10.0,
+                            value=_valor_padrao(), format="%.2f", key=f"acval_{alvo['id']}")
     agora = datetime.now(timezone.utc)
     base = max(agora, alvo["acesso_ate"]) if alvo["acesso_ate"] is not None else agora
     a1, a2, a3, a4 = st.columns(4)
     if a1.button("Liberar +30 dias", key=f"ac30_{alvo['id']}", width="stretch",
                  help="Soma 30 dias ao prazo atual (ou a partir de agora, se já venceu)."):
         _definir_acesso(alvo["id"], base + timedelta(days=30), "acesso_mais_30")
+        _registrar_pagamento(alvo["id"], valor, base + timedelta(days=30), "Liberação +30 dias", admin_id)
         st.rerun()
     if a2.button(f"Avaliação de {AVALIACAO_DIAS} dias", key=f"acav_{alvo['id']}", width="stretch",
                  help=f"Libera {AVALIACAO_DIAS} dias a partir de agora."):
@@ -2528,6 +2644,7 @@ def _gerenciar_acesso(alvo: dict):
         st.rerun()
     if a3.button("Sem prazo", key=f"aclivre_{alvo['id']}", width="stretch"):
         _definir_acesso(alvo["id"], None, "acesso_sem_prazo")
+        _registrar_pagamento(alvo["id"], valor, None, "Liberação sem prazo", admin_id)
         st.rerun()
     if a4.button("Encerrar agora", key=f"acfim_{alvo['id']}", width="stretch"):
         _definir_acesso(alvo["id"], agora, "acesso_encerrado", None)
@@ -2538,6 +2655,7 @@ def _gerenciar_acesso(alvo: dict):
     if d2.button("Liberar até essa data", key=f"acdt_{alvo['id']}", width="stretch"):
         ate = datetime(data.year, data.month, data.day, 23, 59, tzinfo=FUSO)
         _definir_acesso(alvo["id"], ate, "acesso_ate_data")
+        _registrar_pagamento(alvo["id"], valor, ate, f"Liberação até {data:%d/%m/%Y}", admin_id)
         st.rerun()
 
 
@@ -2646,7 +2764,7 @@ def tela_usuarios(usuario: dict):
         st.rerun()
     if alvo["perfil"] == "aluno":
         with st.container(border=True):
-            _gerenciar_acesso(alvo)
+            _gerenciar_acesso(alvo, usuario)
 
     with st.expander("Registro de acessos (últimos 100)"):
         log = db.consultar(
@@ -2835,6 +2953,7 @@ if usuario["perfil"] in ("admin", "revisor"):
     TELAS["Revisão da equipe"] = tela_revisao
 if usuario["perfil"] == "admin":
     TELAS["Usuários"] = tela_usuarios
+    TELAS["Financeiro"] = tela_financeiro
     TELAS["Biblioteca"] = tela_biblioteca
 TELAS["Minha conta"] = tela_conta
 
