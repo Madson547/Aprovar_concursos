@@ -325,9 +325,53 @@ def grafico_barras(rotulos: list, valores: list, texto=None, maximo: float | Non
 LOGIN_OK = re.compile(r"^[a-z0-9._-]{3,30}$")
 # Concurso que o aluno vai fazer (escolhido no cadastro e em Minha conta). Hoje o conteúdo é todo do CFS PMMS.
 CONCURSOS = {"cfs": "CFS · Curso de Formação de Sargentos", "cfc": "CFC · Curso de Formação de Cabos",
-             "cho": "CHO · Curso de Habilitação de Oficiais", "formacao": "Curso de Formação de Soldados"}
-CONCURSOS_CURTO = {"cfs": "CFS", "cfc": "CFC", "cho": "CHO", "formacao": "Formação"}
-CONCURSOS_COM_CONTEUDO = {"cfs"}
+             "cho": "CHO · Curso de Habilitação de Oficiais", "formacao": "Curso de Formação de Soldados",
+             "provao": "Aluno do CFS 2026 · Provão de conclusão do curso"}
+CONCURSOS_CURTO = {"cfs": "CFS", "cfc": "CFC", "cho": "CHO", "formacao": "Formação", "provao": "Provão CFS 2026"}
+CONCURSOS_COM_CONTEUDO = {"cfs", "provao"}
+
+# TRILHAS: cada trilha é um edital (tabela edital) com as suas matérias (edital_materia). O aluno vê só a trilha do
+# concurso que escolheu; administrador e revisores trocam de trilha no menu lateral.
+TRILHAS = {"cfs": {"concurso": "CFS-PMMS", "nome": "CFS PMMS 2026", "sub": "CFS PMMS · Banco de questões comentadas"},
+           "provao": {"concurso": "PROVAO-CFS-PMMS", "nome": "Provão do CFS 2026",
+                      "sub": "Provão de conclusão do CFS 2026 · Questões comentadas"}}
+
+
+def trilha_de(concurso: str | None) -> str:
+    return concurso if concurso in TRILHAS else "cfs"
+
+
+def _trocou_trilha():
+    """Ao trocar de trilha, os filtros e escolhas da trilha anterior deixam de valer."""
+    st.session_state["trilha"] = st.session_state["trilha_sel"]
+    for k in [k for k in st.session_state if k.startswith(("f_grupo", "f_sub_", "sim_grupos", "sim_assuntos", "rx_"))]:
+        del st.session_state[k]
+    st.session_state.pop("filtro_ativo", None)
+
+
+def trilha_atual() -> str:
+    return st.session_state.get("trilha", "cfs")
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _edital_da_trilha(trilha: str) -> int | None:
+    r = db.um("""SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = %s
+                 ORDER BY e.ano DESC, e.id DESC LIMIT 1""", (TRILHAS[trilha_de(trilha)]["concurso"],))
+    return r["id"] if r else None
+
+
+def edital_atual() -> int | None:
+    return _edital_da_trilha(trilha_atual())
+
+
+def filtro_trilha(q: str = "q") -> str:
+    """Trecho SQL que deixa só as questões da trilha atual (edital + matérias do edital)."""
+    ed = edital_atual()
+    if ed is None:
+        return " AND FALSE "
+    ed = int(ed)
+    return (f" AND EXISTS (SELECT 1 FROM questao_edital qe WHERE qe.questao_id = {q}.id AND qe.edital_id = {ed})"
+            f" AND {q}.materia_id IN (SELECT em.materia_id FROM edital_materia em WHERE em.edital_id = {ed}) ")
 
 
 @st.cache_resource(show_spinner=False)
@@ -534,8 +578,10 @@ def tela_trocar_senha(usuario: dict, obrigatoria: bool):
 # TELAS_QUESTOES
 # ======================================================================
 DIF = {1: "Fácil", 2: "Média", 3: "Difícil"}
-TIPOS = {"": "Todos os tipos", "lei_seca": "Só lei seca", "caso_pratico": "Só casos práticos", "portugues": "Só Português"}
-ROTULO_TIPO = {"lei_seca": ("lei", "Lei seca"), "caso_pratico": ("caso", "Caso prático"), "portugues": ("port", "Português")}
+TIPOS = {"": "Todos os tipos", "lei_seca": "Só lei seca", "caso_pratico": "Só casos práticos", "portugues": "Só Português",
+         "teoria": "Só conteúdo do curso"}
+ROTULO_TIPO = {"lei_seca": ("lei", "Lei seca"), "caso_pratico": ("caso", "Caso prático"), "portugues": ("port", "Português"),
+               "teoria": ("rev", "Conteúdo do curso")}
 # "" (padrão) = questões próprias do app. O acervo (questões antigas de materiais de apoio) só aparece se escolhido.
 ORIGENS = {"": "Inéditas e provas anteriores", "inedita": "Só inéditas", "prova_anterior": "Só provas anteriores",
            "material": "Questões antigas (acervo)", "todas": "Todas, incluindo o acervo"}
@@ -549,11 +595,13 @@ def _so_amostra() -> bool:
 
 
 def _filtro_origem() -> str:
-    return FILTRO_ORIGEM + (FILTRO_AMOSTRA if _so_amostra() else "")
+    return FILTRO_ORIGEM + (FILTRO_AMOSTRA if _so_amostra() else "") + filtro_trilha()
 SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "erradas": "Errei na última tentativa",
              "essenciais": "⭐ Só as essenciais"}
 # Ordem dos itens principais do filtro (o que não está aqui vem depois, na ordem do edital)
-ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM"]
+ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM",
+                "Direito Penal", "Diversidade, Gênero e Combate à Discriminação", "Povos Indígenas de MS",
+                "Atendimento à Pessoa com TEA", "Policiamento de Choque", "Técnicas de Policiamento Ostensivo"]
 
 
 def _chave(dicionario: dict, rotulo):
@@ -698,11 +746,13 @@ def tela_questoes(usuario: dict):
         assuntos = [subs[m] for m in marcados] or list(subs.values())
 
     c1, c3, c4 = st.columns([1.2, 1.2, 0.8])
-    tipo = _chave(TIPOS, c1.selectbox("Tipo", list(TIPOS.values()), key="f_tipo"))
+    fora = "portugues" if trilha_atual() == "provao" else "teoria"
+    tipo = _chave(TIPOS, c1.selectbox("Tipo", [v for k, v in TIPOS.items() if k != fora], key="f_tipo"))
     situacao = _chave(SITUACOES, c3.selectbox("Situação", list(SITUACOES.values()), key="f_sit"))
     por_pagina = c4.selectbox("Por página", POR_PAGINA, index=1, key="f_pp")
 
-    filtro = (tuple(status), tuple(assuntos) if assuntos else None, tipo, origem, situacao, por_pagina, _so_amostra())
+    filtro = (tuple(status), tuple(assuntos) if assuntos else None, tipo, origem, situacao, por_pagina, _so_amostra(),
+              trilha_atual())
     if st.session_state.get("filtro_ativo") != filtro:
         st.session_state["filtro_ativo"] = filtro
         st.session_state["pagina"] = 0
@@ -942,6 +992,8 @@ CFS_LEGISLACAO = {"Lei 13.869/19": 3, "LC 053/90": 3, "CPM": 3, "Lei 11.340/06":
                   "Dec. 1.093/81": 2, "RDPMMS": 2, "CF/88": 1, "CPPM": 1, "LC 190/14": 1,
                   "Lei 9.455/97": 1, "CE/MS": 1, "Dec. 10.769/02": 1}
 CFS_MINUTOS = 180          # tempo padrão do simulado modelo (o aluno pode mudar na tela)
+PROVAO_QUESTOES = 100      # o provão de conclusão do CFS 2026 terá 100 questões de todas as matérias
+PROVAO_MINUTOS = 240
 PORTUGUES = "Língua Portuguesa"
 FOLGA_SEG = 30             # tolerância para a última marcação chegar depois do fim do tempo
 REVISAO_POR_PAGINA = 5
@@ -1067,9 +1119,9 @@ def _criar_simulado(uid: int, modelo: str, titulo: str, questoes: list[dict], mi
     def fn(conn):
         sid = conn.execute(
             """INSERT INTO simulado (usuario_id, edital_id, modelo, titulo, duracao_min, config, total)
-               VALUES (%s, (SELECT id FROM edital ORDER BY ano DESC, id DESC LIMIT 1), %s, %s, %s, %s::jsonb, %s)
+               VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
                RETURNING id""",
-            (uid, modelo, titulo, minutos, json.dumps(config, ensure_ascii=False), len(questoes)),
+            (uid, edital_atual(), modelo, titulo, minutos, json.dumps(config, ensure_ascii=False), len(questoes)),
         ).fetchone()["id"]
         with conn.cursor() as cur:
             cur.executemany("INSERT INTO simulado_questao (simulado_id, ordem, questao_id) VALUES (%s, %s, %s)",
@@ -1306,7 +1358,7 @@ def _resultado(sid: int, usuario: dict):
     df = pd.DataFrame([{"materia": q["materia"], "acertou": bool(q["acertou"])} for q in qs])
     por_mat = df.groupby("materia")["acertou"].agg(["sum", "count"]).reset_index()
     if s["modelo"] == "cfs":
-        ed = db.um("SELECT nota_minima_pct FROM edital ORDER BY ano DESC, id DESC LIMIT 1")
+        ed = db.um("SELECT nota_minima_pct FROM edital WHERE id = %s", (_edital_da_trilha("cfs"),))
         minimo = float(ed["nota_minima_pct"]) if ed and ed["nota_minima_pct"] is not None else 50.0
         zerou = por_mat[por_mat["sum"] == 0]["materia"].tolist()
         partes = " · ".join(f"{r.materia}: {int(r.sum)} de {int(r.count)}" for r in por_mat.itertuples())
@@ -1417,54 +1469,74 @@ def _montagem(usuario: dict):
         return
     config = {"so_ineditas": so_ined, "nao_repetir": nao_rep, "status": status}
 
-    t1, t2 = st.tabs(["🎯 Simulado modelo CFS", "🛠️ Montar meu simulado"])
+    provao = trilha_atual() == "provao"
+    t1, t2 = st.tabs(["🎯 Simulado modelo Provão" if provao else "🎯 Simulado modelo CFS", "🛠️ Montar meu simulado"])
     with t1:
-        n_leg = sum(CFS_LEGISLACAO.values())
-        st.markdown(f"**{CFS_PORTUGUES + n_leg} questões, como na prova do CFS 2026:** {CFS_PORTUGUES} de Língua "
-                    f"Portuguesa ({CFS_PORT_TEXTO} a partir de textos) e {n_leg} de Legislação, na mesma "
-                    "distribuição de leis da prova.")
-        with st.expander("Ver quantas questões de cada lei"):
-            st.dataframe(pd.DataFrame([{"Lei": k, "Questões": v} for k, v in CFS_LEGISLACAO.items()]),
-                         hide_index=True, width="stretch")
-            st.caption("As 2 questões da Portaria 167 (fora do edital) viraram 1 da CE/MS e 1 do Dec. 10.769/02.")
-        st.number_input("Tempo de prova (minutos)", 10, 360, CFS_MINUTOS, step=10, key="sim_cfs_min")
-        st.button("Começar simulado modelo CFS", type="primary", key="sim_cfs_ir",
-                  on_click=_comecar_cfs, args=(uid, banco, config))
-
+        if provao:
+            _aba_modelo_provao(uid, banco, config)
+        else:
+            _aba_modelo_cfs(uid, banco, config)
     with t2:
-        arvore = [g for g in _arvore(status, "inedita" if so_ined else "")]
-        cont_g: dict[str, int] = {}
-        cont_a: dict[int, int] = {}
-        for q in banco:
-            cont_g[q["grupo"]] = cont_g.get(q["grupo"], 0) + 1
-            for a in q["assuntos"]:
-                cont_a[a] = cont_a.get(a, 0) + 1
-        grupos_ok = {g["sigla"]: g for g in arvore if cont_g.get(g["sigla"])}
-        # Rótulos sem contagem: se a contagem mudasse (ex.: ao ligar "não repetir"), o Streamlit perderia a escolha.
-        _limpa_escolha("sim_grupos", grupos_ok)
-        grupos = st.multiselect(
-            "Matérias / leis", list(grupos_ok), key="sim_grupos", placeholder="Todas (marque para escolher só algumas)",
-            format_func=lambda s: s + (f" · {grupos_ok[s]['popular']}" if grupos_ok[s]["popular"]
-                                       and grupos_ok[s]["popular"] != s else ""))
-        subs = {a["id"]: (g["sigla"], a["nome"]) for s in grupos for g in [grupos_ok[s]] for a in g["subs"]
-                if cont_a.get(a["id"])}
-        _limpa_escolha("sim_assuntos", subs)
-        assuntos = st.multiselect(
-            "Assuntos (opcional)", list(subs), key="sim_assuntos", disabled=not grupos,
-            placeholder="Todos os assuntos das leis escolhidas" if grupos else "Escolha primeiro as matérias/leis",
-            format_func=lambda i: f"{subs[i][0]} › {subs[i][1]}")
-        n_escolha = sum(1 for q in banco if (not grupos or q["grupo"] in grupos)
-                        and (not assuntos or set(q["assuntos"]) & set(assuntos)))
-        st.caption(f"{n_escolha} questões disponíveis nessa escolha.")
-        c1, c2, c3 = st.columns([1, 1, 1])
-        qtd = c1.number_input("Quantidade de questões", 5, 100, 20, step=5, key="sim_qtd")
-        cron = c2.toggle("Com cronômetro", value=True, key="sim_cron")
-        c3.number_input("Tempo (minutos)", 5, 360, 60, step=5, key="sim_min", disabled=not cron)
-        ritmo = CFS_MINUTOS / (CFS_PORTUGUES + sum(CFS_LEGISLACAO.values()))
-        st.caption(f"No ritmo do simulado modelo ({ritmo:.1f} min por questão), {qtd} questões pedem cerca de "
-                   f"{round(qtd * ritmo)} min. As questões são divididas igualmente entre as matérias/leis escolhidas.")
-        st.button("Começar meu simulado", type="primary", key="sim_pers_ir",
-                  on_click=_comecar_personalizado, args=(uid, banco, config))
+        _aba_personalizado(uid, banco, config, status, so_ined)
+
+
+def _aba_modelo_provao(uid: int, banco: list[dict], config: dict):
+    st.markdown(f"**{PROVAO_QUESTOES} questões de todas as matérias do curso**, divididas igualmente entre elas "
+                "(a coordenação não informou quantas cairão de cada matéria). O que faltar numa matéria é completado "
+                "com as outras.")
+    st.number_input("Tempo de prova (minutos)", 10, 360, PROVAO_MINUTOS, step=10, key="sim_prov_min")
+    st.button("Começar simulado modelo Provão", type="primary", key="sim_prov_ir",
+              on_click=_comecar_provao, args=(uid, banco, config))
+
+
+def _aba_modelo_cfs(uid: int, banco: list[dict], config: dict):
+    n_leg = sum(CFS_LEGISLACAO.values())
+    st.markdown(f"**{CFS_PORTUGUES + n_leg} questões, como na prova do CFS 2026:** {CFS_PORTUGUES} de Língua "
+                f"Portuguesa ({CFS_PORT_TEXTO} a partir de textos) e {n_leg} de Legislação, na mesma "
+                "distribuição de leis da prova.")
+    with st.expander("Ver quantas questões de cada lei"):
+        st.dataframe(pd.DataFrame([{"Lei": k, "Questões": v} for k, v in CFS_LEGISLACAO.items()]),
+                     hide_index=True, width="stretch")
+        st.caption("As 2 questões da Portaria 167 (fora do edital) viraram 1 da CE/MS e 1 do Dec. 10.769/02.")
+    st.number_input("Tempo de prova (minutos)", 10, 360, CFS_MINUTOS, step=10, key="sim_cfs_min")
+    st.button("Começar simulado modelo CFS", type="primary", key="sim_cfs_ir",
+              on_click=_comecar_cfs, args=(uid, banco, config))
+
+
+def _aba_personalizado(uid: int, banco: list[dict], config: dict, status: list[str], so_ined: bool):
+    arvore =[g for g in _arvore(status, "inedita" if so_ined else "")]
+    cont_g: dict[str, int] = {}
+    cont_a: dict[int, int] = {}
+    for q in banco:
+        cont_g[q["grupo"]] = cont_g.get(q["grupo"], 0) + 1
+        for a in q["assuntos"]:
+            cont_a[a] = cont_a.get(a, 0) + 1
+    grupos_ok = {g["sigla"]: g for g in arvore if cont_g.get(g["sigla"])}
+    # Rótulos sem contagem: se a contagem mudasse (ex.: ao ligar "não repetir"), o Streamlit perderia a escolha.
+    _limpa_escolha("sim_grupos", grupos_ok)
+    grupos = st.multiselect(
+        "Matérias / leis", list(grupos_ok), key="sim_grupos", placeholder="Todas (marque para escolher só algumas)",
+        format_func=lambda s: s + (f" · {grupos_ok[s]['popular']}" if grupos_ok[s]["popular"]
+                                   and grupos_ok[s]["popular"] != s else ""))
+    subs = {a["id"]: (g["sigla"], a["nome"]) for s in grupos for g in [grupos_ok[s]] for a in g["subs"]
+            if cont_a.get(a["id"])}
+    _limpa_escolha("sim_assuntos", subs)
+    assuntos = st.multiselect(
+        "Assuntos (opcional)", list(subs), key="sim_assuntos", disabled=not grupos,
+        placeholder="Todos os assuntos das leis escolhidas" if grupos else "Escolha primeiro as matérias/leis",
+        format_func=lambda i: f"{subs[i][0]} › {subs[i][1]}")
+    n_escolha = sum(1 for q in banco if (not grupos or q["grupo"] in grupos)
+                    and (not assuntos or set(q["assuntos"]) & set(assuntos)))
+    st.caption(f"{n_escolha} questões disponíveis nessa escolha.")
+    c1, c2, c3 = st.columns([1, 1, 1])
+    qtd = c1.number_input("Quantidade de questões", 5, 100, 20, step=5, key="sim_qtd")
+    cron = c2.toggle("Com cronômetro", value=True, key="sim_cron")
+    c3.number_input("Tempo (minutos)", 5, 360, 60, step=5, key="sim_min", disabled=not cron)
+    ritmo = CFS_MINUTOS / (CFS_PORTUGUES + sum(CFS_LEGISLACAO.values()))
+    st.caption(f"No ritmo do simulado modelo ({ritmo:.1f} min por questão), {qtd} questões pedem cerca de "
+               f"{round(qtd * ritmo)} min. As questões são divididas igualmente entre as matérias/leis escolhidas.")
+    st.button("Começar meu simulado", type="primary", key="sim_pers_ir",
+              on_click=_comecar_personalizado, args=(uid, banco, config))
 
 
 # Os botões de começar rodam como callback: o simulado já nasce antes de a tela ser desenhada de novo.
@@ -1475,6 +1547,18 @@ def _comecar_cfs(uid: int, banco: list[dict], config: dict):
         return
     _criar_simulado(uid, "cfs", "Simulado modelo CFS", qs, int(st.session_state.get("sim_cfs_min", CFS_MINUTOS)), config)
     st.session_state["sim_avisos"] = avisos
+
+
+def _comecar_provao(uid: int, banco: list[dict], config: dict):
+    qs, _ = _sortear_personalizado(banco, [], set(), PROVAO_QUESTOES)
+    if len(qs) < 5:
+        st.session_state["sim_erro"] = "Poucas questões disponíveis para montar o simulado modelo. Desmarque alguma opção acima."
+        return
+    _criar_simulado(uid, "provao", "Simulado modelo Provão", qs, int(st.session_state.get("sim_prov_min", PROVAO_MINUTOS)),
+                    config)
+    st.session_state["sim_avisos"] = ([f"Por enquanto o banco do Provão tem {len(qs)} questões disponíveis com essas opções: "
+                                       f"o simulado ficou com {len(qs)} (o modelo tem {PROVAO_QUESTOES})."]
+                                      if len(qs) < PROVAO_QUESTOES else [])
 
 
 def _comecar_personalizado(uid: int, banco: list[dict], config: dict):
@@ -1517,13 +1601,16 @@ def _abrir_resultado(chave: str):
 def _historico_simulados(usuario: dict):
     sims = db.consultar(
         """SELECT id, modelo, titulo, iniciado_em, total, acertos, tempo_seg, por_tempo
-           FROM simulado WHERE usuario_id = %s AND status = 'finalizado' ORDER BY iniciado_em DESC""", (usuario["id"],))
+           FROM simulado WHERE usuario_id = %s AND status = 'finalizado'
+             AND COALESCE(edital_id, %s) = %s ORDER BY iniciado_em DESC""",
+        (usuario["id"], _edital_da_trilha("cfs"), edital_atual()))
     st.subheader("Meus simulados")
     if not sims:
         st.caption("Você ainda não entregou nenhum simulado. Vá em **Simulados** para fazer o primeiro.")
         return
     linhas = [{"Data": f"{_local(s['iniciado_em']):%d/%m/%Y %H:%M}",
-               "Simulado": "Modelo CFS" if s["modelo"] == "cfs" else s["titulo"].replace("Simulado personalizado · ", ""),
+               "Simulado": {"cfs": "Modelo CFS", "provao": "Modelo Provão"}.get(s["modelo"]) or
+                           s["titulo"].replace("Simulado personalizado · ", ""),
                "Questões": s["total"], "Acertos": s["acertos"], "Nota": _nota_txt(s["acertos"] or 0, s["total"] or 0),
                "% de acerto": round(100 * (s["acertos"] or 0) / s["total"]) if s["total"] else 0,
                "Tempo": _fmt_tempo(s["tempo_seg"]) + (" (esgotou)" if s["por_tempo"] else "")} for s in sims]
@@ -1568,6 +1655,8 @@ def _garante_materiais() -> bool:
     # tipos aceitos (inclui 'lei' = lei seca comentada); refaz a regra caso a tabela venha da versão anterior
     db.executar("ALTER TABLE material_estudo DROP CONSTRAINT IF EXISTS material_estudo_tipo_check")
     db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio'))")
+    # trilha do material: 'cfs', 'provao' ou 'todas' (os materiais antigos ficam no CFS)
+    db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS trilha TEXT NOT NULL DEFAULT 'cfs'")
     return True
 
 
@@ -1659,6 +1748,10 @@ def _garante_extras() -> bool:
     db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS amostra BOOLEAN NOT NULL DEFAULT FALSE")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS whatsapp TEXT")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS concurso TEXT NOT NULL DEFAULT 'cfs'")
+    db.executar("ALTER TABLE questao DROP CONSTRAINT IF EXISTS questao_tipo_check")
+    db.executar("ALTER TABLE questao ADD CONSTRAINT questao_tipo_check CHECK (tipo IN ('lei_seca', 'caso_pratico', 'portugues', 'teoria'))")
+    db.executar("ALTER TABLE simulado DROP CONSTRAINT IF EXISTS simulado_modelo_check")
+    db.executar("ALTER TABLE simulado ADD CONSTRAINT simulado_modelo_check CHECK (modelo IN ('cfs', 'personalizado', 'provao'))")
     db.executar("CREATE TABLE IF NOT EXISTS app_config (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)")
     db.executar("""CREATE TABLE IF NOT EXISTS sessao_login (
                        token_hash TEXT PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
@@ -1691,7 +1784,7 @@ def _turma_erra(sigla: str, status: list[str]) -> list[dict]:
         """WITH ult AS (
                SELECT DISTINCT ON (r.usuario_id, r.questao_id) r.usuario_id, r.questao_id, r.acertou
                FROM resposta r JOIN questao q ON q.id = r.questao_id
-               WHERE q.status::text = ANY(%(st)s)
+               WHERE q.status::text = ANY(%(st)s)""" + filtro_trilha() + """
                ORDER BY r.usuario_id, r.questao_id, r.respondida_em DESC)
            SELECT a.id, a.nome, COUNT(*) AS n, COUNT(DISTINCT u.usuario_id) AS pessoas,
                   ROUND(100.0 * AVG(u.acertou::int)) AS pct
@@ -1737,7 +1830,8 @@ def _revisao_lei(sigla: str, usuario: dict):
                   COUNT(DISTINCT q.id) FILTER (WHERE q.origem::text = 'inedita') AS ined
            FROM questao q JOIN questao_assunto qa ON qa.questao_id = q.id JOIN assunto a ON a.id = qa.assunto_id
            JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
-           WHERE q.status::text = ANY(%s) AND COALESCE(d.sigla, m.nome) = %s""" + (FILTRO_AMOSTRA if _so_amostra() else ""),
+           WHERE q.status::text = ANY(%s) AND COALESCE(d.sigla, m.nome) = %s""" + (FILTRO_AMOSTRA if _so_amostra() else "")
+        + filtro_trilha(),
         (status, sigla))
     if not c or not (c["ess"] or c["ined"]):
         return
@@ -1778,8 +1872,9 @@ def tela_materiais(usuario: dict):
                 _bloco_pagamento(usuario)
 
     mats = db.consultar(
-        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado FROM material_estudo "
-        f"WHERE publicado OR %s ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo", (equipe,))
+        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado, trilha FROM material_estudo "
+        f"WHERE (publicado OR %s) AND trilha IN (%s, 'todas') ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo",
+        (equipe, trilha_atual()))
     if not mats:
         st.info("Ainda não há materiais publicados. Eles vão aparecer aqui.")
         return
@@ -1823,13 +1918,20 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "rdpmms": "RDPMMS", "cppm": "CPPM", "cpm": "CPM", "drogas": "Lei 11.343/06",
                      "desarmamento": "Lei 10.826/03", "tortura": "Lei 9.455/97", "cf": "CF/88", "ce": "CE/MS",
                      "lc127": "LC 127/08", "dec1261": "Dec. 1.261/81", "dec1093": "Dec. 1.093/81",
-                     "dec10769": "Dec. 10.769/02", "portugues": "Língua Portuguesa"}
+                     "dec10769": "Dec. 10.769/02", "portugues": "Língua Portuguesa",
+                     "penal": "Direito Penal", "codigopenal": "Direito Penal",
+                     "diversidade": "Diversidade, Gênero e Combate à Discriminação", "genero": "Diversidade, Gênero e Combate à Discriminação",
+                     "racismo": "Diversidade, Gênero e Combate à Discriminação", "indigenas": "Povos Indígenas de MS",
+                     "tea": "Atendimento à Pessoa com TEA", "autismo": "Atendimento à Pessoa com TEA",
+                     "choque": "Policiamento de Choque", "ostensivo": "Técnicas de Policiamento Ostensivo"}
+TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
 TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
                "relatorio": "Relatório de revisão"}
 
 
 def _leis_material() -> list[str]:
-    return ["Língua Portuguesa"] + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
+    materias = [m["nome"] for m in db.consultar("SELECT nome FROM materia WHERE nome <> 'Legislação' ORDER BY id")]
+    return materias + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
 
 
 def _adivinhar_material(nome_arquivo: str, leis: list[str]) -> tuple[str, str, str]:
@@ -1855,13 +1957,13 @@ def _ler_pdf(dados: bytes) -> int | None:
 
 def _guardar_material(titulo, lei, tipo, descricao, dados, paginas, publicar, uid):
     db.executar(
-        """INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado, enviado_por)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-           ON CONFLICT (titulo) DO UPDATE SET lei = EXCLUDED.lei, tipo = EXCLUDED.tipo,
+        """INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado, enviado_por, trilha)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (titulo) DO UPDATE SET lei = EXCLUDED.lei, tipo = EXCLUDED.tipo, trilha = EXCLUDED.trilha,
                descricao = COALESCE(EXCLUDED.descricao, material_estudo.descricao), arquivo = EXCLUDED.arquivo,
                tamanho = EXCLUDED.tamanho, paginas = EXCLUDED.paginas, publicado = EXCLUDED.publicado,
                atualizado_em = now()""",
-        (titulo, lei, tipo, descricao, dados, len(dados), paginas, publicar, uid))
+        (titulo, lei, tipo, descricao, dados, len(dados), paginas, publicar, uid, trilha_atual()))
 
 
 def _acoes_material(m: dict, usuario: dict):
@@ -1884,6 +1986,10 @@ def _acoes_material(m: dict, usuario: dict):
             tipos = list(TIPOS_MATERIAL)
             tipo = st.selectbox("Tipo", tipos, index=tipos.index(m["tipo"]) if m["tipo"] in tipos else 0,
                                 format_func=TIPOS_MATERIAL.get, key=f"mat_ed_tipo_{mid}")
+            trilhas = list(TRILHA_MATERIAL)
+            trilha = st.selectbox("Trilha", trilhas, index=trilhas.index(m.get("trilha") or "cfs"),
+                                  format_func=TRILHA_MATERIAL.get, key=f"mat_ed_tri_{mid}",
+                                  help="Em qual trilha o material aparece para os alunos.")
             desc = st.text_area("Descrição curta (opcional)", value=m["descricao"] or "", height=68, key=f"mat_ed_desc_{mid}")
             arq = st.file_uploader("Trocar o PDF (opcional)", type=["pdf"], key=f"mat_ed_arq_{mid}")
             salvar = st.form_submit_button("Salvar alterações", type="primary")
@@ -1893,8 +1999,8 @@ def _acoes_material(m: dict, usuario: dict):
             if not titulo or outro:
                 st.error("Título vazio ou já usado por outro material.")
             else:
-                db.executar("""UPDATE material_estudo SET titulo = %s, lei = %s, tipo = %s, descricao = %s,
-                               atualizado_em = now() WHERE id = %s""", (titulo, lei, tipo, desc.strip() or None, mid))
+                db.executar("""UPDATE material_estudo SET titulo = %s, lei = %s, tipo = %s, descricao = %s, trilha = %s,
+                               atualizado_em = now() WHERE id = %s""", (titulo, lei, tipo, desc.strip() or None, trilha, mid))
                 if arq is not None:
                     dados = arq.getvalue()
                     pag = _ler_pdf(dados)
@@ -1919,6 +2025,8 @@ def _gerenciar_materiais(usuario: dict):
     (ex.: lc190_resumo.pdf) e você confere/renomeia na tabela antes de guardar. Título igual substitui o PDF antigo."""
     leis = _leis_material()
     st.markdown("**Enviar materiais** (pode escolher vários PDFs de uma vez)")
+    st.caption(f"Os PDFs enviados aqui entram na trilha **{TRILHAS[trilha_atual()]['nome']}** (troque a trilha no menu "
+               "lateral). Depois dá para mudar em ✏️ Editar.")
     rodada = st.session_state.setdefault("mat_lote_n", 0)
     arqs = st.file_uploader("PDFs sem marca-d'água (o app coloca na hora do download)", type=["pdf"],
                             accept_multiple_files=True, key=f"mat_lote_{rodada}")
@@ -1964,12 +2072,13 @@ def _gerenciar_materiais(usuario: dict):
     st.caption("Para renomear, trocar o PDF, publicar ou excluir, use os botões de cada material na lista abaixo.")
 
     lista = db.consultar(
-        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas,
+        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.trilha,
                   COUNT(d.id) AS downloads, COUNT(DISTINCT d.usuario_id) AS pessoas
            FROM material_estudo m LEFT JOIN material_download d ON d.material_id = m.id
-           GROUP BY m.id ORDER BY m.ordem, m.lei, m.titulo""")
+           GROUP BY m.id ORDER BY m.trilha, m.ordem, m.lei, m.titulo""")
     if lista:
-        st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
+        st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Trilha": TRILHA_MATERIAL.get(m["trilha"], m["trilha"]),
+                                    "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
                                     "Situação": "Publicado" if m["publicado"] else "Rascunho", "Páginas": m["paginas"],
                                     "Downloads": m["downloads"], "Pessoas": m["pessoas"]} for m in lista]),
                      hide_index=True, width="stretch")
@@ -2256,8 +2365,8 @@ def _revisao_pareceres(usuario: dict):
 def tela_desempenho(usuario: dict):
     st.header("Meu desempenho")
     uid = usuario["id"]
-    tot = db.um("""SELECT COUNT(*) AS n, COALESCE(SUM(acertou::int), 0) AS ok, COUNT(DISTINCT questao_id) AS distintas
-                   FROM resposta WHERE usuario_id = %s""", (uid,))
+    tot = db.um("""SELECT COUNT(*) AS n, COALESCE(SUM(r.acertou::int), 0) AS ok, COUNT(DISTINCT r.questao_id) AS distintas
+                   FROM resposta r JOIN questao q ON q.id = r.questao_id WHERE r.usuario_id = %s""" + filtro_trilha(), (uid,))
     if not tot["n"]:
         st.info("Você ainda não respondeu nenhuma questão. Vá em **Resolver questões** para começar.")
         _historico_simulados(usuario)
@@ -2271,9 +2380,11 @@ def tela_desempenho(usuario: dict):
     _historico_simulados(usuario)
 
     tipo = db.consultar(
-        """SELECT CASE q.tipo WHEN 'caso_pratico' THEN 'Caso prático' WHEN 'portugues' THEN 'Português' ELSE 'Lei seca' END AS tipo,
+        """SELECT CASE q.tipo WHEN 'caso_pratico' THEN 'Caso prático' WHEN 'portugues' THEN 'Português'
+                              WHEN 'teoria' THEN 'Conteúdo do curso' ELSE 'Lei seca' END AS tipo,
                   COUNT(*) AS respostas, ROUND(100.0 * AVG(r.acertou::int), 0) AS pct
-           FROM resposta r JOIN questao q ON q.id = r.questao_id WHERE r.usuario_id = %s GROUP BY 1 ORDER BY 1""", (uid,))
+           FROM resposta r JOIN questao q ON q.id = r.questao_id WHERE r.usuario_id = %s""" + filtro_trilha()
+        + " GROUP BY 1 ORDER BY 1", (uid,))
     st.subheader("Decorar ou aplicar?")
     st.caption("Compare seu acerto em lei seca (memória do texto) com casos práticos (aplicação da regra).")
     st.dataframe(pd.DataFrame(tipo).rename(columns={"tipo": "Tipo", "respostas": "Respostas", "pct": "% de acerto"}),
@@ -2282,7 +2393,8 @@ def tela_desempenho(usuario: dict):
     ass = db.consultar(
         """SELECT a.nome AS assunto, COUNT(*) AS respostas, ROUND(100.0 * AVG(r.acertou::int), 0) AS pct
            FROM resposta r JOIN questao_assunto qa ON qa.questao_id = r.questao_id JOIN assunto a ON a.id = qa.assunto_id
-           WHERE r.usuario_id = %s GROUP BY a.nome ORDER BY pct ASC, respostas DESC""", (uid,))
+           JOIN questao q ON q.id = r.questao_id
+           WHERE r.usuario_id = %s""" + filtro_trilha() + " GROUP BY a.nome ORDER BY pct ASC, respostas DESC", (uid,))
     with st.expander("Tabela de todas as respostas por assunto"):
         df = pd.DataFrame(ass)
         st.dataframe(df.rename(columns={"assunto": "Assunto", "respostas": "Respostas", "pct": "% de acerto"}),
@@ -2314,7 +2426,7 @@ def _rx_dados(usuario: dict) -> list[dict]:
                SELECT qa.assunto_id, COUNT(DISTINCT q.id) AS total
                FROM questao_assunto qa JOIN questao q ON q.id = qa.questao_id
                WHERE q.status::text = ANY(%(st)s) AND q.origem::text <> 'material' """
-        + (FILTRO_AMOSTRA if _so_amostra() else "") + """ GROUP BY 1),
+        + (FILTRO_AMOSTRA if _so_amostra() else "") + filtro_trilha() + """ GROUP BY 1),
            feito AS (
                SELECT qa.assunto_id, COUNT(*) AS n, SUM(u.acertou::int) AS ok
                FROM ultima u JOIN questao_assunto qa ON qa.questao_id = u.questao_id GROUP BY 1)
@@ -2734,9 +2846,11 @@ AVALIACAO_TIPOS_PDF = ("resumo", "mapa")      # a lei seca comentada e o relató
 
 
 def _contador_amostra(usuario: dict):
-    r = db.um("""SELECT (SELECT COUNT(*) FROM questao q WHERE q.status = 'aprovada' AND (q.essencial OR q.amostra)) AS total,
+    r = db.um("""SELECT (SELECT COUNT(*) FROM questao q WHERE q.status = 'aprovada' AND (q.essencial OR q.amostra)"""
+              + filtro_trilha() + """) AS total,
                         (SELECT COUNT(DISTINCT r.questao_id) FROM resposta r JOIN questao q ON q.id = r.questao_id
-                          WHERE r.usuario_id = %s AND (q.essencial OR q.amostra)) AS feitas""", (usuario["id"],))
+                          WHERE r.usuario_id = %s AND (q.essencial OR q.amostra)""" + filtro_trilha() + """) AS feitas""",
+              (usuario["id"],))
     total, feitas = r["total"], min(r["feitas"], r["total"])
     st.progress(feitas / total if total else 0, text=f"🎁 Avaliação: {feitas} de {total} questões grátis")
     if total and feitas >= total:
@@ -2926,6 +3040,15 @@ def tela_usuarios(usuario: dict):
         st.rerun()
     if alvo["perfil"] == "aluno":
         with st.container(border=True):
+            atual = alvo.get("concurso") or "cfs"
+            novo = _chave(CONCURSOS, st.selectbox(
+                "Concurso / trilha do aluno", list(CONCURSOS.values()),
+                index=list(CONCURSOS).index(atual) if atual in CONCURSOS else 0, key=f"gu_conc_{alvo_id}",
+                help="Define o que o aluno vê: o banco do CFS ou o do Provão de conclusão do CFS 2026."))
+            if novo != atual:
+                db.executar("UPDATE usuario SET concurso = %s WHERE id = %s", (novo, alvo_id))
+                auth.registrar(f"concurso_{novo}", alvo_id)
+                st.rerun()
             _gerenciar_acesso(alvo, usuario)
 
     with st.expander("Registro de acessos (últimos 100)"):
@@ -3055,7 +3178,12 @@ def tela_conta(usuario: dict):
                                              key="mc_conc"))
     if escolha != atual:
         db.executar("UPDATE usuario SET concurso = %s WHERE id = %s", (escolha, usuario["id"]))
-        st.success("Concurso atualizado.")
+        if usuario["perfil"] == "aluno":
+            st.session_state["trilha"] = trilha_de(escolha)
+            for k in [k for k in st.session_state if k.startswith(("f_grupo", "f_sub_", "sim_grupos", "sim_assuntos"))]:
+                del st.session_state[k]
+            st.session_state.pop("filtro_ativo", None)
+        st.success("Concurso atualizado. Questões, simulados e materiais já seguem a nova escolha.")
     if escolha not in CONCURSOS_COM_CONTEUDO:
         st.info(f"O conteúdo próprio do {CONCURSOS_CURTO[escolha]} está em preparação. Enquanto isso, use o do CFS PMMS: "
                 "a legislação da PMMS é a mesma base.")
@@ -3103,6 +3231,10 @@ if usuario["perfil"] == "aluno" and acesso["vencido"]:
     st.stop()
 
 st.session_state["so_amostra"] = usuario["perfil"] == "aluno" and acesso.get("acesso_tipo") == "avaliacao"
+if usuario["perfil"] == "aluno":
+    st.session_state["trilha"] = trilha_de(acesso.get("concurso"))
+else:
+    st.session_state["trilha"] = st.session_state.get("trilha_sel", st.session_state.get("trilha", "cfs"))
 
 # 4) Senha provisória: obriga a trocar antes de qualquer coisa.
 if usuario["trocar_senha"]:
@@ -3129,8 +3261,13 @@ TELAS["Minha conta"] = tela_conta
 
 with st.sidebar:
     st.markdown(f"### {NOME_APP}")
-    st.caption(SUBTITULO)
+    st.caption(TRILHAS[trilha_atual()]["sub"])
     st.write(f"👤 **{usuario['nome']}**  \n{auth.PERFIS[usuario['perfil']]}")
+    if usuario["perfil"] != "aluno":
+        st.selectbox("Trilha", list(TRILHAS), index=list(TRILHAS).index(trilha_atual()),
+                     format_func=lambda t: TRILHAS[t]["nome"], key="trilha_sel", on_change=_trocou_trilha,
+                     help="Cada trilha tem as suas questões, simulados e materiais. Os alunos veem só a trilha do "
+                          "concurso que escolheram.")
     if usuario["perfil"] == "aluno":
         conc = acesso.get("concurso") or "cfs"
         st.caption(f"🎯 Concurso: **{CONCURSOS_CURTO.get(conc, conc)}**"
@@ -3142,4 +3279,6 @@ with st.sidebar:
     escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed")
     st.button("Sair", width="stretch", on_click=_sair, args=(usuario["id"],))
 
+if edital_atual() is None:
+    st.info("O conteúdo desta trilha ainda está sendo preparado. Volte em breve.")
 TELAS[escolha](usuario)
