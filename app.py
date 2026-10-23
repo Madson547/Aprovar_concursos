@@ -601,7 +601,9 @@ SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "err
 # Ordem dos itens principais do filtro (o que não está aqui vem depois, na ordem do edital)
 ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM",
                 "Direito Penal", "Diversidade, Gênero e Combate à Discriminação", "Povos Indígenas de MS",
-                "Atendimento à Pessoa com TEA", "Policiamento de Choque", "Técnicas de Policiamento Ostensivo"]
+                "Atendimento à Pessoa com TEA", "Direito Processual Penal", "Técnicas de Policiamento Ostensivo",
+                "Uso Diferenciado da Força", "Atendimento Pré-Hospitalar (APH)", "Inteligência de Segurança Pública",
+                "Tópicos Especiais: Abuso de Autoridade e Maria da Penha", "Policiamento de Choque"]
 
 
 def _chave(dicionario: dict, rotulo):
@@ -1923,7 +1925,11 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "diversidade": "Diversidade, Gênero e Combate à Discriminação", "genero": "Diversidade, Gênero e Combate à Discriminação",
                      "racismo": "Diversidade, Gênero e Combate à Discriminação", "indigenas": "Povos Indígenas de MS",
                      "tea": "Atendimento à Pessoa com TEA", "autismo": "Atendimento à Pessoa com TEA",
-                     "choque": "Policiamento de Choque", "ostensivo": "Técnicas de Policiamento Ostensivo"}
+                     "choque": "Policiamento de Choque", "ostensivo": "Técnicas de Policiamento Ostensivo",
+                     "tpo": "Técnicas de Policiamento Ostensivo", "processual": "Direito Processual Penal",
+                     "processo": "Direito Processual Penal", "forca": "Uso Diferenciado da Força",
+                     "aph": "Atendimento Pré-Hospitalar (APH)", "inteligencia": "Inteligência de Segurança Pública",
+                     "topicos": "Tópicos Especiais: Abuso de Autoridade e Maria da Penha"}
 TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
 TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
                "relatorio": "Relatório de revisão"}
@@ -3249,6 +3255,23 @@ if st.session_state.pop("boas_vindas", False):
                "o app. Comece por **Resolver questões** ou monte um **Simulado**.")
 
 # 6) Menu conforme o perfil.
+ICONES_MENU = {"Resolver questões": ":material/edit_note:", "Simulados": ":material/timer:",
+               "Materiais": ":material/menu_book:", "Meu desempenho": ":material/insights:",
+               "Revisão da equipe": ":material/fact_check:", "Usuários": ":material/group:",
+               "Financeiro": ":material/payments:", "Biblioteca": ":material/local_library:",
+               "Minha conta": ":material/account_circle:"}
+# Menu lateral como lista de navegação: some a bolinha do rádio e a opção ativa ganha destaque.
+CSS_MENU = """<style>
+section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 2px; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+  width: 100%; margin: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child { display: none; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { background: rgba(75, 90, 35, .10); }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+  background: rgba(75, 90, 35, .18); box-shadow: inset 3px 0 0 #4B5A23; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p { font-weight: 600; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label span[data-testid="stIconMaterial"] { color: #4B5A23; margin-right: 4px; }
+</style>"""
 TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Materiais": tela_materiais,
          "Meu desempenho": tela_desempenho}
 if usuario["perfil"] in ("admin", "revisor"):
@@ -3276,7 +3299,9 @@ with st.sidebar:
         _aviso_prazo(usuario, acesso)
     if _so_amostra():
         _contador_amostra(usuario)
-    escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed")
+    st.markdown(CSS_MENU, unsafe_allow_html=True)
+    escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed",
+                       format_func=lambda t: f"{ICONES_MENU.get(t, ':material/chevron_right:')} {t}")
     st.button("Sair", width="stretch", on_click=_sair, args=(usuario["id"],))
 
 if edital_atual() is None:
