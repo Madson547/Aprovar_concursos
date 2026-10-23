@@ -202,6 +202,8 @@ def definir_senha(usuario_id: int, senha: str, provisoria: bool) -> None:
            WHERE id = %s""",
         (gerar_hash(senha), provisoria, usuario_id),
     )
+    if provisoria:      # senha nova dada pelo administrador: derruba os logins salvos nos aparelhos
+        db.executar("DELETE FROM sessao_login WHERE usuario_id = %s", (usuario_id,))
     registrar("senha_resetada" if provisoria else "senha_trocada", usuario_id)
 
 
@@ -301,6 +303,22 @@ def esc(t) -> str:
     return html.escape(str(t or ""))
 
 
+def grafico_barras(rotulos: list, valores: list, texto=None, maximo: float | None = None, cor: str = "var(--verde)"):
+    """Gráfico de colunas em HTML puro (sem altair: no Streamlit Cloud com Python 3.14 o altair não carrega)."""
+    if not valores:
+        return
+    texto = texto or (lambda v: f"{v:g}")
+    topo = maximo or max(max(valores), 1)
+    cols = "".join(
+        f'<div style="flex:1;min-width:22px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px">'
+        f'<span style="font-size:.72rem;font-weight:600">{esc(texto(v))}</span>'
+        f'<div style="width:70%;max-width:46px;height:{max(2, 120 * v / topo):.0f}px;background:{cor};border-radius:4px 4px 0 0"></div>'
+        f'<span style="font-size:.7rem;color:var(--texto-suave);white-space:nowrap">{esc(r)}</span></div>'
+        for r, v in zip(rotulos, valores))
+    st.markdown(f'<div style="display:flex;gap:6px;align-items:flex-end;height:165px;padding:6px 2px;'
+                f'border-bottom:1px solid var(--linha);overflow-x:auto">{cols}</div>', unsafe_allow_html=True)
+
+
 # ======================================================================
 # TELAS_ACESSO
 # ======================================================================
@@ -364,6 +382,56 @@ def tela_primeiro_acesso():
             st.rerun()
 
 
+# ------------------------------------------------------------------ login que não cai
+# O Streamlit guarda o login só na conexão aberta: celular que bloqueia a tela, troca de app, rede instável ou o app
+# reiniciado (a cada atualização no GitHub) derrubam a conexão e o aluno tinha de entrar de novo. Agora, ao entrar, o app
+# cria um código secreto de sessão (válido por SESSAO_DIAS) que fica no endereço da página (?s=...); ao reconectar,
+# ele entra sozinho. "Sair" apaga o código. No banco fica só o hash do código.
+SESSAO_DIAS = 7
+SESSOES_POR_USUARIO = 3
+
+
+def _hash_token(t: str) -> str:
+    import hashlib
+    return hashlib.sha256(t.encode()).hexdigest()
+
+
+def abrir_sessao(uid: int):
+    token = secrets.token_urlsafe(24)
+    db.executar("INSERT INTO sessao_login (token_hash, usuario_id, expira_em) VALUES (%s, %s, now() + make_interval(days => %s))",
+                (_hash_token(token), uid, SESSAO_DIAS))
+    # no máximo SESSOES_POR_USUARIO aparelhos ao mesmo tempo (dificulta emprestar a conta)
+    db.executar("""DELETE FROM sessao_login WHERE usuario_id = %s AND token_hash NOT IN (
+                       SELECT token_hash FROM sessao_login WHERE usuario_id = %s ORDER BY ultimo_uso DESC LIMIT %s)""",
+                (uid, uid, SESSOES_POR_USUARIO))
+    st.query_params["s"] = token
+
+
+def retomar_sessao() -> dict | None:
+    token = st.query_params.get("s")
+    if not token:
+        return None
+    r = db.um("""UPDATE sessao_login SET ultimo_uso = now() WHERE token_hash = %s AND expira_em > now()
+                 RETURNING usuario_id""", (_hash_token(token),))
+    if not r:
+        st.query_params.pop("s", None)
+        return None
+    return auth.recarregar(r["usuario_id"])
+
+
+def fechar_sessao(uid: int | None = None):
+    token = st.query_params.get("s")
+    if token:
+        db.executar("DELETE FROM sessao_login WHERE token_hash = %s", (_hash_token(token),))
+    st.query_params.pop("s", None)
+
+
+def _sair(uid: int):
+    auth.registrar("logout", uid)
+    fechar_sessao()
+    st.session_state.clear()
+
+
 def tela_login():
     _cabecalho()
     aberto = config_app("cadastro_aberto", "1") == "1"
@@ -414,6 +482,7 @@ def _criar_conta():
                 (zap, concurso, AVALIACAO_DIAS, uid))
     auth.registrar("cadastro_proprio", uid, login_n)
     st.session_state["usuario"] = auth.recarregar(uid)
+    abrir_sessao(uid)
     st.session_state["boas_vindas"] = True
     st.rerun()
 
@@ -432,6 +501,7 @@ def _form_login():
             st.error(erro)
         else:
             st.session_state["usuario"] = usuario
+            abrir_sessao(usuario["id"])
             st.rerun()
     st.caption("Esqueceu a senha? Peça ao administrador uma senha provisória.")
 
@@ -1460,10 +1530,10 @@ def _historico_simulados(usuario: dict):
     st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch",
                  column_config={"% de acerto": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%d%%")})
     if len(sims) >= 2:
-        evol = pd.DataFrame([{"Simulado": i + 1, "% de acerto": l["% de acerto"]}
-                             for i, l in enumerate(reversed(linhas))]).set_index("Simulado")
-        st.caption("Evolução (do primeiro para o último simulado)")
-        st.line_chart(evol, y_label="% de acerto", x_label="Simulado")
+        evol = list(reversed(linhas))[-15:]
+        st.caption("Evolução do % de acerto (do primeiro para o último simulado)")
+        grafico_barras([f"{i + 1}º" for i in range(len(evol))], [l["% de acerto"] for l in evol],
+                       texto=lambda v: f"{v:.0f}%", maximo=100)
     rot = {s["id"]: f"{l['Data']} · {l['Simulado']} · nota {l['Nota']}" for s, l in zip(sims, linhas)}
     c1, c2 = st.columns([2, 1])
     c1.selectbox("Abrir um simulado", list(rot), format_func=rot.get, key="hist_sim", label_visibility="collapsed")
@@ -1590,6 +1660,10 @@ def _garante_extras() -> bool:
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS whatsapp TEXT")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS concurso TEXT NOT NULL DEFAULT 'cfs'")
     db.executar("CREATE TABLE IF NOT EXISTS app_config (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)")
+    db.executar("""CREATE TABLE IF NOT EXISTS sessao_login (
+                       token_hash TEXT PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+                       criado_em TIMESTAMPTZ NOT NULL DEFAULT now(), expira_em TIMESTAMPTZ NOT NULL,
+                       ultimo_uso TIMESTAMPTZ NOT NULL DEFAULT now())""")
     db.executar("""CREATE TABLE IF NOT EXISTS pagamento (
                        id SERIAL PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
                        valor NUMERIC(10,2) NOT NULL CHECK (valor > 0), pago_em TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -2464,7 +2538,8 @@ def tela_financeiro(usuario: dict):
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
         st.subheader("Mês a mês")
         if df["receita"].sum() > 0:
-            st.bar_chart(df.set_index("mes")["receita"], y_label="Receita (R$)", x_label="")
+            grafico_barras([f"{m[5:]}/{m[2:4]}" for m in df["mes"]], [float(v) for v in df["receita"]],
+                           texto=lambda v: real(v).replace("R$ ", ""))
         else:
             st.caption("O gráfico de receita aparece a partir do primeiro pagamento registrado.")
         st.dataframe(df.assign(receita=df["receita"].map(real), pagamentos=df["pagamentos"].astype(int),
@@ -2641,10 +2716,7 @@ def tela_acesso_encerrado(usuario: dict, acesso: dict):
                "está tudo lá.")
     st.subheader("Como continuar")
     _bloco_pagamento(usuario)
-    if st.button("Sair", key="ae_sair"):
-        auth.registrar("logout", usuario["id"])
-        st.session_state.clear()
-        st.rerun()
+    st.button("Sair", key="ae_sair", on_click=_sair, args=(usuario["id"],))
 
 
 def _aviso_prazo(usuario: dict, acesso: dict):
@@ -3004,8 +3076,12 @@ if not auth.existe_admin():
 
 _garante_extras()
 
-# 2) Sem login: tela de entrada.
+# 2) Sem login: tenta retomar a sessão salva no endereço (?s=...); senão, tela de entrada.
 sessao = st.session_state.get("usuario")
+if not sessao:
+    sessao = retomar_sessao()
+    if sessao:
+        st.session_state["usuario"] = sessao
 if not sessao:
     tela_login()
     st.stop()
@@ -3013,6 +3089,8 @@ if not sessao:
 # 3) A cada clique, confere se a conta ainda está ativa (desativar corta o acesso na hora).
 usuario = auth.recarregar(sessao["id"])
 if usuario is None:
+    fechar_sessao()
+    db.executar("DELETE FROM sessao_login WHERE usuario_id = %s", (sessao["id"],))
     st.session_state.clear()
     st.error("Seu acesso foi encerrado. Fale com o administrador.")
     st.stop()
@@ -3062,9 +3140,6 @@ with st.sidebar:
     if _so_amostra():
         _contador_amostra(usuario)
     escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed")
-    if st.button("Sair", width="stretch"):
-        auth.registrar("logout", usuario["id"])
-        st.session_state.clear()
-        st.rerun()
+    st.button("Sair", width="stretch", on_click=_sair, args=(usuario["id"],))
 
 TELAS[escolha](usuario)
