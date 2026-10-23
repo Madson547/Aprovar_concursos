@@ -2460,12 +2460,37 @@ def tela_financeiro(usuario: dict):
     if mensal or cad:
         df = pd.merge(pd.DataFrame(mensal or [], columns=["mes", "receita", "pagamentos"]),
                       pd.DataFrame(cad or [], columns=["mes", "cadastros"]), on="mes", how="outer").fillna(0).sort_values("mes")
+        for col in ("receita", "pagamentos", "cadastros"):        # tabela vazia vira 'object': o gráfico precisa de número
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
         st.subheader("Mês a mês")
-        st.bar_chart(df.set_index("mes")["receita"], y_label="Receita (R$)", x_label="")
+        if df["receita"].sum() > 0:
+            st.bar_chart(df.set_index("mes")["receita"], y_label="Receita (R$)", x_label="")
+        else:
+            st.caption("O gráfico de receita aparece a partir do primeiro pagamento registrado.")
         st.dataframe(df.assign(receita=df["receita"].map(real), pagamentos=df["pagamentos"].astype(int),
                                cadastros=df["cadastros"].astype(int))
                        .rename(columns={"mes": "Mês", "receita": "Receita", "pagamentos": "Pagamentos",
                                         "cadastros": "Novos alunos"}), hide_index=True, width="stretch")
+
+    st.subheader("Novos alunos do período")
+    novos = db.consultar(
+        """SELECT u.nome, u.login, u.whatsapp, u.concurso, u.criado_em, u.acesso_tipo, u.acesso_ate,
+                  EXISTS (SELECT 1 FROM acesso_log l WHERE l.usuario_id = u.id AND l.evento = 'cadastro_proprio') AS proprio,
+                  EXISTS (SELECT 1 FROM acesso_log l WHERE l.usuario_id = u.id AND l.evento = 'perfil_aluno') AS ex_equipe
+           FROM usuario u WHERE u.perfil = 'aluno' AND u.criado_em >= %s AND u.criado_em < %s ORDER BY u.criado_em DESC""",
+        (t0, t1))
+    if novos:
+        st.dataframe(pd.DataFrame([{
+            "Cadastro": f"{_local(n['criado_em']):%d/%m/%Y %H:%M}", "Nome": n["nome"], "Usuário": n["login"],
+            "WhatsApp": n["whatsapp"] or "", "Concurso": CONCURSOS_CURTO.get(n["concurso"], n["concurso"]),
+            "Como entrou": "criou a conta no app" if n["proprio"] else (
+                "era da equipe (perfil trocado)" if n["ex_equipe"] else "cadastrado por você"),
+            "Acesso": _rotulo_acesso(n | {"perfil": "aluno",
+                                          "acesso_vencido": n["acesso_ate"] is not None
+                                          and n["acesso_ate"] <= datetime.now(timezone.utc)})} for n in novos]),
+            hide_index=True, width="stretch")
+    else:
+        st.info("Nenhum aluno novo neste período.")
 
     st.subheader("Pagamentos do período")
     pags = db.consultar(
@@ -2775,7 +2800,7 @@ def tela_usuarios(usuario: dict):
     _mostrar_senha()
 
     contas = db.consultar(
-        """SELECT id, nome, login, perfil, ativo, ultimo_acesso, acesso_ate, acesso_tipo, whatsapp, concurso,
+        """SELECT id, nome, login, perfil, ativo, ultimo_acesso, acesso_ate, acesso_tipo, whatsapp, concurso, criado_em,
                   (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS acesso_vencido,
                   (bloqueado_ate IS NOT NULL AND bloqueado_ate > now()) AS bloqueado,
                   (SELECT COUNT(*) FROM resposta r WHERE r.usuario_id = u.id) AS respostas,
@@ -2785,15 +2810,16 @@ def tela_usuarios(usuario: dict):
     df["acesso"] = [_rotulo_acesso(c) for c in contas]
     df["concurso"] = df["concurso"].map(lambda c: CONCURSOS_CURTO.get(c, c))
     df["whatsapp"] = df["whatsapp"].fillna("")
+    df["criado_em"] = df["criado_em"].apply(lambda d: f"{_local(d):%d/%m/%Y}" if pd.notna(d) else "")
     st.dataframe(
         df.assign(perfil=df["perfil"].map(auth.PERFIS),
                   ativo=df["ativo"].map({True: "Ativo", False: "Desativado"}),
                   bloqueado=df["bloqueado"].map({True: "Bloqueado", False: ""}),
                   ultimo_acesso=df["ultimo_acesso"].apply(lambda d: f"{d:%d/%m/%Y %H:%M}" if pd.notna(d) else "nunca"))
-          [["nome", "login", "perfil", "concurso", "whatsapp", "ativo", "acesso", "bloqueado", "ultimo_acesso", "respostas",
-            "pareceres"]]
+          [["nome", "login", "perfil", "concurso", "whatsapp", "criado_em", "ativo", "acesso", "bloqueado", "ultimo_acesso",
+            "respostas", "pareceres"]]
           .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação", "acesso": "Acesso",
-                           "concurso": "Concurso", "whatsapp": "WhatsApp",
+                           "concurso": "Concurso", "whatsapp": "WhatsApp", "criado_em": "Cadastro",
                            "bloqueado": "Bloqueio", "ultimo_acesso": "Último acesso", "respostas": "Respostas",
                            "pareceres": "Pareceres"}),
         hide_index=True, width="stretch")
