@@ -603,7 +603,8 @@ ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM",
                 "Direito Penal", "Diversidade, Gênero e Combate à Discriminação", "Povos Indígenas de MS",
                 "Atendimento à Pessoa com TEA", "Direito Processual Penal", "Técnicas de Policiamento Ostensivo",
                 "Uso Diferenciado da Força", "Atendimento Pré-Hospitalar (APH)", "Inteligência de Segurança Pública",
-                "Tópicos Especiais: Abuso de Autoridade e Maria da Penha", "Policiamento de Choque"]
+                "Tópicos Especiais: Abuso de Autoridade e Maria da Penha", "Direitos Humanos",
+                "Processos e Procedimentos Administrativos", "Policiamento de Choque"]
 
 
 def _chave(dicionario: dict, rotulo):
@@ -1929,7 +1930,10 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "tpo": "Técnicas de Policiamento Ostensivo", "processual": "Direito Processual Penal",
                      "processo": "Direito Processual Penal", "forca": "Uso Diferenciado da Força",
                      "aph": "Atendimento Pré-Hospitalar (APH)", "inteligencia": "Inteligência de Segurança Pública",
-                     "topicos": "Tópicos Especiais: Abuso de Autoridade e Maria da Penha"}
+                     "topicos": "Tópicos Especiais: Abuso de Autoridade e Maria da Penha",
+                     "direitoshumanos": "Direitos Humanos", "dh": "Direitos Humanos",
+                     "processos": "Processos e Procedimentos Administrativos", "p187": "Processos e Procedimentos Administrativos",
+                     "bravura": "Processos e Procedimentos Administrativos", "dec2426": "Processos e Procedimentos Administrativos"}
 TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
 TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
                "relatorio": "Relatório de revisão"}
