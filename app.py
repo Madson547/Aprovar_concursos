@@ -1,365 +1,3314 @@
--- Gerado por conteudo/gerar_provao.py — NÃO editar à mão. Seguro para rodar de novo. Rodar DEPOIS do 56.
--- 74 — PROVÃO CFS 2026 · Direito Penal Militar: 40 questões, 4 alternativas — status em_revisao.
-BEGIN;
+"""
+Aprova Militar — banco de questões comentadas do CFS PMMS.
+ARQUIVO ÚNICO: suba no GitHub só este app.py e o requirements.txt.
 
--- DPM-0001
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0001', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo a apostila, a origem do termo "auditoria" na Justiça Militar está ligada:', 'O pretor, que não era militar, atuava com quatro generais: daí a Auditoria Militar e, hoje, o escabinato (juiz togado + oficiais).', 'Tenda romana = Auditorium.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0001');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'À tenda (Auditorium) levantada no campo de batalha, em Roma, onde o pretor aplicava a lei penal militar.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0001' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Ao Alvará de 1808 de D. João VI.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0001' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'À reforma do CPM de 2023.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0001' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Ao Código de Hamurábi.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0001' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0001' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Evolução histórica do Direito Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0001' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+No Streamlit Cloud, em Settings > Secrets, cole:
+    DATABASE_URL = "postgresql://...-pooler.../neondb?sslmode=require"
 
--- DPM-0002
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0002', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Hoje, o órgão colegiado que julga crimes militares nos Estados, formado pelo Juiz de Direito (que preside) e por oficiais da ativa, é chamado de:', 'Com a EC 45/2004, o Juiz Auditor passou a ser Juiz Federal da Justiça Militar (União) e Juiz de Direito do Juízo Militar (Estados).', 'Juiz togado + militares = escabinato.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0002');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Tribunal do Júri.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0002' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Conselho de Disciplina.', FALSE, 'Errada. Esse é processo administrativo.' FROM questao q WHERE codigo = 'DPM-0002' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Escabinato (Conselho de Justiça).', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0002' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Auditoria Pretoriana.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0002' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0002' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Evolução histórica do Direito Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0002' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+Para rodar no próprio computador (opcional):
+    pip install -r requirements.txt
+    crie .streamlit/secrets.toml com a mesma linha DATABASE_URL
+    streamlit run app.py
+"""
+import base64
+import html
+import json
+import random
+import re
+import secrets
+import string
+import time
+import unicodedata
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
--- DPM-0003
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0003', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo a apostila, o termo "dizimar" tem origem em punição romana que consistia em:', 'Outra pena romana citada: fustigação (fustuarium), em que soldados batiam no condenado com paus e pedras.', '1 em cada 10.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0003');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Aplicar dez chibatadas.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0003' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Cobrar um décimo do soldo do soldado faltoso.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0003' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Expulsar dez soldados por legião.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0003' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Sortear, entre grupos de dez soldados, um para ser executado quando a unidade abandonava o posto.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0003' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0003' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Evolução histórica do Direito Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0003' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+import bcrypt
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
--- DPM-0004
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0004', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O Conselho Supremo Militar e de Justiça, origem do atual Superior Tribunal Militar, foi instituído:', 'O CPM (Decreto-Lei 1.001, de 21/10/1969) foi editado pela Junta Militar e vigora desde 1º/01/1970; a reforma mais recente é a Lei 14.688/2023.', '1808 = origem do STM.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0004');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Por D. João VI, pelo Alvará de 1º de abril de 1808, com a chegada da família real.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0004' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Pelo Decreto-Lei 1.001/1969.', FALSE, 'Errada. Esse é o CPM.' FROM questao q WHERE codigo = 'DPM-0004' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Pelo Conde de Lippe, em 1763.', FALSE, 'Errada. Lippe reorganizou o exército português (Código de 1763).' FROM questao q WHERE codigo = 'DPM-0004' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Pela Constituição de 1988.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0004' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0004' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Evolução histórica do Direito Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0004' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0005
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0005', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O Código Penal Militar vigente foi instituído pelo Decreto-Lei nº 1.001/1969 e entrou em vigor em:', 'Foi editado pela Junta Militar que assumiu o governo após o afastamento do Presidente Costa e Silva.', 'CPM: vigência em 1970.', 1, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0005');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', '20 de setembro de 2023.', FALSE, 'Errada. Data da Lei 14.688.' FROM questao q WHERE codigo = 'DPM-0005' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', '1º de janeiro de 1970.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0005' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', '5 de outubro de 1988.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0005' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', '21 de outubro de 1969.', FALSE, 'Errada. Data do decreto-lei.' FROM questao q WHERE codigo = 'DPM-0005' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0005' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Evolução histórica do Direito Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0005' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+# ======================================================================
+# DB
+# ======================================================================
+@st.cache_resource(show_spinner=False)
+def _pool() -> ConnectionPool:
+    return ConnectionPool(
+        conninfo=st.secrets["DATABASE_URL"],
+        min_size=1,
+        max_size=5,
+        kwargs={"autocommit": True, "row_factory": dict_row},
+        check=ConnectionPool.check_connection,
+        open=True,
+    )
 
--- DPM-0006
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0006', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo a apostila, o bem jurídico tutelado PRINCIPAL pelo Direito Penal Militar é:', 'Célio Lobão: o DPM é especial em razão do bem jurídico (disciplina, hierarquia, serviço e dever militar) e da condição de militar dos sujeitos.', 'Hierarquia e disciplina.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0006');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'A sociedade em sentido amplo, como no Direito Penal comum.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0006' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'A ordem econômica.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0006' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'A hierarquia e a disciplina.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0006' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'O patrimônio particular.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0006' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0006' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Conceitos: Direito Penal Militar, militar estadual e crime militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0006' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0007
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0007', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'A Emenda Constitucional que reescreveu o art. 42 da CF, afirmando que os membros das PMs e dos CBMs são militares dos Estados, foi a:', 'Art. 42: os membros das PMs e CBMs são militares dos Estados, do DF e dos Territórios, organizados com base na hierarquia e na disciplina.', 'EC 18 = militar estadual.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0007');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'EC nº 19/1998.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0007' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'EC nº 18/1998.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0007' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'EC nº 104/2019.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0007' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'EC nº 45/2004.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0007' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0007' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Conceitos: Direito Penal Militar, militar estadual e crime militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0007' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def consultar(sql: str, params=None) -> list[dict]:
+    """SELECT que devolve várias linhas (lista de dicionários)."""
+    with _pool().connection() as conn:
+        return conn.execute(sql, params or ()).fetchall()
 
--- DPM-0008
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0008', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Com a Lei nº 14.688/2023, o art. 22 do CPM passou a considerar militar a pessoa incorporada:', 'Art. 22: é militar qualquer pessoa que, em tempo de paz ou de guerra, seja incorporada a instituições militares ou nelas matriculada, para servir em posto, graduação ou regime de sujeição à disciplina militar.', 'Forças Armadas → instituições militares.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0008');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'A qualquer órgão de segurança pública, inclusive polícias civis.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0008' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Apenas aos oficiais.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0008' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Exclusivamente às Forças Armadas.', FALSE, 'Errada. Era a redação antiga.' FROM questao q WHERE codigo = 'DPM-0008' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'A instituições militares ou nelas matriculada, ampliando o conceito para PMs e CBMs.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0008' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0008' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Conceitos: Direito Penal Militar, militar estadual e crime militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0008' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0009
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0009', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo Jorge César de Assis, citado na apostila, a relação entre crime militar e transgressão disciplinar é semelhante à relação entre:', 'Crime militar: violação acentuada ao dever militar. Transgressão: a mesma violação na manifestação elementar e simples.', 'Crime : contravenção.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0009');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Dolo e culpa.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0009' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Crime e contravenção.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0009' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Pena e medida de segurança.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0009' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Lei e regulamento.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0009' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0009' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Conceitos: Direito Penal Militar, militar estadual e crime militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0009' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def um(sql: str, params=None) -> dict | None:
+    """SELECT que devolve uma linha (ou None)."""
+    with _pool().connection() as conn:
+        return conn.execute(sql, params or ()).fetchone()
 
--- DPM-0010
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0010', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'No Brasil, para caracterizar o crime militar, adota-se o critério:', 'Não existe natureza ontológica: crime militar é a infração do CPM ou da legislação penal comum enquadrada no art. 9º.', 'Crime militar = o que a lei diz.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0010');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Exclusivamente ratione personae.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0010' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Ontológico: há uma natureza própria do crime militar independente da lei.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0010' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Exclusivamente ratione loci.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0010' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Ratione legis (legal): crime militar é o que a lei define, nas hipóteses do art. 9º do CPM.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0010' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0010' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Critérios de classificação e crimes propriamente e impropriamente militares' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0010' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0011
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0011', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Crimes propriamente militares, segundo a apostila, são aqueles que:', 'Impropriamente militares: previsão idêntica ou similar na lei comum (abuso de autoridade, tortura, porte de arma), tornando-se militares nas circunstâncias do art. 9º, II e III.', 'Deserção = propriamente.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0011');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Só podem ser praticados por militar, previstos apenas no CPM, como a deserção (art. 187).', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0011' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Têm definição idêntica no Código Penal comum.', FALSE, 'Errada. Esses são impropriamente militares.' FROM questao q WHERE codigo = 'DPM-0011' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Só podem ser praticados por civis.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0011' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Dependem de ocorrer em tempo de guerra.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0011' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0011' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Critérios de classificação e crimes propriamente e impropriamente militares' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0011' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def executar(sql: str, params=None) -> None:
+    """INSERT / UPDATE / DELETE."""
+    with _pool().connection() as conn:
+        conn.execute(sql, params or ())
 
--- DPM-0012
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0012', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O civil que pratica furto dentro de uma organização militar (das Forças Armadas) comete crime militar com base, principalmente, no critério:', 'Ratione loci: local sob administração militar. Ratione temporis: tempo de guerra, manobras ou exercícios. Ratione personae: qualidade militar dos sujeitos. Ratione materiae: dupla qualidade militar, no ato e no sujeito.', 'Lugar = loci.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0012');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Ratione temporis.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0012' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Ratione personae.', FALSE, 'Errada. O agente não é militar.' FROM questao q WHERE codigo = 'DPM-0012' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Ratione materiae pura.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0012' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Ratione loci (em razão do lugar).', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0012' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0012' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Critérios de classificação e crimes propriamente e impropriamente militares' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0012' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0013
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0013', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O critério ratione materiae, segundo a apostila, exige:', 'Ambos os requisitos devem estar presentes ao mesmo tempo.', 'Ato militar + sujeito militar.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0013');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Apenas que a vítima seja militar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0013' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Que o crime ocorra em tempo de guerra.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0013' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Apenas que o fato ocorra em quartel.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0013' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Dupla qualidade militar: no ato (crime militar) e no sujeito (militar).', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0013' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0013' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Critérios de classificação e crimes propriamente e impropriamente militares' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0013' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def transacao(fn):
+    """Roda fn(conn) numa transação só: ou grava tudo, ou nada."""
+    with _pool().connection() as conn:
+        with conn.transaction():
+            return fn(conn)
 
--- DPM-0014
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0014', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Com a Lei nº 13.491/2017, o inciso II do art. 9º do CPM passou a considerar crimes militares, quando praticados nas hipóteses de suas alíneas:', 'Assim, abuso de autoridade, tortura, crimes do Estatuto do Desarmamento, do CTB, do ECA etc. podem ser crimes militares ("por extensão").', '13.491 = crimes militares por extensão.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0014');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Apenas os crimes previstos no CPM com igual definição na lei penal.', FALSE, 'Errada. Era a redação original.' FROM questao q WHERE codigo = 'DPM-0014' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Os crimes previstos no CPM e os previstos na legislação penal (comum).', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0014' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Apenas os crimes praticados por civis.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0014' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Apenas os crimes dolosos contra a vida.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0014' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0014' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0014' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+db = SimpleNamespace(consultar=consultar, um=um, executar=executar, transacao=transacao)
 
--- DPM-0015
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0015', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo o art. 9º, § 1º, do CPM, os crimes dolosos contra a vida cometidos por militares (estaduais) contra civil são da competência:', '§ 2º: quando praticados por militares das Forças Armadas em certos contextos (missões do Presidente ou do Ministro da Defesa, GLO etc.), a competência é da Justiça Militar da União.', 'PM mata civil dolosamente → Júri.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0015');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Do Superior Tribunal Militar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0015' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Da Justiça Federal.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0015' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Da Justiça Militar Estadual.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0015' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Do Tribunal do Júri.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0015' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0015' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0015' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0016
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0016', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Policial militar EM SERVIÇO agride um civil durante uma abordagem. A conduta é crime militar com base no art. 9º, II:', 'A alínea "c" também abrange o PM de folga que se apresenta como policial e intervém em assalto, assumindo a função.', 'Em serviço contra civil = II, c.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0016');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Alínea "c": militar em serviço ou atuando em razão da função contra civil, ainda que fora de lugar sujeito à administração militar.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0016' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Inciso III, alínea "a".', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0016' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Alínea "a": militar da ativa contra militar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0016' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Alínea "e": contra o patrimônio militar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0016' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0016' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0016' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+# ======================================================================
+# AUTH
+# ======================================================================
+MAX_TENTATIVAS = 5
+MINUTOS_BLOQUEIO = 15
+PERFIS = {"admin": "Administrador", "revisor": "Revisor", "aluno": "Aluno"}
 
--- DPM-0017
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0017', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O 3º Sargento que, em sua função administrativa, altera escala já cumprida para dar vantagem indevida a colega pratica fato que pode caracterizar crime militar com base no art. 9º, II:', 'Exercício de fixação da apostila. A ordem administrativa militar abrange a organização, a respeitabilidade e a finalidade da administração.', 'Escala adulterada = ordem administrativa.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0017');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Alínea "d": manobras ou exercício.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0017' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Alínea "b": somente se ocorrer em hospital militar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0017' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Em nenhuma hipótese: é apenas transgressão.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0017' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Alínea "e": militar da ativa contra a ordem administrativa militar.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0017' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0017' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0017' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0018
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0018', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Sobre a alínea "a" do art. 9º, II (militar da ativa contra militar na mesma situação), a apostila mostra que:', 'STF (HC 120.671): lesões em confraternização natalina entre militares, sem vínculo com a administração → Justiça Comum. STJ (CC 91.267): tentativa de homicídio entre PMs de folga, sem farda e motivação alheia → Júri.', 'STM amplia; STF e STJ restringem.', 3, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0018');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Todos os tribunais entendem que basta a condição de militar dos dois.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0018' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'O STF considera crime militar qualquer briga entre PMs de folga.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0018' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'A alínea foi revogada pela Lei 13.491.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0018' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'O STM tende a ampliar a competência, enquanto STF e STJ exigem vínculo com a vida castrense, afastando-a em brigas fora do serviço sem relação com a função.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0018' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0018' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0018' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+# ------------------------------------------------------------------ senhas
+def gerar_hash(senha: str) -> str:
+    return bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
--- DPM-0019
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0019', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O militar da ativa que, de folga, comete crime contra outro militar da ativa sem saber de sua condição, segundo o art. 47 do CPM:', 'Art. 47: deixam de ser elementos do crime a qualidade de superior ou inferior quando não conhecida do agente, e a de superior, inferior, oficial de dia, sentinela, vigia ou plantão quando a ação é praticada em repulsa a agressão.', 'Art. 47: desconhecimento da hierarquia.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0019');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Pode responder por crime militar; o art. 47 apenas afasta como elemento a qualidade de superior ou inferior, quando não conhecida do agente.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0019' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Comete transgressão disciplinar apenas.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0019' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Nunca comete crime militar, pois exige-se sempre o conhecimento.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0019' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Responde com pena aumentada de 1/3.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0019' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0019' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0019' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0020
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0020', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo a apostila, na Justiça Militar Estadual, os civis:', 'O inciso III para civis tem aplicação na Justiça Militar da União (crimes contra as Forças Armadas).', 'Civil não vai à JME.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0020');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Respondem por todos os crimes do inciso III.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0020' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Respondem apenas por crimes dolosos contra a vida.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0020' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'São julgados pelo Conselho de Disciplina.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0020' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Não respondem por crimes militares; são julgados pela Justiça Comum.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0020' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0020' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Art. 9º do CPM e Lei 13.491/2017' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0020' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def confere(senha: str, hash_salvo: str | None) -> bool:
+    if not hash_salvo:
+        return False
+    try:
+        return bcrypt.checkpw(senha.encode("utf-8"), hash_salvo.encode("utf-8"))
+    except ValueError:
+        return False
 
--- DPM-0021
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0021', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Segundo o CPM, a pena do crime de violência contra superior (art. 157, caput) é de:', 'Qualificadoras: comandante da unidade ou oficial-general → reclusão de 3 a 9 anos; com arma → +1/3; lesão → soma a pena do crime contra a pessoa; morte → reclusão de 12 a 30; em serviço → +1/6.', 'Contra superior: 3 meses a 2 anos.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0021');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Detenção, de 1 a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0021' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Detenção, de 3 meses a 2 anos.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0021' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Reclusão, de 3 a 8 anos.', FALSE, 'Errada. É a do art. 158 (militar de serviço).' FROM questao q WHERE codigo = 'DPM-0021' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Reclusão, de 12 a 30 anos.', FALSE, 'Errada. Só se resulta morte (§ 4º).' FROM questao q WHERE codigo = 'DPM-0021' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0021' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0021' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0022
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0022', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'No art. 157 do CPM, se a violência contra superior ocorrer em serviço, a pena:', 'Arma = +1/3. Em serviço = +1/6.', 'Serviço = 1/6.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0022');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'É dobrada.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0022' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'É aumentada de um terço.', FALSE, 'Errada. +1/3 é para a violência com arma (§ 2º).' FROM questao q WHERE codigo = 'DPM-0022' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'É aumentada da sexta parte.', TRUE, 'Correta (§ 5º).' FROM questao q WHERE codigo = 'DPM-0022' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Não se altera.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0022' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0022' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0022' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def problema_na_senha(senha: str) -> str | None:
+    """Devolve o motivo se a senha for fraca; None se estiver boa."""
+    if len(senha) < 8:
+        return "A senha precisa ter pelo menos 8 caracteres."
+    if not re.search(r"[A-Za-z]", senha) or not re.search(r"\d", senha):
+        return "A senha precisa ter letras e números."
+    return None
 
--- DPM-0023
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0023', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Praticar violência contra sentinela, vigia ou plantão é crime do art. 158 do CPM, com pena de:', 'A proteção especial decorre da função exercida pela vítima no momento: atinge a pessoa e a regularidade do serviço. Com arma: +1/3.', 'Sentinela: reclusão 3 a 8.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0023');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Multa.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0023' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Detenção, de 3 meses a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0023' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Reclusão, de 3 a 8 anos.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0023' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Detenção, de 6 meses a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0023' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0023' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0023' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0024
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0024', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Recusar obedecer a ordem do superior sobre assunto ou matéria de serviço configura, segundo o CPM:', 'A ordem deve se referir a matéria de serviço ou a dever imposto em lei, regulamento ou instrução; não é qualquer divergência.', 'Recusa: 1 a 2 anos.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0024');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Violência contra superior.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0024' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Desobediência simples, apenas transgressão.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0024' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Recusa de obediência (art. 163), detenção de 1 a 2 anos, se o fato não constitui crime mais grave.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0024' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Abandono de posto.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0024' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0024' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0024' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def senha_provisoria() -> str:
+    """Ex.: CFS-7k4m-29qx — fácil de ditar, difícil de adivinhar."""
+    alfabeto = string.ascii_lowercase.replace("l", "").replace("o", "") + "23456789"
+    bloco = lambda: "".join(secrets.choice(alfabeto) for _ in range(4))
+    return f"CFS-{bloco()}-{bloco()}"
 
--- DPM-0025
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0025', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Criticar publicamente ato de superior ou assunto atinente à disciplina militar caracteriza, no CPM:', 'Também é crime publicar, sem licença, ato ou documento oficial.', 'Crítica pública = art. 166.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0025');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Calúnia militar obrigatoriamente.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0025' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Publicação ou crítica indevida (art. 166), detenção de 2 meses a 1 ano.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0025' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Conduta sempre lícita, por liberdade de expressão.', FALSE, 'Errada. A apostila pede análise do caso concreto e da ordem constitucional.' FROM questao q WHERE codigo = 'DPM-0025' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Recusa de obediência.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0025' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0025' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0025' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0026
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0026', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O sargento que agride fisicamente um soldado subordinado pratica, segundo o CPM:', 'A hierarquia também protege o subordinado: a autoridade não legitima violência.', 'Inferior também é protegido.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0026');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Violência contra inferior hierárquico (art. 175), detenção de 3 meses a 2 anos, somando-se a pena do crime contra a pessoa se houver lesão ou morte.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0026' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Nenhum crime, por estar exercendo a autoridade.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0026' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Violência contra superior.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0026' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Apenas transgressão disciplinar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0026' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0026' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0026' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def normalizar_login(login: str) -> str:
+    return login.strip().lower()
 
--- DPM-0027
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0027', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'A diferença do crime do art. 176 (ofensa aviltante a inferior hierárquico) para o do art. 175 é:', 'A redação atual dos arts. 175 e 176 veio da Lei 14.688/2023 ("inferior hierárquico").', 'Aviltante = humilhante.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0027');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'O art. 176 é culposo.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0027' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'O art. 176 exige que a vítima seja oficial.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0027' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Não há diferença.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0027' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'O caráter aviltante da violência, que humilha ou degrada o inferior, com pena de detenção de 1 a 2 anos.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0027' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0027' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a autoridade ou disciplina militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0027' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0028
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0028', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Abandonar, sem ordem superior, o posto ou lugar de serviço designado, ou o serviço antes de terminá-lo, é crime do art. 195 do CPM, com pena de:', 'Para o sargento: garantir a passagem e a rendição do serviço e não deixar postos ou missões sem substituição ou autorização.', 'Abandono: 3 meses a 1 ano.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0028');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Detenção, de 3 meses a 1 ano.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0028' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Detenção, de 6 meses a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0028' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Reclusão, de 2 a 8 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0028' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Detenção, de 1 a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0028' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0028' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra o serviço e o dever militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0028' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+# ------------------------------------------------------------------ registro
+def registrar(evento: str, usuario_id=None, login_tentado=None) -> None:
+    db.executar(
+        "INSERT INTO acesso_log (usuario_id, login_tentado, evento) VALUES (%s, %s, %s)",
+        (usuario_id, login_tentado, evento),
+    )
 
--- DPM-0029
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0029', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'No descumprimento de missão (art. 196 do CPM), se o agente exercia função de comando, a pena é:', 'Caput: detenção de 6 meses a 2 anos. O § 2º se liga à FUNÇÃO de comando (relevante para o sargento), não ao posto. § 3º: admite forma culposa (detenção de 3 meses a 1 ano).', 'Oficial +1/3 · comando +1/2.', 3, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0029');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Aumentada de um terço.', FALSE, 'Errada. +1/3 é se o agente é oficial (§ 1º).' FROM questao q WHERE codigo = 'DPM-0029' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Reduzida de metade.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0029' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Aumentada de metade.', TRUE, 'Correta (§ 2º).' FROM questao q WHERE codigo = 'DPM-0029' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'A mesma do caput.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0029' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0029' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra o serviço e o dever militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0029' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0030
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0030', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Sobre o descumprimento de missão (art. 196 do CPM), é correto afirmar:', 'Diferente de vários crimes militares, o art. 196 prevê culpa: detenção de 3 meses a 1 ano.', 'Missão: há culpa.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0030');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Só pode ser praticado por oficial.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0030' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Admite expressamente a modalidade culposa.', TRUE, 'Correta (§ 3º).' FROM questao q WHERE codigo = 'DPM-0030' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Só se pune a forma dolosa.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0030' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Tem pena de reclusão de 12 a 30 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0030' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0030' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra o serviço e o dever militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0030' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+# ------------------------------------------------------------------ login
+def existe_admin() -> bool:
+    return db.um("SELECT 1 AS ok FROM usuario WHERE perfil = 'admin' AND ativo LIMIT 1") is not None
 
--- DPM-0031
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0031', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O crime de embriaguez em serviço (art. 202 do CPM):', 'Pena: detenção de 6 meses a 2 anos. Protege a capacidade funcional, a segurança e a disciplina.', 'Embriagou ou chegou bêbado: crime.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0031');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Ocorre quando o militar se embriaga em serviço ou se apresenta embriagado para prestá-lo, independentemente de acidente ou prejuízo concreto.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0031' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Só ocorre se o militar dirigir viatura.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0031' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'É apenas transgressão disciplinar.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0031' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Exige que ocorra acidente.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0031' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0031' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra o serviço e o dever militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0031' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0032
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0032', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O militar que se apropria de dinheiro de que tem a posse em razão do cargo pratica peculato (art. 303 do CPM), com pena de:', 'Peculato-apropriação ou peculato-desvio. § 1º: aumento de 1/3 se o valor é superior a 20 salários mínimos. § 3º: peculato culposo (detenção de 3 meses a 1 ano).', 'Peculato: 3 a 15.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0032');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Reclusão, de 2 a 8 anos.', FALSE, 'Errada. É a da concussão.' FROM questao q WHERE codigo = 'DPM-0032' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Reclusão, de 3 a 15 anos.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0032' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Reclusão, até 8 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0032' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Detenção, de 6 meses a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0032' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0032' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0032' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def autenticar(login: str, senha: str) -> tuple[dict | None, str | None]:
+    """Devolve (usuario, None) se der certo ou (None, mensagem de erro)."""
+    login = normalizar_login(login)
+    u = db.um(
+        """SELECT id, nome, login, perfil, ativo, trocar_senha, senha_hash, tentativas_falhas,
+                  bloqueado_ate, (bloqueado_ate IS NOT NULL AND bloqueado_ate > now()) AS bloqueado,
+                  CEIL(EXTRACT(EPOCH FROM (bloqueado_ate - now())) / 60) AS minutos_restantes
+           FROM usuario WHERE lower(login) = %s""",
+        (login,),
+    )
+    generico = "Usuário ou senha incorretos."
+    if u is None:
+        registrar("login_falha", login_tentado=login)
+        return None, generico
+    if not u["ativo"]:
+        registrar("login_conta_inativa", u["id"], login)
+        return None, "Esta conta está desativada. Fale com o administrador."
+    if u["bloqueado"]:
+        return None, f"Conta bloqueada por excesso de tentativas. Tente de novo em {int(u['minutos_restantes'])} min."
 
--- DPM-0033
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0033', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'No peculato do CPM, a pena é aumentada de um terço quando o objeto:', 'O § 1º não cria crime novo: é causa especial de aumento.', 'Mais de 20 salários: +1/3.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0033');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'É arma de fogo.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0033' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Tem valor superior a vinte vezes o salário mínimo.', TRUE, 'Correta (§ 1º).' FROM questao q WHERE codigo = 'DPM-0033' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'É devolvido antes da denúncia.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0033' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Pertence a particular.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0033' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0033' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0033' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+    if not confere(senha, u["senha_hash"]):
+        tentativas = u["tentativas_falhas"] + 1
+        if tentativas >= MAX_TENTATIVAS:
+            db.executar(
+                "UPDATE usuario SET tentativas_falhas = 0, bloqueado_ate = now() + make_interval(mins => %s) WHERE id = %s",
+                (MINUTOS_BLOQUEIO, u["id"]),
+            )
+            registrar("bloqueio", u["id"], login)
+            return None, f"Senha incorreta pela {MAX_TENTATIVAS}ª vez. Conta bloqueada por {MINUTOS_BLOQUEIO} minutos."
+        db.executar("UPDATE usuario SET tentativas_falhas = %s WHERE id = %s", (tentativas, u["id"]))
+        registrar("login_falha", u["id"], login)
+        restantes = MAX_TENTATIVAS - tentativas
+        return None, f"{generico} Restam {restantes} tentativa{'s' if restantes > 1 else ''} antes do bloqueio."
 
--- DPM-0034
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0034', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O verbo que caracteriza a concussão (art. 305 do CPM) é:', 'Pena da concussão: reclusão de 2 a 8 anos. Pode ocorrer fora da função ou antes de assumi-la, desde que em razão dela.', 'Concussão = exigir.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0034');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Exigir vantagem indevida, em razão da função.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0034' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Solicitar.', FALSE, 'Errada. Corrupção passiva.' FROM questao q WHERE codigo = 'DPM-0034' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Oferecer.', FALSE, 'Errada. Corrupção ativa.' FROM questao q WHERE codigo = 'DPM-0034' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Apropriar-se.', FALSE, 'Errada. Peculato.' FROM questao q WHERE codigo = 'DPM-0034' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0034' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0034' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+    db.executar(
+        "UPDATE usuario SET tentativas_falhas = 0, bloqueado_ate = NULL, ultimo_acesso = now() WHERE id = %s",
+        (u["id"],),
+    )
+    registrar("login_ok", u["id"], login)
+    return _sessao(u), None
 
--- DPM-0035
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0035', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Após a Lei nº 14.688/2023, a corrupção passiva do CPM (art. 308):', 'Condutas: solicitar, receber ou aceitar promessa. § 1º: +1/3 se retarda, deixa de praticar ou pratica ato infringindo dever. § 2º: cedendo a pedido ou influência de outrem → detenção de 3 meses a 1 ano.', 'Solicitar, receber, aceitar promessa: 2 a 12.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0035');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Só pune quem recebe dinheiro em espécie.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0035' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Inclui o verbo "solicitar" e tem pena de reclusão de 2 a 12 anos.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0035' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Tem pena de detenção de 6 meses a 2 anos.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0035' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Foi revogada.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0035' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0035' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0035' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0036
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0036', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Na comparação apresentada pela apostila entre corrupção passiva e ativa:', 'Corrupção ativa (art. 309): reclusão até 8 anos, +1/3 se o ato é retardado, omitido ou praticado com infração de dever.', 'Pede/recebe × oferece/dá.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0036');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'A passiva tem pena menor que a ativa.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0036' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'As duas punem quem oferece a vantagem.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0036' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Passiva foca em quem solicita, recebe ou aceita a promessa; ativa, em quem dá, oferece ou promete a vantagem.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0036' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'A ativa só pode ser praticada por militar em serviço.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0036' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0036' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0036' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def _sessao(u: dict) -> dict:
+    """Só o que a sessão precisa guardar (nunca o hash)."""
+    return {k: u[k] for k in ("id", "nome", "login", "perfil", "trocar_senha")}
 
--- DPM-0037
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0037', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Desviar, em proveito próprio, o que recebeu indevidamente em razão do cargo e que deveria recolher aos cofres públicos é o crime de:', 'O bem jurídico é a probidade e a correta destinação dos valores que devem integrar o patrimônio público.', 'Recebeu e não recolheu = desvio.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0037');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Peculato culposo.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0037' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Prevaricação.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0037' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Desvio (art. 307 do CPM), reclusão de 2 a 12 anos.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0037' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Concussão.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0037' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0037' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0037' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0038
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0038', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'Para que a falsificação de documento seja o crime do art. 311 do CPM, é necessário que:', 'Penas: documento público, reclusão de 2 a 6 anos; particular, até 5 anos. Agrava-se se o agente é oficial ou exerce função em repartição militar.', 'Falsificação militar: atenta contra a administração militar.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0038');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'O fato atente contra a administração ou o serviço militar.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0038' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'O documento seja necessariamente público.', FALSE, 'Errada. Documento particular também (reclusão até 5 anos).' FROM questao q WHERE codigo = 'DPM-0038' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Haja prejuízo financeiro.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0038' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'O agente seja oficial.', FALSE, 'Errada. Ser oficial agrava a pena (§ 1º).' FROM questao q WHERE codigo = 'DPM-0038' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0038' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0038' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+def recarregar(usuario_id: int) -> dict | None:
+    u = db.um(
+        "SELECT id, nome, login, perfil, trocar_senha, ativo FROM usuario WHERE id = %s", (usuario_id,)
+    )
+    return _sessao(u) if u and u["ativo"] else None
 
--- DPM-0039
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0039', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O que diferencia a prevaricação (art. 319 do CPM) de uma simples falha funcional é:', 'Condutas: retardar ou deixar de praticar indevidamente ato de ofício, ou praticá-lo contra expressa disposição de lei. Pena: detenção de 6 meses a 2 anos. Decisões por amizade, antipatia ou vingança podem configurar o crime.', 'Prevaricar = agir por sentimento pessoal.', 2, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0039');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'A ocorrência em tempo de guerra.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0039' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'O recebimento de dinheiro.', FALSE, 'Errada. Isso indica corrupção.' FROM questao q WHERE codigo = 'DPM-0039' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'A finalidade de satisfazer interesse ou sentimento pessoal.', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0039' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'A presença de violência.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0039' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0039' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0039' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
 
--- DPM-0040
-INSERT INTO questao (codigo, materia_id, origem, fonte, tipo, enunciado, comentario, dica, dificuldade, status) SELECT 'DPM-0040', id, 'inedita', 'Inédita – Provão CFS 2026 · Direito Penal Militar', 'teoria', 'O sargento que, por amizade, deixa de registrar a falta de um soldado ao serviço, sabendo que deveria fazê-lo, pode responder por:', 'Deixar de praticar ato de ofício para satisfazer sentimento pessoal (amizade) é o núcleo da prevaricação.', 'Por amizade = sentimento pessoal.', 3, 'em_revisao' FROM materia WHERE nome = 'Direito Penal Militar' AND NOT EXISTS (SELECT 1 FROM questao WHERE codigo = 'DPM-0040');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'A', 'Peculato.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0040' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'A');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'B', 'Concussão.', FALSE, 'Errada. Não houve exigência de vantagem.' FROM questao q WHERE codigo = 'DPM-0040' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'B');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'C', 'Prevaricação (art. 319 do CPM).', TRUE, 'Correta.' FROM questao q WHERE codigo = 'DPM-0040' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'C');
-INSERT INTO alternativa (questao_id, letra, texto, correta, comentario) SELECT id, 'D', 'Corrupção ativa.', FALSE, 'Errada.' FROM questao q WHERE codigo = 'DPM-0040' AND NOT EXISTS (SELECT 1 FROM alternativa a WHERE a.questao_id = q.id AND a.letra = 'D');
-INSERT INTO questao_assunto (questao_id, assunto_id) SELECT q.id, a.id FROM questao q, assunto a JOIN materia m ON m.id = a.materia_id WHERE q.codigo = 'DPM-0040' AND m.nome = 'Direito Penal Militar' AND a.nome = 'Crimes contra a Administração Militar' AND NOT EXISTS (SELECT 1 FROM questao_assunto x WHERE x.questao_id = q.id AND x.assunto_id = a.id);
-INSERT INTO questao_edital (questao_id, edital_id) SELECT q.id, (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) FROM questao q WHERE q.codigo = 'DPM-0040' AND (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM questao_edital x WHERE x.questao_id = q.id AND x.edital_id = (SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = 'PROVAO-CFS-PMMS' ORDER BY e.ano DESC, e.id DESC LIMIT 1));
+# ------------------------------------------------------------------ contas
+def criar_usuario(nome: str, login: str, perfil: str, senha: str, trocar: bool = True) -> int:
+    row = db.um(
+        """INSERT INTO usuario (nome, login, perfil, senha_hash, trocar_senha, ativo)
+           VALUES (%s, %s, %s, %s, %s, TRUE) RETURNING id""",
+        (nome.strip(), normalizar_login(login), perfil, gerar_hash(senha), trocar),
+    )
+    return row["id"]
 
-COMMIT;
+
+def login_existe(login: str) -> bool:
+    return db.um("SELECT 1 AS ok FROM usuario WHERE lower(login) = %s", (normalizar_login(login),)) is not None
+
+
+def definir_senha(usuario_id: int, senha: str, provisoria: bool) -> None:
+    db.executar(
+        """UPDATE usuario SET senha_hash = %s, trocar_senha = %s, tentativas_falhas = 0, bloqueado_ate = NULL
+           WHERE id = %s""",
+        (gerar_hash(senha), provisoria, usuario_id),
+    )
+    if provisoria:      # senha nova dada pelo administrador: derruba os logins salvos nos aparelhos
+        db.executar("DELETE FROM sessao_login WHERE usuario_id = %s", (usuario_id,))
+    registrar("senha_resetada" if provisoria else "senha_trocada", usuario_id)
+
+
+def senha_atual_confere(usuario_id: int, senha: str) -> bool:
+    u = db.um("SELECT senha_hash FROM usuario WHERE id = %s", (usuario_id,))
+    return bool(u) and confere(senha, u["senha_hash"])
+
+auth = SimpleNamespace(MAX_TENTATIVAS=MAX_TENTATIVAS, MINUTOS_BLOQUEIO=MINUTOS_BLOQUEIO, PERFIS=PERFIS, gerar_hash=gerar_hash, confere=confere, problema_na_senha=problema_na_senha, senha_provisoria=senha_provisoria, normalizar_login=normalizar_login, registrar=registrar, existe_admin=existe_admin, autenticar=autenticar, recarregar=recarregar, criar_usuario=criar_usuario, login_existe=login_existe, definir_senha=definir_senha, senha_atual_confere=senha_atual_confere)
+
+
+# ======================================================================
+# ESTILO
+# ======================================================================
+NOME_APP = "Aprova Militar"
+SUBTITULO = "CFS PMMS · Banco de questões comentadas"
+
+CSS = """
+<style>
+:root{--verde:#4B5A23;--verde-claro:#E2E7D2;--ok:#1F6B3A;--ok-bg:#DCEFE1;--erro:#A3322A;--erro-bg:#F6DEDB;
+      --lei:#F2F1E8;--linha:#D4D9CE;--texto-suave:#5B6559;--bronze:#8A6A1F}
+.cartao{position:relative;border:1px solid var(--linha);border-radius:10px;padding:18px 20px;margin:4px 0 12px;
+        background-repeat:repeat;background-size:320px 120px;-webkit-user-select:none;user-select:none}
+.cartao .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:.82rem;color:var(--texto-suave);margin-bottom:8px}
+.cartao .cod{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--verde);font-weight:600}
+.cartao .enun{font-size:1.05rem;font-weight:500;line-height:1.55;margin:0;white-space:pre-line}
+.cartao .coment{white-space:pre-line}
+.cartao .fonte{font-size:.78rem;color:var(--texto-suave);margin:0 0 6px}
+.etq{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 8px;margin-left:6px}
+.etq.lei{background:var(--verde-claro);color:var(--verde)} .etq.caso{background:#F5E8C8;color:#8A5A00}
+.etq.rev{background:#E8E2F4;color:#4B3A7A} .etq.port{background:#DCEBF7;color:#1F4E79} .etq.prova{background:#FBE3E3;color:#8B1E1E} .etq.acervo{background:#ECE6DA;color:#6B5320}
+.etq.ess{background:#FBF1D6;color:#8A6A1F}
+.alt{border:1px solid var(--linha);border-radius:8px;padding:9px 12px;margin:6px 0;line-height:1.5}
+.alt.certa{border-color:var(--ok);background:var(--ok-bg)} .alt.errada{border-color:var(--erro);background:var(--erro-bg)}
+.alt .why{display:block;font-size:.88rem;color:var(--texto-suave);margin-top:4px}
+.dica{background:var(--verde-claro);border-radius:6px;padding:8px 12px;margin:8px 0}
+.lei-txt{background:var(--lei);border-radius:6px;padding:8px 12px;font-family:Georgia,'Times New Roman',serif;font-size:.93rem;margin:4px 0}
+.lei-txt .ref{display:block;font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:var(--texto-suave)}
+button[kind="primary"],button[kind="primaryFormSubmit"]{background:#4B5A23!important;border-color:#4B5A23!important;color:#fff!important}
+.rotulo{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bronze);margin:10px 0 2px}
+.mapa{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 10px}
+.mq{min-width:28px;text-align:center;font-size:.74rem;border:1px solid var(--linha);border-radius:5px;padding:2px 0;color:var(--texto-suave)}
+.mq.ok{background:var(--verde-claro);color:var(--verde);border-color:var(--verde);font-weight:600}
+.mq.certa{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);font-weight:600}
+.mq.errada{background:var(--erro-bg);color:var(--erro);border-color:var(--erro);font-weight:600}
+.mq.atual{outline:2px solid var(--bronze);outline-offset:1px;font-weight:700}
+.rx-grupo{margin:10px 0 12px}
+.rx-cab{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.95rem;margin-bottom:5px}
+.rx-pop{font-weight:400;color:var(--texto-suave);font-size:.85rem}
+.rx-res{margin-left:auto;font-weight:600;font-size:.82rem;color:var(--texto-suave)}
+.rx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
+.rx-chip{border-radius:8px;padding:6px 9px;border:1px solid var(--linha);display:flex;flex-direction:column;gap:2px;font-size:.8rem;line-height:1.3}
+.rx-chip .rx-num{font-weight:700;font-size:.78rem}
+.rx-num{color:var(--texto-suave);font-size:.8rem;margin-left:4px}
+.rx-dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;flex:none}
+.rx-leg{font-size:.75rem;color:var(--texto-suave);margin:4px 0 8px}
+.rx-leg .rx-dot{margin:0 3px 0 6px}
+.rx-chip.rx-vermelho{background:var(--erro-bg);border-color:var(--erro)} .rx-chip.rx-vermelho .rx-num{color:var(--erro)}
+.rx-chip.rx-amarelo{background:#FBF1D6;border-color:#D9A21B} .rx-chip.rx-amarelo .rx-num{color:#8A6A1F}
+.rx-chip.rx-verde{background:var(--ok-bg);border-color:var(--ok)} .rx-chip.rx-verde .rx-num{color:var(--ok)}
+.rx-chip.rx-cinza{background:rgba(128,128,128,.08)} .rx-chip.rx-branco{opacity:.65}
+.rx-dot.rx-vermelho{background:var(--erro)} .rx-dot.rx-amarelo{background:#D9A21B} .rx-dot.rx-verde{background:var(--ok)}
+.rx-dot.rx-cinza{background:#9E9E9E} .rx-dot.rx-branco{background:transparent;border:1px solid #9E9E9E}
+@media (prefers-color-scheme: dark){
+ :root{--verde:#B5C77A;--verde-claro:#2A331C;--ok:#7FD39A;--ok-bg:#173222;--erro:#F19A90;--erro-bg:#3A1C19;--lei:#20261F;--linha:#2E372F;--texto-suave:#9AA597;--bronze:#D9B45E}
+ .rx-chip.rx-amarelo{background:#352A12;border-color:#B98A1E} .rx-chip.rx-amarelo .rx-num{color:#E8C26A}
+ .etq.caso{background:#352A12;color:#E8C26A} .etq.rev{background:#2B2540;color:#C9B8F2} .etq.port{background:#18304A;color:#A9CDEE} .etq.prova{background:#401C1C;color:#F0B4B4} .etq.acervo{background:#332B1C;color:#E0C995} .etq.ess{background:#352A12;color:#E8C26A}}
+</style>
+"""
+
+
+def aplicar() -> None:
+    st.markdown(CSS, unsafe_allow_html=True)
+
+
+def marca_dagua(nome: str, login: str) -> str:
+    """Imagem SVG repetida no fundo das questões com o nome e o login do usuário."""
+    texto = html.escape(f"{nome} · {login}")
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120">'
+        '<text x="20" y="70" transform="rotate(-14 160 60)" font-family="Arial" font-size="14" '
+        f'fill="#808080" fill-opacity="0.16">{texto}</text></svg>'
+    )
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+
+
+def aplicar_marca_dagua(nome: str, login: str) -> None:
+    """Marca d'água em toda a área principal: qualquer print leva o nome de quem está logado."""
+    url = marca_dagua(nome, login)
+    st.markdown(
+        f"""<style>[data-testid="stMain"]{{background-image:url('{url}');background-repeat:repeat;
+            background-size:320px 120px}}</style>""",
+        unsafe_allow_html=True,
+    )
+
+
+def esc(t) -> str:
+    return html.escape(str(t or ""))
+
+
+def grafico_barras(rotulos: list, valores: list, texto=None, maximo: float | None = None, cor: str = "var(--verde)"):
+    """Gráfico de colunas em HTML puro (sem altair: no Streamlit Cloud com Python 3.14 o altair não carrega)."""
+    if not valores:
+        return
+    texto = texto or (lambda v: f"{v:g}")
+    topo = maximo or max(max(valores), 1)
+    cols = "".join(
+        f'<div style="flex:1;min-width:22px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px">'
+        f'<span style="font-size:.72rem;font-weight:600">{esc(texto(v))}</span>'
+        f'<div style="width:70%;max-width:46px;height:{max(2, 120 * v / topo):.0f}px;background:{cor};border-radius:4px 4px 0 0"></div>'
+        f'<span style="font-size:.7rem;color:var(--texto-suave);white-space:nowrap">{esc(r)}</span></div>'
+        for r, v in zip(rotulos, valores))
+    st.markdown(f'<div style="display:flex;gap:6px;align-items:flex-end;height:165px;padding:6px 2px;'
+                f'border-bottom:1px solid var(--linha);overflow-x:auto">{cols}</div>', unsafe_allow_html=True)
+
+
+# ======================================================================
+# TELAS_ACESSO
+# ======================================================================
+LOGIN_OK = re.compile(r"^[a-z0-9._-]{3,30}$")
+# Concurso que o aluno vai fazer (escolhido no cadastro e em Minha conta). Hoje o conteúdo é todo do CFS PMMS.
+CONCURSOS = {"cfs": "CFS · Curso de Formação de Sargentos", "cfc": "CFC · Curso de Formação de Cabos",
+             "cho": "CHO · Curso de Habilitação de Oficiais", "formacao": "Curso de Formação de Soldados",
+             "provao": "Aluno do CFS 2026 · Provão de conclusão do curso"}
+CONCURSOS_CURTO = {"cfs": "CFS", "cfc": "CFC", "cho": "CHO", "formacao": "Formação", "provao": "Provão CFS 2026"}
+CONCURSOS_COM_CONTEUDO = {"cfs", "provao"}
+
+# TRILHAS: cada trilha é um edital (tabela edital) com as suas matérias (edital_materia). O aluno vê só a trilha do
+# concurso que escolheu; administrador e revisores trocam de trilha no menu lateral.
+TRILHAS = {"cfs": {"concurso": "CFS-PMMS", "nome": "CFS PMMS 2026", "sub": "CFS PMMS · Banco de questões comentadas"},
+           "provao": {"concurso": "PROVAO-CFS-PMMS", "nome": "Provão do CFS 2026",
+                      "sub": "Provão de conclusão do CFS 2026 · Questões comentadas"}}
+
+
+def trilha_de(concurso: str | None) -> str:
+    return concurso if concurso in TRILHAS else "cfs"
+
+
+def _trocou_trilha():
+    """Ao trocar de trilha, os filtros e escolhas da trilha anterior deixam de valer."""
+    st.session_state["trilha"] = st.session_state["trilha_sel"]
+    for k in [k for k in st.session_state if k.startswith(("f_grupo", "f_sub_", "sim_grupos", "sim_assuntos", "rx_"))]:
+        del st.session_state[k]
+    st.session_state.pop("filtro_ativo", None)
+
+
+def trilha_atual() -> str:
+    return st.session_state.get("trilha", "cfs")
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _edital_da_trilha(trilha: str) -> int | None:
+    r = db.um("""SELECT e.id FROM edital e JOIN concurso c ON c.id = e.concurso_id WHERE c.sigla = %s
+                 ORDER BY e.ano DESC, e.id DESC LIMIT 1""", (TRILHAS[trilha_de(trilha)]["concurso"],))
+    return r["id"] if r else None
+
+
+def edital_atual() -> int | None:
+    return _edital_da_trilha(trilha_atual())
+
+
+def filtro_trilha(q: str = "q") -> str:
+    """Trecho SQL que deixa só as questões da trilha atual (edital + matérias do edital)."""
+    ed = edital_atual()
+    if ed is None:
+        return " AND FALSE "
+    ed = int(ed)
+    return (f" AND EXISTS (SELECT 1 FROM questao_edital qe WHERE qe.questao_id = {q}.id AND qe.edital_id = {ed})"
+            f" AND {q}.materia_id IN (SELECT em.materia_id FROM edital_materia em WHERE em.edital_id = {ed}) ")
+
+
+@st.cache_resource(show_spinner=False)
+def logo_app(tam: int = 256):
+    """Logotipo desenhado no próprio código (escudo com ✓ sobre fundo verde-oliva): ícone da aba e da tela de entrada."""
+    from PIL import Image, ImageDraw
+    k = tam / 100
+    img = Image.new("RGBA", (tam, tam), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([0, 0, tam - 1, tam - 1], radius=int(22 * k), fill=(75, 90, 35, 255))
+    escudo = [(50, 12), (82, 23), (80, 55), (68, 75), (50, 88), (32, 75), (20, 55), (18, 23)]
+    d.polygon([(x * k, y * k) for x, y in escudo], fill=(242, 241, 232, 255))
+    d.polygon([(x * k, y * k) for x, y in [(50, 19), (75, 28), (73.5, 54), (63.5, 70.5), (50, 81), (36.5, 70.5),
+                                            (26.5, 54), (25, 28)]], fill=(138, 106, 31, 255))
+    d.line([(35 * k, 50 * k), (46 * k, 62 * k), (67 * k, 37 * k)], fill=(255, 255, 255, 255), width=int(8 * k),
+           joint="curve")
+    return img
+
+
+def _cabecalho():
+    c1, c2 = st.columns([1, 7], vertical_alignment="center")
+    c1.image(logo_app(), width=64)
+    c2.title(NOME_APP)
+    st.caption(SUBTITULO)
+
+
+def tela_primeiro_acesso():
+    """Aparece uma única vez: quando ainda não existe nenhum administrador."""
+    _cabecalho()
+    st.info("Primeiro acesso: crie a conta de **administrador**. Ela poderá cadastrar e controlar todos os outros usuários.")
+    with st.form("criar_admin"):
+        nome = st.text_input("Nome (como vai aparecer no app)", key="adm_nome")
+        login = st.text_input("Usuário para entrar (letras minúsculas, números, ponto)", key="adm_login")
+        s1 = st.text_input("Senha", type="password", key="adm_s1")
+        s2 = st.text_input("Repita a senha", type="password", key="adm_s2")
+        ok = st.form_submit_button("Criar administrador", type="primary")
+    if ok:
+        login_n = auth.normalizar_login(login)
+        erro = (
+            "Preencha o nome." if not nome.strip() else
+            "Usuário inválido: use de 3 a 30 caracteres entre letras minúsculas, números, ponto, hífen ou sublinhado." if not LOGIN_OK.match(login_n) else
+            auth.problema_na_senha(s1) or ("As senhas não conferem." if s1 != s2 else None)
+        )
+        if erro:
+            st.error(erro)
+        elif auth.existe_admin():
+            st.error("Já existe um administrador. Recarregue a página e entre com login e senha.")
+        else:
+            uid = auth.criar_usuario(nome, login_n, "admin", s1, trocar=False)
+            auth.registrar("admin_criado", uid)
+            st.success("Administrador criado. Agora entre com o usuário e a senha.")
+            st.rerun()
+
+
+# ------------------------------------------------------------------ login que não cai
+# O Streamlit guarda o login só na conexão aberta: celular que bloqueia a tela, troca de app, rede instável ou o app
+# reiniciado (a cada atualização no GitHub) derrubam a conexão e o aluno tinha de entrar de novo. Agora, ao entrar, o app
+# cria um código secreto de sessão (válido por SESSAO_DIAS) que fica no endereço da página (?s=...); ao reconectar,
+# ele entra sozinho. "Sair" apaga o código. No banco fica só o hash do código.
+SESSAO_DIAS = 7
+SESSOES_POR_USUARIO = 3
+
+
+def _hash_token(t: str) -> str:
+    import hashlib
+    return hashlib.sha256(t.encode()).hexdigest()
+
+
+def abrir_sessao(uid: int):
+    token = secrets.token_urlsafe(24)
+    db.executar("INSERT INTO sessao_login (token_hash, usuario_id, expira_em) VALUES (%s, %s, now() + make_interval(days => %s))",
+                (_hash_token(token), uid, SESSAO_DIAS))
+    # no máximo SESSOES_POR_USUARIO aparelhos ao mesmo tempo (dificulta emprestar a conta)
+    db.executar("""DELETE FROM sessao_login WHERE usuario_id = %s AND token_hash NOT IN (
+                       SELECT token_hash FROM sessao_login WHERE usuario_id = %s ORDER BY ultimo_uso DESC LIMIT %s)""",
+                (uid, uid, SESSOES_POR_USUARIO))
+    st.query_params["s"] = token
+
+
+def retomar_sessao() -> dict | None:
+    token = st.query_params.get("s")
+    if not token:
+        return None
+    r = db.um("""UPDATE sessao_login SET ultimo_uso = now() WHERE token_hash = %s AND expira_em > now()
+                 RETURNING usuario_id""", (_hash_token(token),))
+    if not r:
+        st.query_params.pop("s", None)
+        return None
+    return auth.recarregar(r["usuario_id"])
+
+
+def fechar_sessao(uid: int | None = None):
+    token = st.query_params.get("s")
+    if token:
+        db.executar("DELETE FROM sessao_login WHERE token_hash = %s", (_hash_token(token),))
+    st.query_params.pop("s", None)
+
+
+def _sair(uid: int):
+    auth.registrar("logout", uid)
+    fechar_sessao()
+    st.session_state.clear()
+
+
+def tela_login():
+    _cabecalho()
+    aberto = config_app("cadastro_aberto", "1") == "1"
+    if aberto:
+        t_entrar, t_criar = st.tabs(["Entrar", "Criar conta"])
+        with t_criar:
+            _criar_conta()
+        with t_entrar:
+            _form_login()
+    else:
+        _form_login()
+
+
+def _criar_conta():
+    st.caption(f"Crie sua conta e use o app de graça por **{AVALIACAO_DIAS} dias**: questões comentadas, simulados e "
+               "Raio-X do desempenho. Depois, é só adquirir o acesso pelo Pix.")
+    with st.form("cadastro", clear_on_submit=False):
+        nome = st.text_input("Nome e graduação (ex.: Cb PM João Silva)", key="cd_nome")
+        concurso = _chave(CONCURSOS, st.selectbox("Qual concurso você vai fazer?", list(CONCURSOS.values()), key="cd_conc"))
+        whatsapp = st.text_input("WhatsApp com DDD (ex.: 67 99999-0000)", key="cd_zap")
+        login = st.text_input("Crie um usuário (letras minúsculas e números, ex.: joaosilva)", key="cd_login")
+        s1 = st.text_input("Crie uma senha (mínimo 8 caracteres, com letras e números)", type="password", key="cd_s1")
+        s2 = st.text_input("Repita a senha", type="password", key="cd_s2")
+        aceite = st.checkbox("Entendo que o acesso é pessoal: compartilhar login, questões ou PDFs leva ao bloqueio da conta.",
+                             key="cd_ok")
+        ok = st.form_submit_button("Criar minha conta", type="primary", width="stretch")
+    if not ok:
+        return
+    login_n = auth.normalizar_login(login)
+    zap = re.sub(r"\D", "", whatsapp or "")
+    if zap and not zap.startswith("55"):
+        zap = "55" + zap
+    erro = ("Preencha o nome e a graduação." if len((nome or "").strip()) < 5 else
+            "Informe o WhatsApp com DDD." if not 12 <= len(zap) <= 13 else
+            "Usuário inválido: de 3 a 30 caracteres entre letras minúsculas, números, ponto, hífen ou sublinhado."
+            if not LOGIN_OK.match(login_n) else
+            "Esse usuário já existe. Escolha outro." if auth.login_existe(login_n) else
+            auth.problema_na_senha(s1 or "") or ("As senhas não conferem." if s1 != s2 else None) or
+            ("Marque a caixa de concordância." if not aceite else None))
+    if not erro and db.um("SELECT 1 AS ok FROM usuario WHERE whatsapp = %s", (zap,)):
+        erro = "Já existe uma conta com esse WhatsApp. Se esqueceu a senha, fale com o administrador."
+    if erro:
+        st.error(erro)
+        return
+    uid = auth.criar_usuario(nome, login_n, "aluno", s1, trocar=False)
+    db.executar("""UPDATE usuario SET whatsapp = %s, concurso = %s, acesso_tipo = 'avaliacao',
+                   acesso_ate = now() + make_interval(days => %s), ultimo_acesso = now() WHERE id = %s""",
+                (zap, concurso, AVALIACAO_DIAS, uid))
+    auth.registrar("cadastro_proprio", uid, login_n)
+    st.session_state["usuario"] = auth.recarregar(uid)
+    abrir_sessao(uid)
+    st.session_state["boas_vindas"] = True
+    st.rerun()
+
+
+def _form_login():
+    with st.form("login"):
+        login = st.text_input("Usuário", key="lg_login")
+        senha = st.text_input("Senha", type="password", key="lg_senha")
+        ok = st.form_submit_button("Entrar", type="primary", width="stretch")
+    if ok:
+        if not login or not senha:
+            st.error("Informe usuário e senha.")
+            return
+        usuario, erro = auth.autenticar(login, senha)
+        if erro:
+            st.error(erro)
+        else:
+            st.session_state["usuario"] = usuario
+            abrir_sessao(usuario["id"])
+            st.rerun()
+    st.caption("Esqueceu a senha? Peça ao administrador uma senha provisória.")
+
+
+def tela_trocar_senha(usuario: dict, obrigatoria: bool):
+    if obrigatoria:
+        _cabecalho()
+        st.warning(f"Olá, {usuario['nome']}. Antes de começar, troque a senha provisória por uma senha só sua.")
+    with st.form("trocar_senha"):
+        atual = None if obrigatoria else st.text_input("Senha atual", type="password", key="ts_atual")
+        s1 = st.text_input("Nova senha (mínimo 8 caracteres, com letras e números)", type="password", key="ts_s1")
+        s2 = st.text_input("Repita a nova senha", type="password", key="ts_s2")
+        ok = st.form_submit_button("Salvar nova senha", type="primary")
+    if ok:
+        if not obrigatoria and not auth.senha_atual_confere(usuario["id"], atual or ""):
+            st.error("A senha atual não confere.")
+            return
+        erro = auth.problema_na_senha(s1) or ("As senhas não conferem." if s1 != s2 else None)
+        if erro:
+            st.error(erro)
+            return
+        auth.definir_senha(usuario["id"], s1, provisoria=False)
+        st.session_state["usuario"]["trocar_senha"] = False
+        st.success("Senha alterada.")
+        if obrigatoria:
+            st.rerun()
+
+
+# ======================================================================
+# TELAS_QUESTOES
+# ======================================================================
+DIF = {1: "Fácil", 2: "Média", 3: "Difícil"}
+TIPOS = {"": "Todos os tipos", "lei_seca": "Só lei seca", "caso_pratico": "Só casos práticos", "portugues": "Só Português",
+         "teoria": "Só conteúdo do curso"}
+ROTULO_TIPO = {"lei_seca": ("lei", "Lei seca"), "caso_pratico": ("caso", "Caso prático"), "portugues": ("port", "Português"),
+               "teoria": ("rev", "Conteúdo do curso")}
+# "" (padrão) = questões próprias do app. O acervo (questões antigas de materiais de apoio) só aparece se escolhido.
+ORIGENS = {"": "Inéditas e provas anteriores", "inedita": "Só inéditas", "prova_anterior": "Só provas anteriores",
+           "material": "Questões antigas (acervo)", "todas": "Todas, incluindo o acervo"}
+FILTRO_ORIGEM = """(%(orig)s = 'todas' OR (%(orig)s = '' AND q.origem::text <> 'material') OR q.origem::text = %(orig)s)"""
+# Avaliação grátis: o aluno só enxerga a AMOSTRA (questões essenciais + as marcadas como amostra), nunca o banco inteiro.
+FILTRO_AMOSTRA = " AND (q.essencial OR q.amostra) "
+
+
+def _so_amostra() -> bool:
+    return bool(st.session_state.get("so_amostra"))
+
+
+def _filtro_origem() -> str:
+    return FILTRO_ORIGEM + (FILTRO_AMOSTRA if _so_amostra() else "") + filtro_trilha()
+SITUACOES = {"todas": "Todas", "nao_respondidas": "Ainda não respondidas", "erradas": "Errei na última tentativa",
+             "essenciais": "⭐ Só as essenciais"}
+# Ordem dos itens principais do filtro (o que não está aqui vem depois, na ordem do edital)
+ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM",
+                "Direito Penal", "Direito Penal Militar", "Diversidade, Gênero e Combate à Discriminação", "Povos Indígenas de MS",
+                "Atendimento à Pessoa com TEA", "Direito Processual Penal", "Técnicas de Policiamento Ostensivo",
+                "Uso Diferenciado da Força", "Atendimento Pré-Hospitalar (APH)", "Inteligência de Segurança Pública",
+                "Tópicos Especiais: Abuso de Autoridade e Maria da Penha", "Direitos Humanos",
+                "Processos e Procedimentos Administrativos", "Policiamento de Choque"]
+
+
+def _chave(dicionario: dict, rotulo):
+    """Devolve a chave a partir do rótulo exibido (ou None)."""
+    return next((k for k, v in dicionario.items() if v == rotulo), None)
+
+
+def _base_rotulo(r: str) -> str:
+    """'3 – CPM · Código Penal Militar (95)' -> 'CPM · Código Penal Militar' (sem número e sem contador)."""
+    return re.sub(r"^[\d.]+ – | \(\d+\)$", "", r)
+
+
+def _remapeia(chave: str, opcoes: list[str]):
+    """Mantém a escolha do filtro quando só a numeração ou o contador do rótulo mudou (ex.: ao trocar o banco)."""
+    v = st.session_state.get(chave)
+    if v is None or (v in opcoes if isinstance(v, str) else all(x in opcoes for x in v)):
+        return
+    if isinstance(v, str):
+        novo = next((o for o in opcoes if _base_rotulo(o) == _base_rotulo(v)), None)
+        if novo is None:
+            del st.session_state[chave]
+        else:
+            st.session_state[chave] = novo
+    else:
+        bases = {_base_rotulo(x) for x in v}
+        st.session_state[chave] = [o for o in opcoes if _base_rotulo(o) in bases]
+
+
+def status_visiveis(perfil: str, incluir_revisao: bool) -> list[str]:
+    if perfil == "aluno":
+        return ["aprovada"]
+    return ["aprovada", "em_revisao"] if incluir_revisao else ["aprovada"]
+
+
+def _arvore(status: list[str], origem: str = "") -> list[dict]:
+    """Itens principais (lei ou matéria) com seus subitens (assuntos), numerados 1, 1.1, 1.2...
+    Só entram assuntos que têm questão visível para o usuário."""
+    linhas = db.consultar(
+        """SELECT a.id, a.nome, a.ordem, COUNT(DISTINCT q.id) AS n,
+                  COALESCE(d.sigla, m.nome) AS grupo, d.nome_popular, COALESCE(d.id, 0) AS ordem_grupo
+           FROM assunto a
+           JOIN materia m ON m.id = a.materia_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           JOIN questao_assunto qa ON qa.assunto_id = a.id
+           JOIN questao q ON q.id = qa.questao_id
+           WHERE q.status::text = ANY(%(st)s) AND """ + _filtro_origem() + """
+           GROUP BY a.id, a.nome, a.ordem, d.sigla, m.nome, d.nome_popular, d.id""",
+        {"st": status, "orig": origem},
+    )
+    grupos: dict[str, dict] = {}
+    for l in linhas:
+        g = grupos.setdefault(l["grupo"], {"sigla": l["grupo"], "popular": l["nome_popular"],
+                                           "ordem": l["ordem_grupo"], "subs": []})
+        g["subs"].append(l)
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    lista = sorted(grupos.values(), key=lambda g: (pos.get(g["sigla"], len(pos)), g["ordem"], g["sigla"]))
+    for i, g in enumerate(lista, start=1):
+        g["subs"].sort(key=lambda a: (a["ordem"], a["nome"]))
+        popular = f" · {g['popular']}" if g["popular"] and g["popular"] != g["sigla"] else ""
+        g["rotulo"] = f"{i} – {g['sigla']}{popular} ({sum(a['n'] for a in g['subs'])})"
+        for j, a in enumerate(g["subs"], start=1):
+            a["rotulo"] = f"{i}.{j} – {a['nome']} ({a['n']})"
+    return lista
+
+
+def _questoes(uid: int, status: list[str], assuntos, tipo: str, origem: str, situacao: str) -> list[dict]:
+    return db.consultar(
+        """SELECT q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado, q.texto_apoio, q.comentario, q.dica,
+                  q.status::text AS status, q.origem::text AS origem, q.fonte, q.essencial, q.amostra,
+                  (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
+                    WHERE qa.questao_id = q.id) AS assuntos
+           FROM questao q
+           WHERE q.status::text = ANY(%(st)s)
+             AND (%(ass)s::int[] IS NULL OR EXISTS (SELECT 1 FROM questao_assunto qa WHERE qa.questao_id = q.id AND qa.assunto_id = ANY(%(ass)s::int[])))
+             AND (%(tipo)s = '' OR q.tipo = %(tipo)s)
+             AND """ + _filtro_origem() + """
+             AND (%(sit)s = 'todas' OR (%(sit)s = 'essenciais' AND q.essencial)
+                  OR (%(sit)s = 'nao_respondidas' AND NOT EXISTS (SELECT 1 FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s))
+                  OR (%(sit)s = 'erradas' AND (SELECT r.acertou FROM resposta r WHERE r.questao_id = q.id AND r.usuario_id = %(u)s
+                                               ORDER BY r.respondida_em DESC LIMIT 1) = FALSE))
+           ORDER BY q.codigo""",
+        {"st": status, "ass": assuntos, "tipo": tipo, "orig": origem, "sit": situacao, "u": uid},
+    )
+
+
+def _alternativas(qid: int) -> list[dict]:
+    return db.consultar(
+        "SELECT id, letra, texto, correta, comentario FROM alternativa WHERE questao_id = %s ORDER BY letra", (qid,)
+    )
+
+
+def _lei(qid: int) -> list[dict]:
+    return db.consultar(
+        """SELECT d.referencia, d.texto FROM questao_dispositivo qd JOIN dispositivo d ON d.id = qd.dispositivo_id
+           WHERE qd.questao_id = %s ORDER BY d.id""",
+        (qid,),
+    )
+
+
+def _pareceres(qid: int) -> list[dict]:
+    return db.consultar(
+        """SELECT p.usuario_id, u.nome, p.voto, p.nota, p.atualizado_em
+           FROM parecer p JOIN usuario u ON u.id = p.usuario_id WHERE p.questao_id = %s ORDER BY p.atualizado_em""",
+        (qid,),
+    )
+
+
+POR_PAGINA = [1, 5, 10]
+
+
+def tela_questoes(usuario: dict):
+    st.header("Resolver questões")
+    uid, perfil = usuario["id"], usuario["perfil"]
+
+    incluir = True
+    if perfil != "aluno":
+        incluir = st.toggle("Incluir questões ainda em revisão", value=True, key="f_rev",
+                            help="Alunos só veem as questões aprovadas.")
+    status = status_visiveis(perfil, incluir)
+
+    origem = _chave(ORIGENS, st.selectbox("Banco de questões", list(ORIGENS.values()), key="f_orig",
+                                          help="As questões antigas (acervo) vêm de simulados e materiais de apoio. "
+                                               "Elas ficam separadas das questões próprias do app."))
+    if origem == "material":
+        st.caption("📚 Acervo: questões antigas de simulados e materiais de apoio. O comentário de cada uma diz se o "
+                   "gabarito já foi conferido com o texto oficial da lei.")
+
+    # Nível 1: lei/matéria · Nível 2: subitens (vazio = todos os subitens do item escolhido)
+    arvore = _arvore(status, origem)
+    g1, g2 = st.columns([1, 1.4])
+    principais = {"Todas as matérias e leis": None} | {g["rotulo"]: g for g in arvore}
+    _remapeia("f_grupo", list(principais))
+    grupo = principais[g1.selectbox("Matéria / lei", list(principais), key="f_grupo")]
+    if grupo is None:
+        assuntos = None
+        g2.selectbox("Subitens", ["Escolha primeiro uma matéria ou lei"], disabled=True, key="f_sub_off")
+    else:
+        subs = {a["rotulo"]: a["id"] for a in grupo["subs"]}
+        _remapeia(f"f_sub_{grupo['sigla']}", list(subs))
+        marcados = g2.multiselect("Subitens", list(subs), key=f"f_sub_{grupo['sigla']}",
+                                  placeholder="Todos os subitens (marque para escolher só alguns)")
+        assuntos = [subs[m] for m in marcados] or list(subs.values())
+
+    c1, c3, c4 = st.columns([1.2, 1.2, 0.8])
+    fora = "portugues" if trilha_atual() == "provao" else "teoria"
+    tipo = _chave(TIPOS, c1.selectbox("Tipo", [v for k, v in TIPOS.items() if k != fora], key="f_tipo"))
+    situacao = _chave(SITUACOES, c3.selectbox("Situação", list(SITUACOES.values()), key="f_sit"))
+    por_pagina = c4.selectbox("Por página", POR_PAGINA, index=1, key="f_pp")
+
+    filtro = (tuple(status), tuple(assuntos) if assuntos else None, tipo, origem, situacao, por_pagina, _so_amostra(),
+              trilha_atual())
+    if st.session_state.get("filtro_ativo") != filtro:
+        st.session_state["filtro_ativo"] = filtro
+        st.session_state["pagina"] = 0
+        st.session_state["lista_q"] = _questoes(uid, status, assuntos, tipo, origem, situacao)
+    lista = st.session_state["lista_q"]
+
+    if not lista:
+        st.info("Nenhuma questão com esses filtros. Troque o banco de questões, a matéria, os subitens, o tipo ou a situação.")
+        return
+
+    total_pag = (len(lista) + por_pagina - 1) // por_pagina
+    pag = min(st.session_state.get("pagina", 0), total_pag - 1)
+    inicio = pag * por_pagina
+    da_pagina = lista[inicio:inicio + por_pagina]
+
+    _navegacao(pag, total_pag, inicio, len(da_pagina), len(lista), "topo")
+    for i, q in enumerate(da_pagina):
+        if i:
+            st.divider()
+        if por_pagina > 1:
+            st.markdown(f"**Questão {inicio + i + 1}**")
+        _questao(q, usuario)
+    st.divider()
+    _navegacao(pag, total_pag, inicio, len(da_pagina), len(lista), "base")
+
+
+def _navegacao(pag: int, total_pag: int, inicio: int, qtd: int, total: int, onde: str):
+    a, b, c = st.columns([1, 2, 1])
+    if a.button("◀ Anterior", disabled=pag == 0, width="stretch", key=f"ant_{onde}"):
+        st.session_state["pagina"] = pag - 1
+        st.rerun()
+    if qtd == 1:
+        texto = f"Questão <b>{inicio + 1}</b> de {total}"
+    else:
+        texto = f"Questões <b>{inicio + 1}–{inicio + qtd}</b> de {total} · página {pag + 1}/{total_pag}"
+    b.markdown(f"<div style='text-align:center;padding-top:6px'>{texto}</div>", unsafe_allow_html=True)
+    if c.button("Próxima ▶", disabled=pag >= total_pag - 1, width="stretch", key=f"prox_{onde}"):
+        st.session_state["pagina"] = pag + 1
+        st.rerun()
+
+
+def _texto_apoio(q: dict, expandido: bool = False):
+    if q.get("texto_apoio"):
+        rotulo = ("📄 Texto para as questões de Português (toque para ler)" if q["tipo"] == "portugues"
+                  else "📄 Texto de apoio (toque para ler)")
+        with st.expander(rotulo, expanded=expandido):
+            st.markdown("".join(f"<p>{esc(p)}</p>" for p in q["texto_apoio"].split("\n\n")), unsafe_allow_html=True)
+
+
+def _cartao(q: dict, cabecalho: str | None = None):
+    """Enunciado da questão. Com `cabecalho`, troca código/assunto/etiquetas por um título neutro (modo prova)."""
+    if cabecalho is not None:
+        topo = f'<span><b>{esc(cabecalho)}</b></span>'
+    else:
+        classe, nome_tipo = ROTULO_TIPO.get(q["tipo"], ("lei", q["tipo"]))
+        etq_tipo = f'<span class="etq {classe}">{nome_tipo}</span>'
+        etq_rev = '<span class="etq rev">Em revisão</span>' if q["status"] == "em_revisao" else ""
+        etq_prova = f'<span class="etq prova">{esc(q["fonte"])}</span>' if q["origem"] == "prova_anterior" else ""
+        etq_acervo = '<span class="etq acervo">Acervo</span>' if q["origem"] == "material" else ""
+        etq_ess = '<span class="etq ess">⭐ Essencial</span>' if q.get("essencial") else ""
+        topo = (f'<span><span class="cod">{esc(q["codigo"])}</span> · {esc(q["assuntos"])}</span>'
+                f'<span>{DIF.get(q["dificuldade"], "")}{etq_ess}{etq_tipo}{etq_prova}{etq_acervo}{etq_rev}</span>')
+    st.markdown(
+        f"""<div class="cartao">
+              <div class="topo">{topo}</div>
+              <p class="enun">{esc(q['enunciado'])}</p></div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def _marcar_essencial(q: dict):
+    novo = bool(st.session_state.get(f"ess_{q['id']}"))
+    db.executar("UPDATE questao SET essencial = %s WHERE id = %s", (novo, q["id"]))
+    q["essencial"] = novo
+
+
+def _marcar_amostra(q: dict):
+    novo = bool(st.session_state.get(f"amo_{q['id']}"))
+    db.executar("UPDATE questao SET amostra = %s WHERE id = %s", (novo, q["id"]))
+    q["amostra"] = novo
+
+
+def _questao(q: dict, usuario: dict):
+    fundo = marca_dagua(usuario["nome"], usuario["login"])
+    _texto_apoio(q)
+    _cartao(q)
+    if usuario["perfil"] in ("admin", "revisor"):
+        e1, e2 = st.columns(2)
+        e1.toggle("⭐ Essencial (entra em \"Questões essenciais\" da lei)", value=bool(q.get("essencial")),
+                  key=f"ess_{q['id']}", on_change=_marcar_essencial, args=(q,))
+        e2.toggle("🎁 Amostra grátis (aparece na avaliação)", value=bool(q.get("amostra") or q.get("essencial")),
+                  disabled=bool(q.get("essencial")), key=f"amo_{q['id']}", on_change=_marcar_amostra, args=(q,),
+                  help="Toda essencial já entra na avaliação grátis.")
+
+    alts = _alternativas(q["id"])
+    respondidas = st.session_state.setdefault("respondidas", {})
+    escolha_id = respondidas.get(q["id"])
+
+    if escolha_id is None:
+        rotulos = {f"{a['letra']}) {a['texto']}": a["id"] for a in alts}
+        escolha = rotulos.get(st.radio("Escolha uma alternativa", list(rotulos), index=None,
+                                       key=f"radio_{q['id']}", label_visibility="collapsed"))
+        if st.button("Responder", type="primary", key=f"resp_{q['id']}"):
+            if escolha is None:
+                st.warning("Marque uma alternativa antes de responder.")
+                return
+            certa = next(a for a in alts if a["id"] == escolha)["correta"]
+            db.executar(
+                "INSERT INTO resposta (usuario_id, questao_id, alternativa_id, acertou) VALUES (%s, %s, %s, %s)",
+                (usuario["id"], q["id"], escolha, certa),
+            )
+            respondidas[q["id"]] = escolha
+            st.rerun()
+        return
+
+    _correcao(q, alts, escolha_id, fundo)
+    _estatistica_turma(q["id"])
+    b1, b2 = st.columns([1, 1.4])
+    if b1.button("Refazer esta questão", key=f"refazer_{q['id']}"):
+        respondidas.pop(q["id"], None)
+        st.session_state.pop(f"radio_{q['id']}", None)
+        st.rerun()
+    _reportar(q, usuario, b2)
+    if usuario["perfil"] in ("admin", "revisor"):
+        _parecer(q, usuario)
+
+
+def _estatistica_turma(qid: int):
+    """Percentual de acerto de todos que responderam (1ª resposta de cada pessoa) e a alternativa mais marcada."""
+    e = db.um(
+        """WITH primeira AS (
+               SELECT DISTINCT ON (r.usuario_id) r.usuario_id, r.acertou, a.letra
+               FROM resposta r JOIN alternativa a ON a.id = r.alternativa_id
+               WHERE r.questao_id = %s ORDER BY r.usuario_id, r.respondida_em)
+           SELECT COUNT(*) AS n, ROUND(100.0 * AVG(acertou::int)) AS pct,
+                  (SELECT letra FROM primeira GROUP BY letra ORDER BY COUNT(*) DESC, letra LIMIT 1) AS mais
+           FROM primeira""", (qid,))
+    if e and e["n"] >= 3:
+        st.caption(f"📊 {int(e['pct'])}% acertaram de primeira ({e['n']} pessoas) · alternativa mais marcada: {e['mais']}")
+
+
+def _reportar(q: dict, usuario: dict, onde):
+    with onde.popover("⚠️ Achei um erro nesta questão", width="stretch"):
+        with st.form(f"rep_{q['id']}", clear_on_submit=True):
+            txt = st.text_area("O que está errado?", placeholder="Ex.: a alternativa C também está correta, porque...",
+                               key=f"rep_txt_{q['id']}")
+            if st.form_submit_button("Enviar para a equipe"):
+                if len(txt.strip()) < 10:
+                    st.warning("Explique um pouco melhor (pelo menos uma frase).")
+                else:
+                    db.executar("INSERT INTO reporte_erro (usuario_id, questao_id, descricao) VALUES (%s, %s, %s)",
+                                (usuario["id"], q["id"], txt.strip()))
+                    st.success("Obrigado! A equipe vai conferir.")
+
+
+def _correcao(q: dict, alts: list[dict], escolha_id: int | None, fundo: str):
+    certa = next(a for a in alts if a["correta"])
+    if escolha_id is None:
+        st.warning(f"Você deixou em branco. Gabarito: {certa['letra']}")
+    elif escolha_id == certa["id"]:
+        st.success(f"Você acertou. Gabarito: {certa['letra']}")
+    else:
+        marcada = next(a for a in alts if a["id"] == escolha_id)
+        st.error(f"Você marcou {marcada['letra']}. Gabarito: {certa['letra']}")
+
+    dica = f'<div class="dica"><b>Para memorizar:</b> {esc(q["dica"])}</div>' if q.get("dica") else ""
+    partes = []
+    for a in alts:
+        cls = "certa" if a["correta"] else ("errada" if a["id"] == escolha_id else "")
+        partes.append(f'<div class="alt {cls}"><b>{a["letra"]})</b> {esc(a["texto"])}'
+                      + (f'<span class="why">{esc(a["comentario"])}</span>' if a["comentario"] else "") + '</div>')
+    st.markdown(
+        f"""<div class="cartao">{''.join(partes)}
+            <div class="rotulo">Comentário</div><p class="coment">{esc(q['comentario'])}</p>
+            {dica}</div>""",
+        unsafe_allow_html=True,
+    )
+    lei = _lei(q["id"])
+    if lei:
+        with st.expander(f"Texto literal da lei ({len(lei)} dispositivos)"):
+            st.markdown(
+                "".join(f'<div class="lei-txt"><span class="ref">{esc(_ref(d["referencia"]))}</span>'
+                        f'{esc(d["texto"])}</div>' for d in lei),
+                unsafe_allow_html=True,
+            )
+
+
+def _ref(referencia: str) -> str:
+    """Tira a marca interna de linha ('[L123]') da referência do artigo."""
+    return re.sub(r" \[(?:[A-Z]+-)?L\d+\]$", "", referencia)
+
+
+def _parecer(q: dict, usuario: dict):
+    st.markdown('<div class="rotulo">Parecer da equipe</div>', unsafe_allow_html=True)
+    todos = _pareceres(q["id"])
+    meu = next((p for p in todos if p["usuario_id"] == usuario["id"]), None)
+    aprov = sum(p["voto"] == "aprovar" for p in todos)
+    ajust = sum(p["voto"] == "ajustar" for p in todos)
+    st.caption(f"{aprov} aprovaram · {ajust} pediram ajuste" if todos else "Ainda sem pareceres nesta questão.")
+    for p in todos:
+        icone = "✅" if p["voto"] == "aprovar" else "✏️"
+        quem = p["nome"] + (" (você)" if p["usuario_id"] == usuario["id"] else "")
+        st.markdown(f"{icone} **{esc(quem)}** {esc(p['nota'] or '')}")
+
+    with st.form(f"parecer_{q['id']}"):
+        opcoes = {"aprovar": "Aprovar", "ajustar": "Precisa de ajuste"}
+        voto = _chave(opcoes, st.radio("Seu voto", list(opcoes.values()), horizontal=True,
+                                       index=list(opcoes).index(meu["voto"]) if meu else None, key=f"voto_{q['id']}"))
+        nota = st.text_area("Observação (o que ajustar e por quê)", value=(meu or {}).get("nota") or "",
+                            key=f"nota_{q['id']}")
+        if st.form_submit_button("Salvar parecer"):
+            if voto is None:
+                st.warning("Escolha Aprovar ou Precisa de ajuste.")
+            elif voto == "ajustar" and not nota.strip():
+                st.warning("Explique o ajuste na observação. Sem isso, não dá para corrigir a questão.")
+            else:
+                db.executar(
+                    """INSERT INTO parecer (questao_id, usuario_id, voto, nota) VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (questao_id, usuario_id)
+                       DO UPDATE SET voto = EXCLUDED.voto, nota = EXCLUDED.nota, atualizado_em = now()""",
+                    (q["id"], usuario["id"], voto, nota.strip() or None),
+                )
+                st.success("Parecer salvo.")
+                st.rerun()
+
+
+# ======================================================================
+# TELAS_SIMULADO
+# ======================================================================
+# Prova CFS-31/QPPM/2026 (Edital n. 1/2026): 50 questões de 4 alternativas = 20 de Português + 30 de Legislação.
+# A Legislação segue a distribuição da prova de 21/06/2026. As 2 questões da Portaria 167 (fora do edital)
+# foram trocadas por 1 da CE/MS e 1 do Dec. 10.769/02, que estão no edital e não caíram em 2026.
+CFS_PORTUGUES = 20
+CFS_PORT_TEXTO = 15        # na prova, 15 das 20 de Português saíram do texto-base
+CFS_LEGISLACAO = {"Lei 13.869/19": 3, "LC 053/90": 3, "CPM": 3, "Lei 11.340/06": 3,
+                  "Dec. 1.261/81": 2, "Lei 10.826/03": 2, "LC 127/08": 2, "Lei 11.343/06": 2,
+                  "Dec. 1.093/81": 2, "RDPMMS": 2, "CF/88": 1, "CPPM": 1, "LC 190/14": 1,
+                  "Lei 9.455/97": 1, "CE/MS": 1, "Dec. 10.769/02": 1}
+CFS_MINUTOS = 180          # tempo padrão do simulado modelo (o aluno pode mudar na tela)
+PROVAO_QUESTOES = 100      # o provão de conclusão do CFS 2026 terá 100 questões de todas as matérias
+PROVAO_MINUTOS = 240
+PORTUGUES = "Língua Portuguesa"
+FOLGA_SEG = 30             # tolerância para a última marcação chegar depois do fim do tempo
+REVISAO_POR_PAGINA = 5
+FUSO = ZoneInfo("America/Campo_Grande")
+
+
+def _local(dt):
+    return dt.astimezone(FUSO) if dt is not None else None
+
+
+def _fmt_tempo(seg) -> str:
+    if seg is None:
+        return "—"
+    seg = int(seg)
+    h, m = divmod(seg // 60, 60)
+    return f"{h}h{m:02d}" if h else f"{m} min" if m else f"{seg} s"
+
+
+def _nota_txt(acertos: int, total: int) -> str:
+    return f"{10 * acertos / total:.1f}".replace(".", ",") if total else "—"
+
+
+# ------------------------------------------------------------------ banco e sorteio
+def _banco_simulado(uid: int, status: list[str], so_ineditas: bool, nao_repetir: bool) -> list[dict]:
+    """Questões que podem entrar no simulado (uma linha por questão, com a lei/matéria e os assuntos)."""
+    return db.consultar(
+        """SELECT q.id, m.nome AS materia, md5(q.texto_apoio) AS texto,
+                  MIN(COALESCE(d.sigla, m.nome)) AS grupo, MIN(COALESCE(d.id, 0)) AS ordem_grupo,
+                  array_agg(DISTINCT qa.assunto_id) AS assuntos
+           FROM questao q
+           JOIN materia m ON m.id = q.materia_id
+           JOIN questao_assunto qa ON qa.questao_id = q.id
+           JOIN assunto a ON a.id = qa.assunto_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE q.status::text = ANY(%(st)s) AND """ + _filtro_origem() + """
+             AND (NOT %(nr)s OR (
+                  NOT EXISTS (SELECT 1 FROM resposta r WHERE r.usuario_id = %(u)s AND r.questao_id = q.id)
+                  AND NOT EXISTS (SELECT 1 FROM simulado_questao sq JOIN simulado s ON s.id = sq.simulado_id
+                                  WHERE s.usuario_id = %(u)s AND s.status = 'finalizado' AND sq.questao_id = q.id)))
+           GROUP BY q.id, m.nome""",
+        {"st": status, "orig": "inedita" if so_ineditas else "", "nr": nao_repetir, "u": uid},
+    )
+
+
+def _ordem_prova(lista: list[dict]) -> list[dict]:
+    """Português primeiro (questões do mesmo texto juntas), depois Legislação lei por lei, como na prova."""
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    for q in lista:
+        q.setdefault("_r", random.random())
+    return sorted(lista, key=lambda q: (q["materia"] != PORTUGUES, pos.get(q["grupo"], len(pos)), q["ordem_grupo"],
+                                        q["grupo"], q["texto"] is None, q["texto"] or "", q["_r"]))
+
+
+def _sortear_cfs(banco: list[dict]) -> tuple[list[dict], list[str]]:
+    avisos, escolhidas = [], []
+    port = [q for q in banco if q["materia"] == PORTUGUES]
+    random.shuffle(port)
+    blocos: dict[str, list] = {}
+    for q in port:
+        if q["texto"]:
+            blocos.setdefault(q["texto"], []).append(q)
+    textos = list(blocos.values())
+    random.shuffle(textos)
+    for b in textos:                                   # questões de texto, um texto de cada vez
+        falta = CFS_PORT_TEXTO - len(escolhidas)
+        if falta <= 0:
+            break
+        escolhidas += b[:falta]
+    usados = {q["id"] for q in escolhidas}
+    resto_port = [q for q in port if q["id"] not in usados]
+    resto_port.sort(key=lambda q: q["texto"] is not None)   # primeiro as sem texto, depois o que sobrar
+    escolhidas += resto_port[:CFS_PORTUGUES - len(escolhidas)]
+    if len(escolhidas) < CFS_PORTUGUES:
+        avisos.append(f"Português: só havia {len(escolhidas)} questões disponíveis (o modelo pede {CFS_PORTUGUES}).")
+
+    usados = {q["id"] for q in escolhidas}
+    leg = [q for q in banco if q["materia"] != PORTUGUES and q["id"] not in usados]
+    random.shuffle(leg)
+    faltou = []
+    for sigla, k in CFS_LEGISLACAO.items():
+        cands = [q for q in leg if q["grupo"] == sigla and q["id"] not in usados][:k]
+        escolhidas += cands
+        usados |= {q["id"] for q in cands}
+        if len(cands) < k:
+            faltou.append(f"{sigla} ({len(cands)} de {k})")
+    meta = CFS_PORTUGUES + sum(CFS_LEGISLACAO.values())
+    n_leg_meta = sum(CFS_LEGISLACAO.values())
+    n_leg = sum(q["materia"] != PORTUGUES for q in escolhidas)
+    if n_leg < n_leg_meta:                              # completa com outras leis
+        extra = [q for q in leg if q["id"] not in usados][:n_leg_meta - n_leg]
+        escolhidas += extra
+    if faltou:
+        avisos.append("Sem questões suficientes em " + ", ".join(faltou) + ": completei com outras leis do edital.")
+    if len(escolhidas) < meta:
+        avisos.append(f"O simulado ficou com {len(escolhidas)} questões (o modelo tem {meta}).")
+    return _ordem_prova(escolhidas), avisos
+
+
+def _sortear_personalizado(banco: list[dict], grupos: list[str], assuntos: set[int], n: int) -> tuple[list[dict], int]:
+    """Distribui igualmente entre as matérias/leis escolhidas (o que faltar numa, completa com as outras)."""
+    cands = [q for q in banco if (not grupos or q["grupo"] in grupos) and (not assuntos or set(q["assuntos"]) & assuntos)]
+    baldes: dict[str, list] = {}
+    for q in cands:
+        baldes.setdefault(q["grupo"], []).append(q)
+    for b in baldes.values():
+        random.shuffle(b)
+    ordem = list(baldes)
+    random.shuffle(ordem)
+    escolhidas: list[dict] = []
+    while len(escolhidas) < n and any(baldes.values()):
+        for g in ordem:
+            if baldes[g] and len(escolhidas) < n:
+                escolhidas.append(baldes[g].pop())
+    return _ordem_prova(escolhidas), len(cands)
+
+
+# ------------------------------------------------------------------ gravação
+def _criar_simulado(uid: int, modelo: str, titulo: str, questoes: list[dict], minutos: int | None, config: dict) -> int | None:
+    if _so_amostra() and _simulados_feitos(uid) >= AVALIACAO_SIMULADOS:
+        st.session_state["sim_erro"] = "O simulado da avaliação grátis já foi usado."
+        return None
+
+    def fn(conn):
+        sid = conn.execute(
+            """INSERT INTO simulado (usuario_id, edital_id, modelo, titulo, duracao_min, config, total)
+               VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
+               RETURNING id""",
+            (uid, edital_atual(), modelo, titulo, minutos, json.dumps(config, ensure_ascii=False), len(questoes)),
+        ).fetchone()["id"]
+        with conn.cursor() as cur:
+            cur.executemany("INSERT INTO simulado_questao (simulado_id, ordem, questao_id) VALUES (%s, %s, %s)",
+                            [(sid, i, q["id"]) for i, q in enumerate(questoes, start=1)])
+        return sid
+    return db.transacao(fn)
+
+
+def _simulado_aberto(uid: int) -> dict | None:
+    return db.um(
+        """SELECT id, modelo, titulo, duracao_min, total, EXTRACT(EPOCH FROM now() - iniciado_em)::int AS decorrido
+           FROM simulado WHERE usuario_id = %s AND status = 'em_andamento' ORDER BY id DESC LIMIT 1""", (uid,))
+
+
+def _questoes_simulado(sid: int) -> list[dict]:
+    return db.consultar(
+        """SELECT sq.ordem, sq.alternativa_id, sq.acertou, q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado,
+                  q.texto_apoio, q.comentario, q.dica, q.status::text AS status, q.origem::text AS origem, q.fonte,
+                  m.nome AS materia,
+                  (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
+                    WHERE qa.questao_id = q.id) AS assuntos
+           FROM simulado_questao sq JOIN questao q ON q.id = sq.questao_id JOIN materia m ON m.id = q.materia_id
+           WHERE sq.simulado_id = %s ORDER BY sq.ordem""", (sid,))
+
+
+def _marcar(sid: int, qid: int, chave: str, opcoes: dict):
+    """Salva a marcação na hora (callback do botão de opção). Depois do fim do tempo, não grava mais."""
+    rotulo = st.session_state.get(chave)
+    alt = opcoes.get(rotulo) if rotulo else None
+    db.executar(
+        """UPDATE simulado_questao sq SET alternativa_id = %s, marcada_em = now()
+           FROM simulado s
+           WHERE s.id = sq.simulado_id AND sq.simulado_id = %s AND sq.questao_id = %s AND s.status = 'em_andamento'
+             AND (s.duracao_min IS NULL OR now() <= s.iniciado_em + make_interval(mins => s.duracao_min) + make_interval(secs => %s))""",
+        (alt, sid, qid, FOLGA_SEG))
+
+
+def _em_branco(sid: int, qid: int, chave: str):
+    st.session_state[chave] = None
+    _marcar(sid, qid, chave, {})
+
+
+def _entregar(sid: int, uid: int, por_tempo: bool = False) -> bool:
+    """Fecha o simulado, corrige e lança as respostas no desempenho do aluno. Só funciona uma vez."""
+    def fn(conn):
+        ok = conn.execute(
+            """UPDATE simulado SET status = 'finalizado', finalizado_em = now(), por_tempo = %s,
+                      tempo_seg = LEAST(EXTRACT(EPOCH FROM now() - iniciado_em)::int, COALESCE(duracao_min * 60, 2147483647))
+               WHERE id = %s AND usuario_id = %s AND status = 'em_andamento' RETURNING id""",
+            (por_tempo, sid, uid)).fetchone()
+        if not ok:
+            return False
+        conn.execute("""UPDATE simulado_questao sq SET acertou = a.correta FROM alternativa a
+                        WHERE sq.simulado_id = %s AND a.id = sq.alternativa_id""", (sid,))
+        conn.execute("""INSERT INTO resposta (usuario_id, questao_id, alternativa_id, acertou, simulado_id, respondida_em)
+                        SELECT %s, sq.questao_id, sq.alternativa_id, sq.acertou, %s, COALESCE(sq.marcada_em, now())
+                        FROM simulado_questao sq WHERE sq.simulado_id = %s AND sq.alternativa_id IS NOT NULL""",
+                     (uid, sid, sid))
+        conn.execute("""UPDATE simulado SET
+                            acertos = (SELECT COUNT(*) FROM simulado_questao WHERE simulado_id = %s AND acertou),
+                            total   = (SELECT COUNT(*) FROM simulado_questao WHERE simulado_id = %s)
+                        WHERE id = %s""", (sid, sid, sid))
+        return True
+    return db.transacao(fn)
+
+
+def _depois_de_entregar(sid: int):
+    st.session_state["sim_ver"] = sid
+    st.session_state.pop("filtro_ativo", None)          # a lista de "Resolver questões" passa a ver as novas respostas
+    for k in [k for k in st.session_state if str(k).startswith(f"sim_{sid}_")]:
+        del st.session_state[k]
+
+
+# ------------------------------------------------------------------ prova
+def _cronometro(restante: int | None, decorrido: int):
+    """Relógio que corre no navegador (não recarrega a página). Fica vermelho nos 5 minutos finais."""
+    rest = "null" if restante is None else int(restante)
+    components.html(
+        f"""<style>body{{margin:0;font:600 1.2rem ui-monospace,Menlo,Consolas,monospace;color:#4B5A23}}
+        @media (prefers-color-scheme: dark){{body{{color:#B5C77A}}}}</style>
+        <div id="c">⏱</div>
+        <script>
+        const ini = Date.now(), rest = {rest}, dec = {int(decorrido)}, el = document.getElementById('c');
+        function f(s){{s = Math.max(0, Math.floor(s)); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+          return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0');}}
+        function tick(){{ const p = (Date.now() - ini) / 1000;
+          if (rest === null) {{ el.textContent = '⏱ ' + f(dec + p) + ' (sem limite de tempo)'; return; }}
+          const r = rest - p;
+          el.textContent = r > 0 ? '⏱ Faltam ' + f(r) : '⏱ Tempo esgotado: entregando...';
+          el.style.color = r <= 300 ? '#C0392B' : ''; }}
+        tick(); setInterval(tick, 1000);
+        </script>""",
+        height=36,
+    )
+
+
+@st.fragment(run_every=10)
+def _vigia_tempo(fim_epoch: float):
+    """A cada 10 s confere se o tempo acabou; se acabou, recarrega a tela, que entrega o simulado sozinha."""
+    if time.time() >= fim_epoch:
+        st.rerun()
+
+
+def _mapa(qs: list[dict], atual: int | None = None, corrigido: bool = False):
+    cel = []
+    for i, q in enumerate(qs):
+        if corrigido:
+            cls = "branco" if q["alternativa_id"] is None else ("certa" if q["acertou"] else "errada")
+        else:
+            cls = "ok" if q["alternativa_id"] else ""
+        if i == atual:
+            cls += " atual"
+        cel.append(f'<span class="mq {cls}">{i + 1}</span>')
+    st.markdown(f'<div class="mapa">{"".join(cel)}</div>', unsafe_allow_html=True)
+
+
+def _ir(chave: str, valor: int):
+    st.session_state[chave] = valor
+
+
+def _clique_entregar(sid: int, uid: int):
+    _entregar(sid, uid)
+    _depois_de_entregar(sid)
+
+
+def _clique_descartar(sid: int, uid: int):
+    db.executar("UPDATE simulado SET status = 'descartado', finalizado_em = now() "
+                "WHERE id = %s AND usuario_id = %s AND status = 'em_andamento'", (sid, uid))
+    for k in [k for k in st.session_state if str(k).startswith(f"sim_{sid}_")]:
+        del st.session_state[k]
+
+
+def _prova(sim: dict, usuario: dict) -> bool:
+    """Tela da prova. Devolve False se o tempo tinha acabado (aí o simulado é entregue e o resultado aparece)."""
+    sid, uid = sim["id"], usuario["id"]
+    restante = None if sim["duracao_min"] is None else sim["duracao_min"] * 60 - sim["decorrido"]
+    if restante is not None and restante <= 0:
+        _entregar(sid, uid, por_tempo=True)
+        _depois_de_entregar(sid)
+        st.session_state["sim_msg"] = "O tempo acabou e o simulado foi entregue automaticamente."
+        return False
+
+    for aviso in st.session_state.pop("sim_avisos", []):
+        st.info(aviso)
+    qs = _questoes_simulado(sid)
+    n = len(qs)
+    feitas = sum(q["alternativa_id"] is not None for q in qs)
+
+    st.subheader(sim["titulo"])
+    c1, c2 = st.columns([1.2, 1])
+    with c1:
+        _cronometro(restante, sim["decorrido"])
+    c2.progress(feitas / n if n else 0, text=f"Respondidas: {feitas} de {n}")
+    if restante is not None:
+        _vigia_tempo(time.time() + restante)
+    st.caption("Gabarito e comentários só aparecem quando você entregar. Cada marcação fica salva na hora: "
+               "se a internet cair, é só entrar de novo que o simulado continua de onde parou.")
+
+    chave_pos = f"sim_{sid}_pos"
+    if st.session_state.get(chave_pos) not in range(n):
+        st.session_state[chave_pos] = 0
+    _mapa(qs, st.session_state[chave_pos])
+    # Rótulo fixo de propósito: se ele mudasse ao responder, o Streamlit perderia a posição e voltaria para a 1.
+    # Quem mostra o que já foi respondido é o mapa acima.
+    pos = st.selectbox("Ir para a questão", list(range(n)), key=chave_pos,
+                       format_func=lambda i: f"Questão {i + 1} · {qs[i]['materia']}")
+    q = qs[pos]
+
+    if q["texto_apoio"]:
+        mesmo = [i for i, x in enumerate(qs) if x["texto_apoio"] == q["texto_apoio"]]
+        _texto_apoio(q, expandido=pos == mesmo[0])
+        if len(mesmo) > 1:
+            st.caption(f"Este texto vale para as questões {mesmo[0] + 1} a {mesmo[-1] + 1}.")
+    _cartao(q, cabecalho=f"Questão {pos + 1} de {n} · {q['materia']}")
+
+    alts = _alternativas(q["id"])
+    opcoes = {f"{a['letra']}) {a['texto']}": a["id"] for a in alts}
+    chave = f"sim_{sid}_q{q['id']}"
+    if chave not in st.session_state:
+        st.session_state[chave] = next((r for r, i in opcoes.items() if i == q["alternativa_id"]), None)
+    st.radio("Sua resposta", list(opcoes), key=chave, on_change=_marcar, args=(sid, q["id"], chave, opcoes),
+             label_visibility="collapsed")
+
+    b1, b2, b3 = st.columns(3)
+    b1.button("◀ Anterior", disabled=pos == 0, width="stretch", key=f"sim_{sid}_ant",
+              on_click=_ir, args=(chave_pos, pos - 1))
+    b2.button("Deixar em branco", disabled=q["alternativa_id"] is None, width="stretch", key=f"sim_{sid}_branco",
+              on_click=_em_branco, args=(sid, q["id"], chave))
+    b3.button("Próxima ▶", disabled=pos >= n - 1, width="stretch", key=f"sim_{sid}_prox",
+              on_click=_ir, args=(chave_pos, pos + 1))
+
+    st.divider()
+    brancos = n - feitas
+    with st.container(border=True):
+        st.markdown("**Entregar o simulado**")
+        pode = True
+        if brancos:
+            pode = st.checkbox(f"Entregar mesmo com {brancos} questão(ões) em branco", key=f"sim_{sid}_conf")
+        st.button("Entregar e ver o resultado", type="primary", disabled=not pode, key=f"sim_{sid}_entregar",
+                  on_click=_clique_entregar, args=(sid, uid))
+    with st.expander("Desistir deste simulado"):
+        st.caption("O simulado é descartado: nada entra no seu desempenho e as questões continuam como não feitas.")
+        if st.toggle("Quero descartar este simulado", key=f"sim_{sid}_desistir"):
+            st.button("Descartar simulado", key=f"sim_{sid}_descartar", on_click=_clique_descartar, args=(sid, uid))
+    return True
+
+
+# ------------------------------------------------------------------ resultado
+def _resultado(sid: int, usuario: dict):
+    s = db.um("""SELECT id, modelo, titulo, iniciado_em, tempo_seg, por_tempo, duracao_min, status
+                 FROM simulado WHERE id = %s AND usuario_id = %s""", (sid, usuario["id"]))
+    if not s or s["status"] != "finalizado":
+        st.info("Simulado não encontrado.")
+        return
+    msg = st.session_state.pop("sim_msg", None)
+    if msg:
+        st.warning(msg)
+    qs = _questoes_simulado(sid)
+    total = len(qs)
+    acertos = sum(bool(q["acertou"]) for q in qs)
+    brancos = sum(q["alternativa_id"] is None for q in qs)
+    pct = 100 * acertos / total if total else 0
+
+    st.subheader(f"Resultado · {s['titulo']}")
+    extra = " · entregue automaticamente quando o tempo acabou" if s["por_tempo"] else ""
+    st.caption(f"Feito em {_local(s['iniciado_em']):%d/%m/%Y às %H:%M} · tempo usado: {_fmt_tempo(s['tempo_seg'])}"
+               + (f" de {_fmt_tempo(s['duracao_min'] * 60)}" if s["duracao_min"] else "") + extra)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Nota (0 a 10)", _nota_txt(acertos, total))
+    c2.metric("Acertos", f"{acertos} de {total} ({pct:.0f}%)")
+    c3.metric("Erros", total - acertos - brancos)
+    c4.metric("Em branco", brancos)
+
+    df = pd.DataFrame([{"materia": q["materia"], "acertou": bool(q["acertou"])} for q in qs])
+    por_mat = df.groupby("materia")["acertou"].agg(["sum", "count"]).reset_index()
+    if s["modelo"] == "cfs":
+        ed = db.um("SELECT nota_minima_pct FROM edital WHERE id = %s", (_edital_da_trilha("cfs"),))
+        minimo = float(ed["nota_minima_pct"]) if ed and ed["nota_minima_pct"] is not None else 50.0
+        zerou = por_mat[por_mat["sum"] == 0]["materia"].tolist()
+        partes = " · ".join(f"{r.materia}: {int(r.sum)} de {int(r.count)}" for r in por_mat.itertuples())
+        if pct >= minimo and not zerou:
+            st.success(f"Pela regra do edital (pelo menos {minimo:.0f}% e sem zerar matéria) você estaria aprovado. {partes}")
+        else:
+            motivo = f"zerou {', '.join(zerou)}" if zerou else f"ficou abaixo de {minimo:.0f}%"
+            st.error(f"Pela regra do edital você ainda não passaria: {motivo}. {partes}")
+
+    ass = db.consultar(
+        """SELECT COALESCE(d.sigla, m.nome) AS grupo, a.nome AS assunto, COUNT(*) AS questoes,
+                  COUNT(*) FILTER (WHERE sq.acertou) AS acertos
+           FROM simulado_questao sq JOIN questao_assunto qa ON qa.questao_id = sq.questao_id
+           JOIN assunto a ON a.id = qa.assunto_id JOIN materia m ON m.id = a.materia_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE sq.simulado_id = %s GROUP BY 1, 2""", (sid,))
+    da = pd.DataFrame(ass)
+    if not da.empty:
+        da["pct"] = (100 * da["acertos"] / da["questoes"]).round(0)
+        dg = da.groupby("grupo")[["questoes", "acertos"]].sum().reset_index()
+        dg["pct"] = (100 * dg["acertos"] / dg["questoes"]).round(0)
+        barra = st.column_config.ProgressColumn("% de acerto", min_value=0, max_value=100, format="%d%%")
+        st.markdown("**Desempenho por matéria / lei**")
+        st.dataframe(dg.sort_values(["pct", "questoes"], ascending=[True, False]).rename(
+            columns={"grupo": "Matéria / lei", "questoes": "Questões", "acertos": "Acertos"}),
+            hide_index=True, width="stretch", column_config={"pct": barra})
+        st.markdown("**Desempenho por assunto** (do mais fraco para o mais forte)")
+        st.dataframe(da.sort_values(["pct", "questoes"], ascending=[True, False]).rename(
+            columns={"grupo": "Lei", "assunto": "Assunto", "questoes": "Questões", "acertos": "Acertos"}),
+            hide_index=True, width="stretch", column_config={"pct": barra})
+
+    st.subheader("Revisão com gabarito e comentários")
+    _mapa(qs, corrigido=True)
+    st.caption("Verde: acertou · vermelho: errou · cinza: em branco.")
+    filtros = {"Todas": lambda q: True,
+               "Só as que errei": lambda q: q["alternativa_id"] is not None and not q["acertou"],
+               "Só as em branco": lambda q: q["alternativa_id"] is None,
+               "Só as que acertei": lambda q: bool(q["acertou"])}
+    f = st.radio("Mostrar", list(filtros), horizontal=True, key=f"simrev_{sid}_f")
+    sel = [i for i, q in enumerate(qs) if filtros[f](q)]
+    if not sel:
+        st.info("Nenhuma questão nesse filtro.")
+        return
+    chave_p = f"simrev_{sid}_p"
+    if st.session_state.get(f"simrev_{sid}_fant") != f:
+        st.session_state[f"simrev_{sid}_fant"] = f
+        st.session_state[chave_p] = 0
+    total_pag = (len(sel) + REVISAO_POR_PAGINA - 1) // REVISAO_POR_PAGINA
+    pag = min(st.session_state.get(chave_p, 0), total_pag - 1)
+    fundo = marca_dagua(usuario["nome"], usuario["login"])
+    for i in sel[pag * REVISAO_POR_PAGINA:(pag + 1) * REVISAO_POR_PAGINA]:
+        q = qs[i]
+        st.divider()
+        st.markdown(f"**Questão {i + 1}** · {esc(q['materia'])}")
+        _texto_apoio(q)
+        _cartao(q)
+        _correcao(q, _alternativas(q["id"]), q["alternativa_id"], fundo)
+        _estatistica_turma(q["id"])
+        _reportar(q, usuario, st)
+    st.divider()
+    a, b, c = st.columns([1, 2, 1])
+    a.button("◀ Anteriores", disabled=pag == 0, width="stretch", key=f"simrev_{sid}_ant", on_click=_ir, args=(chave_p, pag - 1))
+    b.markdown(f"<div style='text-align:center;padding-top:6px'>Página {pag + 1} de {total_pag} · {len(sel)} questões</div>",
+               unsafe_allow_html=True)
+    c.button("Próximas ▶", disabled=pag >= total_pag - 1, width="stretch", key=f"simrev_{sid}_prox",
+             on_click=_ir, args=(chave_p, pag + 1))
+
+
+# ------------------------------------------------------------------ montagem
+def _limpa_escolha(chave: str, validas):
+    v = st.session_state.get(chave)
+    if isinstance(v, list):
+        st.session_state[chave] = [x for x in v if x in validas]
+
+
+def _montagem(usuario: dict):
+    uid, perfil = usuario["id"], usuario["perfil"]
+    if _so_amostra() and _simulados_feitos(uid) >= AVALIACAO_SIMULADOS:
+        st.info(f"Na avaliação grátis você pode fazer {AVALIACAO_SIMULADOS} simulado, e ele já foi feito (o resultado está "
+                "em **Meu desempenho**). Adquira o acesso para fazer quantos simulados quiser, com as mais de 2.000 questões.")
+        with st.popover("💳 Adquirir acesso"):
+            _bloco_pagamento(usuario)
+        return
+    if _so_amostra():
+        st.caption(f"🎁 Avaliação grátis: {AVALIACAO_SIMULADOS} simulado, montado com as questões da avaliação.")
+    lei_aviso = st.session_state.pop("sim_aviso_lei", None)
+    if lei_aviso:
+        st.info(f"Simulado da lei **{lei_aviso}** já marcado na aba **🛠️ Montar meu simulado**, só com inéditas. "
+                "Confira a quantidade e o tempo e comece.")
+    if st.session_state.pop("sim_aviso_rx", False):
+        st.info("Seus pontos fracos do Raio-X já estão marcados na aba **🛠️ Montar meu simulado**. "
+                "Confira a quantidade e o tempo e comece.")
+    st.caption("Prova com cronômetro e sem gabarito durante a resolução. No fim: nota, desempenho por assunto e "
+               "revisão com os comentários. Tudo fica guardado em **Meu desempenho**.")
+    incluir = True
+    if perfil != "aluno":
+        incluir = st.toggle("Incluir questões ainda em revisão", value=True, key="sim_rev",
+                            help="Alunos só recebem questões aprovadas.")
+    status = status_visiveis(perfil, incluir)
+    c1, c2 = st.columns(2)
+    so_ined = c1.toggle("Só questões inéditas", key="sim_ined", help="Deixa de fora as questões de provas anteriores.")
+    nao_rep = c2.toggle("Não repetir questões que já fiz", key="sim_nrep",
+                        help="Deixa de fora tudo o que você já respondeu, no app ou em simulados entregues.")
+    banco = _banco_simulado(uid, status, so_ined, nao_rep)
+    st.caption(f"{len(banco)} questões disponíveis com essas opções.")
+    if not banco:
+        st.info("Não há questões disponíveis com essas opções. Desmarque \"Não repetir\" ou \"Só inéditas\".")
+        return
+    config = {"so_ineditas": so_ined, "nao_repetir": nao_rep, "status": status}
+
+    provao = trilha_atual() == "provao"
+    t1, t2 = st.tabs(["🎯 Simulado modelo Provão" if provao else "🎯 Simulado modelo CFS", "🛠️ Montar meu simulado"])
+    with t1:
+        if provao:
+            _aba_modelo_provao(uid, banco, config)
+        else:
+            _aba_modelo_cfs(uid, banco, config)
+    with t2:
+        _aba_personalizado(uid, banco, config, status, so_ined)
+
+
+def _aba_modelo_provao(uid: int, banco: list[dict], config: dict):
+    st.markdown(f"**{PROVAO_QUESTOES} questões de todas as matérias do curso**, divididas igualmente entre elas "
+                "(a coordenação não informou quantas cairão de cada matéria). O que faltar numa matéria é completado "
+                "com as outras.")
+    st.number_input("Tempo de prova (minutos)", 10, 360, PROVAO_MINUTOS, step=10, key="sim_prov_min")
+    st.button("Começar simulado modelo Provão", type="primary", key="sim_prov_ir",
+              on_click=_comecar_provao, args=(uid, banco, config))
+
+
+def _aba_modelo_cfs(uid: int, banco: list[dict], config: dict):
+    n_leg = sum(CFS_LEGISLACAO.values())
+    st.markdown(f"**{CFS_PORTUGUES + n_leg} questões, como na prova do CFS 2026:** {CFS_PORTUGUES} de Língua "
+                f"Portuguesa ({CFS_PORT_TEXTO} a partir de textos) e {n_leg} de Legislação, na mesma "
+                "distribuição de leis da prova.")
+    with st.expander("Ver quantas questões de cada lei"):
+        st.dataframe(pd.DataFrame([{"Lei": k, "Questões": v} for k, v in CFS_LEGISLACAO.items()]),
+                     hide_index=True, width="stretch")
+        st.caption("As 2 questões da Portaria 167 (fora do edital) viraram 1 da CE/MS e 1 do Dec. 10.769/02.")
+    st.number_input("Tempo de prova (minutos)", 10, 360, CFS_MINUTOS, step=10, key="sim_cfs_min")
+    st.button("Começar simulado modelo CFS", type="primary", key="sim_cfs_ir",
+              on_click=_comecar_cfs, args=(uid, banco, config))
+
+
+def _aba_personalizado(uid: int, banco: list[dict], config: dict, status: list[str], so_ined: bool):
+    arvore =[g for g in _arvore(status, "inedita" if so_ined else "")]
+    cont_g: dict[str, int] = {}
+    cont_a: dict[int, int] = {}
+    for q in banco:
+        cont_g[q["grupo"]] = cont_g.get(q["grupo"], 0) + 1
+        for a in q["assuntos"]:
+            cont_a[a] = cont_a.get(a, 0) + 1
+    grupos_ok = {g["sigla"]: g for g in arvore if cont_g.get(g["sigla"])}
+    # Rótulos sem contagem: se a contagem mudasse (ex.: ao ligar "não repetir"), o Streamlit perderia a escolha.
+    _limpa_escolha("sim_grupos", grupos_ok)
+    grupos = st.multiselect(
+        "Matérias / leis", list(grupos_ok), key="sim_grupos", placeholder="Todas (marque para escolher só algumas)",
+        format_func=lambda s: s + (f" · {grupos_ok[s]['popular']}" if grupos_ok[s]["popular"]
+                                   and grupos_ok[s]["popular"] != s else ""))
+    subs = {a["id"]: (g["sigla"], a["nome"]) for s in grupos for g in [grupos_ok[s]] for a in g["subs"]
+            if cont_a.get(a["id"])}
+    _limpa_escolha("sim_assuntos", subs)
+    assuntos = st.multiselect(
+        "Assuntos (opcional)", list(subs), key="sim_assuntos", disabled=not grupos,
+        placeholder="Todos os assuntos das leis escolhidas" if grupos else "Escolha primeiro as matérias/leis",
+        format_func=lambda i: f"{subs[i][0]} › {subs[i][1]}")
+    n_escolha = sum(1 for q in banco if (not grupos or q["grupo"] in grupos)
+                    and (not assuntos or set(q["assuntos"]) & set(assuntos)))
+    st.caption(f"{n_escolha} questões disponíveis nessa escolha.")
+    c1, c2, c3 = st.columns([1, 1, 1])
+    qtd = c1.number_input("Quantidade de questões", 5, 100, 20, step=5, key="sim_qtd")
+    cron = c2.toggle("Com cronômetro", value=True, key="sim_cron")
+    c3.number_input("Tempo (minutos)", 5, 360, 60, step=5, key="sim_min", disabled=not cron)
+    ritmo = CFS_MINUTOS / (CFS_PORTUGUES + sum(CFS_LEGISLACAO.values()))
+    st.caption(f"No ritmo do simulado modelo ({ritmo:.1f} min por questão), {qtd} questões pedem cerca de "
+               f"{round(qtd * ritmo)} min. As questões são divididas igualmente entre as matérias/leis escolhidas.")
+    st.button("Começar meu simulado", type="primary", key="sim_pers_ir",
+              on_click=_comecar_personalizado, args=(uid, banco, config))
+
+
+# Os botões de começar rodam como callback: o simulado já nasce antes de a tela ser desenhada de novo.
+def _comecar_cfs(uid: int, banco: list[dict], config: dict):
+    qs, avisos = _sortear_cfs(banco)
+    if len(qs) < 10:
+        st.session_state["sim_erro"] = "Poucas questões disponíveis para montar o simulado modelo. Desmarque alguma opção acima."
+        return
+    _criar_simulado(uid, "cfs", "Simulado modelo CFS", qs, int(st.session_state.get("sim_cfs_min", CFS_MINUTOS)), config)
+    st.session_state["sim_avisos"] = avisos
+
+
+def _comecar_provao(uid: int, banco: list[dict], config: dict):
+    qs, _ = _sortear_personalizado(banco, [], set(), PROVAO_QUESTOES)
+    if len(qs) < 5:
+        st.session_state["sim_erro"] = "Poucas questões disponíveis para montar o simulado modelo. Desmarque alguma opção acima."
+        return
+    _criar_simulado(uid, "provao", "Simulado modelo Provão", qs, int(st.session_state.get("sim_prov_min", PROVAO_MINUTOS)),
+                    config)
+    st.session_state["sim_avisos"] = ([f"Por enquanto o banco do Provão tem {len(qs)} questões disponíveis com essas opções: "
+                                       f"o simulado ficou com {len(qs)} (o modelo tem {PROVAO_QUESTOES})."]
+                                      if len(qs) < PROVAO_QUESTOES else [])
+
+
+def _comecar_personalizado(uid: int, banco: list[dict], config: dict):
+    ss = st.session_state
+    grupos, assuntos, qtd = ss.get("sim_grupos") or [], ss.get("sim_assuntos") or [], int(ss.get("sim_qtd", 20))
+    qs, disponiveis = _sortear_personalizado(banco, grupos, set(assuntos), qtd)
+    if not qs:
+        ss["sim_erro"] = "Nenhuma questão com essas escolhas."
+        return
+    nome = (", ".join(grupos[:3]) + ("…" if len(grupos) > 3 else "")) if grupos else "todas as matérias"
+    minutos = int(ss.get("sim_min", 60)) if ss.get("sim_cron", True) else None
+    _criar_simulado(uid, "personalizado", f"Simulado personalizado · {nome}", qs, minutos,
+                    config | {"grupos": grupos, "assuntos": assuntos, "quantidade": qtd})
+    ss["sim_avisos"] = [f"Só havia {disponiveis} questões com essas escolhas: o simulado ficou com {len(qs)}."] \
+        if len(qs) < qtd else []
+
+
+def tela_simulados(usuario: dict):
+    st.header("Simulados")
+    if not st.session_state.get("sim_ver"):
+        aberto = _simulado_aberto(usuario["id"])
+        if aberto and _prova(aberto, usuario):
+            return
+    ver = st.session_state.get("sim_ver")
+    if ver:
+        st.button("◀ Voltar para os simulados", key="sim_voltar", on_click=lambda: st.session_state.pop("sim_ver", None))
+        _resultado(ver, usuario)
+        return
+    erro = st.session_state.pop("sim_erro", None)
+    if erro:
+        st.error(erro)
+    _montagem(usuario)
+
+
+def _abrir_resultado(chave: str):
+    st.session_state["sim_ver"] = st.session_state[chave]
+    st.session_state["menu"] = "Simulados"
+
+
+def _historico_simulados(usuario: dict):
+    sims = db.consultar(
+        """SELECT id, modelo, titulo, iniciado_em, total, acertos, tempo_seg, por_tempo
+           FROM simulado WHERE usuario_id = %s AND status = 'finalizado'
+             AND COALESCE(edital_id, %s) = %s ORDER BY iniciado_em DESC""",
+        (usuario["id"], _edital_da_trilha("cfs"), edital_atual()))
+    st.subheader("Meus simulados")
+    if not sims:
+        st.caption("Você ainda não entregou nenhum simulado. Vá em **Simulados** para fazer o primeiro.")
+        return
+    linhas = [{"Data": f"{_local(s['iniciado_em']):%d/%m/%Y %H:%M}",
+               "Simulado": {"cfs": "Modelo CFS", "provao": "Modelo Provão"}.get(s["modelo"]) or
+                           s["titulo"].replace("Simulado personalizado · ", ""),
+               "Questões": s["total"], "Acertos": s["acertos"], "Nota": _nota_txt(s["acertos"] or 0, s["total"] or 0),
+               "% de acerto": round(100 * (s["acertos"] or 0) / s["total"]) if s["total"] else 0,
+               "Tempo": _fmt_tempo(s["tempo_seg"]) + (" (esgotou)" if s["por_tempo"] else "")} for s in sims]
+    st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch",
+                 column_config={"% de acerto": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%d%%")})
+    if len(sims) >= 2:
+        evol = list(reversed(linhas))[-15:]
+        st.caption("Evolução do % de acerto (do primeiro para o último simulado)")
+        grafico_barras([f"{i + 1}º" for i in range(len(evol))], [l["% de acerto"] for l in evol],
+                       texto=lambda v: f"{v:.0f}%", maximo=100)
+    rot = {s["id"]: f"{l['Data']} · {l['Simulado']} · nota {l['Nota']}" for s, l in zip(sims, linhas)}
+    c1, c2 = st.columns([2, 1])
+    c1.selectbox("Abrir um simulado", list(rot), format_func=rot.get, key="hist_sim", label_visibility="collapsed")
+    c2.button("Ver resultado e revisão", key="hist_abrir", width="stretch", on_click=_abrir_resultado, args=("hist_sim",))
+
+
+# ======================================================================
+# TELAS_MATERIAIS
+# ======================================================================
+# Resumos e mapas mentais em PDF. O arquivo fica "limpo" no banco; na hora do download o app carimba
+# em todas as páginas o nome, o usuário, a data e um código único (registrado em material_download).
+TIPOS_MATERIAL = {"lei": "Lei seca comentada", "resumo": "Resumo em PDF", "mapa": "Mapa mental",
+                  "relatorio": "Relatório de revisão"}
+ORDEM_TIPO_SQL = "CASE tipo WHEN 'lei' THEN 1 WHEN 'resumo' THEN 2 WHEN 'mapa' THEN 3 ELSE 4 END"
+LIMITE_MATERIAL_MB = 15
+
+
+@st.cache_resource(show_spinner=False)
+def _garante_materiais() -> bool:
+    db.executar(
+        """CREATE TABLE IF NOT EXISTS material_estudo (
+               id SERIAL PRIMARY KEY, titulo TEXT NOT NULL UNIQUE, lei TEXT NOT NULL,
+               tipo TEXT NOT NULL, descricao TEXT, arquivo BYTEA NOT NULL,
+               tamanho INT NOT NULL, paginas INT, publicado BOOLEAN NOT NULL DEFAULT FALSE, ordem INT NOT NULL DEFAULT 0,
+               enviado_por INT REFERENCES usuario(id), criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+               atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    db.executar(
+        """CREATE TABLE IF NOT EXISTS material_download (
+               id BIGSERIAL PRIMARY KEY, material_id INT NOT NULL REFERENCES material_estudo(id) ON DELETE CASCADE,
+               usuario_id INT NOT NULL REFERENCES usuario(id), codigo TEXT NOT NULL UNIQUE,
+               baixado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    # tipos aceitos (inclui 'lei' = lei seca comentada); refaz a regra caso a tabela venha da versão anterior
+    db.executar("ALTER TABLE material_estudo DROP CONSTRAINT IF EXISTS material_estudo_tipo_check")
+    db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio'))")
+    # trilha do material: 'cfs', 'provao' ou 'todas' (os materiais antigos ficam no CFS)
+    db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS trilha TEXT NOT NULL DEFAULT 'cfs'")
+    return True
+
+
+def _pagina_marca(largura: float, altura: float, nome: str, login: str, codigo: str, quando: str):
+    """Uma página transparente com a marca-d'água (texto diagonal repetido) e a faixa de licença no topo."""
+    from io import BytesIO
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=(largura, altura))
+    texto = f"{nome} · {login} · {codigo}"
+    c.saveState()
+    c.setFillColorRGB(0.35, 0.35, 0.35)
+    c.setFillAlpha(0.075)
+    c.setFont("Helvetica-Bold", 17)
+    c.translate(largura / 2, altura / 2)
+    c.rotate(32)
+    passo_x, passo_y = c.stringWidth(texto, "Helvetica-Bold", 17) + 70, 120
+    diag = (largura ** 2 + altura ** 2) ** 0.5
+    y = -diag / 2
+    linha = 0
+    while y < diag / 2:
+        x = -diag / 2 - (passo_x / 2 if linha % 2 else 0)
+        while x < diag / 2:
+            c.drawString(x, y, texto)
+            x += passo_x
+        y += passo_y
+        linha += 1
+    c.restoreState()
+    c.setFillColorRGB(0.29, 0.35, 0.14)
+    c.setFillAlpha(0.9)
+    c.setFont("Helvetica", 6.5)
+    c.drawCentredString(largura / 2, altura - 12,
+                        f"Licenciado para {nome} ({login}) em {quando} · código {codigo} · "
+                        "uso pessoal: proibido compartilhar ou reproduzir")
+    c.save()
+    return PdfReader(BytesIO(buf.getvalue())).pages[0]
+
+
+def carimbar_pdf(dados: bytes, titulo: str, nome: str, login: str, codigo: str, quando: str) -> bytes:
+    from io import BytesIO
+    from pypdf import PdfReader, PdfWriter
+
+    leitor = PdfReader(BytesIO(dados))
+    escritor = PdfWriter()
+    marcas = {}
+    for pag in leitor.pages:
+        w, h = float(pag.mediabox.width), float(pag.mediabox.height)
+        chave = (round(w), round(h))
+        if chave not in marcas:
+            marcas[chave] = _pagina_marca(w, h, nome, login, codigo, quando)
+        pag.merge_page(marcas[chave])
+        escritor.add_page(pag)
+    for pag in escritor.pages:
+        pag.compress_content_streams()
+    escritor.compress_identical_objects(remove_identicals=True, remove_orphans=True)
+    escritor.add_metadata({"/Title": titulo, "/Author": NOME_APP,
+                           "/Subject": f"Licenciado para {nome} ({login}) · código {codigo}"})
+    saida = BytesIO()
+    escritor.write(saida)
+    return saida.getvalue()
+
+
+def _nome_arquivo(titulo: str, login: str) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", titulo.lower().translate(str.maketrans("áàâãéêíóôõúüç", "aaaaeeiooouuc"))).strip("-")
+    return f"{base}-{login}.pdf"
+
+
+def _preparar_material(m: dict, usuario: dict):
+    """Gera o PDF carimbado para este usuário e registra o download com um código único."""
+    arq = db.um("SELECT arquivo FROM material_estudo WHERE id = %s", (m["id"],))
+    codigo = secrets.token_hex(3).upper()
+    while db.um("SELECT 1 AS ok FROM material_download WHERE codigo = %s", (codigo,)):
+        codigo = secrets.token_hex(3).upper()
+    quando = f"{_local(pd.Timestamp.now(tz='UTC').to_pydatetime()):%d/%m/%Y %H:%M}"
+    pdf = carimbar_pdf(bytes(arq["arquivo"]), m["titulo"], usuario["nome"], usuario["login"], codigo, quando)
+    db.executar("INSERT INTO material_download (material_id, usuario_id, codigo) VALUES (%s, %s, %s)",
+                (m["id"], usuario["id"], codigo))
+    st.session_state[f"mat_pdf_{m['id']}"] = (pdf, codigo)
+
+
+@st.cache_resource
+def _garante_extras() -> bool:
+    """Colunas novas que o app cria sozinho se o SQL ainda não tiver sido rodado no banco."""
+    db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS essencial BOOLEAN NOT NULL DEFAULT FALSE")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_ate TIMESTAMPTZ")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_tipo TEXT")
+    db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS amostra BOOLEAN NOT NULL DEFAULT FALSE")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS whatsapp TEXT")
+    db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS concurso TEXT NOT NULL DEFAULT 'cfs'")
+    db.executar("ALTER TABLE questao DROP CONSTRAINT IF EXISTS questao_tipo_check")
+    db.executar("ALTER TABLE questao ADD CONSTRAINT questao_tipo_check CHECK (tipo IN ('lei_seca', 'caso_pratico', 'portugues', 'teoria'))")
+    db.executar("ALTER TABLE simulado DROP CONSTRAINT IF EXISTS simulado_modelo_check")
+    db.executar("ALTER TABLE simulado ADD CONSTRAINT simulado_modelo_check CHECK (modelo IN ('cfs', 'personalizado', 'provao'))")
+    db.executar("CREATE TABLE IF NOT EXISTS app_config (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)")
+    db.executar("""CREATE TABLE IF NOT EXISTS sessao_login (
+                       token_hash TEXT PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+                       criado_em TIMESTAMPTZ NOT NULL DEFAULT now(), expira_em TIMESTAMPTZ NOT NULL,
+                       ultimo_uso TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    db.executar("""CREATE TABLE IF NOT EXISTS pagamento (
+                       id SERIAL PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+                       valor NUMERIC(10,2) NOT NULL CHECK (valor > 0), pago_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+                       acesso_ate TIMESTAMPTZ, descricao TEXT, registrado_por INT REFERENCES usuario(id))""")
+    return True
+
+
+def config_app(chave: str, padrao: str) -> str:
+    r = db.um("SELECT valor FROM app_config WHERE chave = %s", (chave,))
+    return r["valor"] if r else padrao
+
+
+def definir_config(chave: str, valor: str):
+    db.executar("INSERT INTO app_config (chave, valor) VALUES (%s, %s) ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor",
+                (chave, valor))
+
+
+TURMA_MIN_RESP = 30      # respostas de um assunto para entrar em "onde a turma mais erra"
+TURMA_MIN_ALUNOS = 5     # pessoas diferentes respondendo esse assunto
+
+
+def _turma_erra(sigla: str, status: list[str]) -> list[dict]:
+    """Assuntos da lei em que a turma mais erra (última resposta de cada pessoa em cada questão)."""
+    return db.consultar(
+        """WITH ult AS (
+               SELECT DISTINCT ON (r.usuario_id, r.questao_id) r.usuario_id, r.questao_id, r.acertou
+               FROM resposta r JOIN questao q ON q.id = r.questao_id
+               WHERE q.status::text = ANY(%(st)s)""" + filtro_trilha() + """
+               ORDER BY r.usuario_id, r.questao_id, r.respondida_em DESC)
+           SELECT a.id, a.nome, COUNT(*) AS n, COUNT(DISTINCT u.usuario_id) AS pessoas,
+                  ROUND(100.0 * AVG(u.acertou::int)) AS pct
+           FROM ult u JOIN questao_assunto qa ON qa.questao_id = u.questao_id JOIN assunto a ON a.id = qa.assunto_id
+           JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE COALESCE(d.sigla, m.nome) = %(g)s
+           GROUP BY a.id, a.nome
+           HAVING COUNT(*) >= %(mr)s AND COUNT(DISTINCT u.usuario_id) >= %(ma)s
+           ORDER BY pct, n DESC LIMIT 3""",
+        {"st": status, "g": sigla, "mr": TURMA_MIN_RESP, "ma": TURMA_MIN_ALUNOS})
+
+
+def _ir_essenciais(sigla: str, perfil: str):
+    """Abre Resolver questões só com as essenciais da lei."""
+    arv = _arvore(status_visiveis(perfil, True), "")
+    g = next((x for x in arv if x["sigla"] == sigla), None)
+    if g is None:
+        return
+    st.session_state["f_orig"] = ORIGENS[""]
+    st.session_state["f_grupo"] = g["rotulo"]
+    st.session_state[f"f_sub_{sigla}"] = []
+    st.session_state["f_sit"] = SITUACOES["essenciais"]
+    st.session_state.pop("filtro_ativo", None)
+    st.session_state["menu"] = "Resolver questões"
+
+
+def _ir_simulado_lei(sigla: str, qtd: int):
+    """Abre Simulados com a lei marcada, só inéditas."""
+    st.session_state["sim_grupos"] = [sigla]
+    st.session_state["sim_assuntos"] = []
+    st.session_state["sim_qtd"] = qtd
+    st.session_state["sim_ined"] = True
+    st.session_state.pop("sim_ver", None)
+    st.session_state["sim_aviso_lei"] = sigla
+    st.session_state["menu"] = "Simulados"
+
+
+def _revisao_lei(sigla: str, usuario: dict):
+    """Bloco "Revisão da lei" na aba Materiais: essenciais, simulado da lei e onde a turma mais erra."""
+    status = status_visiveis(usuario["perfil"], True)
+    c = db.um(
+        """SELECT COUNT(DISTINCT q.id) FILTER (WHERE q.essencial) AS ess,
+                  COUNT(DISTINCT q.id) FILTER (WHERE q.origem::text = 'inedita') AS ined
+           FROM questao q JOIN questao_assunto qa ON qa.questao_id = q.id JOIN assunto a ON a.id = qa.assunto_id
+           JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE q.status::text = ANY(%s) AND COALESCE(d.sigla, m.nome) = %s""" + (FILTRO_AMOSTRA if _so_amostra() else "")
+        + filtro_trilha(),
+        (status, sigla))
+    if not c or not (c["ess"] or c["ined"]):
+        return
+    with st.container(border=True):
+        st.markdown("**🎯 Revisão da lei**")
+        b1, b2 = st.columns(2)
+        b1.button(f"⭐ Questões essenciais ({c['ess']})", key=f"rv_ess_{sigla}", width="stretch",
+                  disabled=not c["ess"], on_click=_ir_essenciais, args=(sigla, usuario["perfil"]),
+                  help="As questões que a equipe separou como indispensáveis para a prova.")
+        qtd = max(5, min(20, (c["ined"] // 5) * 5))
+        b2.button(f"📝 Simulado da lei ({qtd} inéditas)", key=f"rv_sim_{sigla}", width="stretch",
+                  disabled=c["ined"] < 5, on_click=_ir_simulado_lei, args=(sigla, qtd))
+        turma = _turma_erra(sigla, status)
+        if turma:
+            st.markdown("Onde a turma mais erra nesta lei: " + " · ".join(
+                f"<b>{esc(t['nome'])}</b> ({int(t['pct'])}% de acerto)" for t in turma), unsafe_allow_html=True)
+        else:
+            st.caption("\"Onde a turma mais erra\" aparece aqui quando houver respostas suficientes nesta lei.")
+
+
+def tela_materiais(usuario: dict):
+    st.header("Materiais")
+    _garante_materiais()
+    equipe = usuario["perfil"] in ("admin", "revisor")
+    st.caption("Lei seca comentada, resumos, mapas mentais e relatórios de revisão, feitos a partir do texto oficial "
+               "das leis. Cada PDF sai com o **seu nome e um "
+               "código** em todas as páginas: é para seu estudo, não compartilhe.")
+    if usuario["perfil"] == "admin":
+        with st.expander("⚙️ Gerenciar materiais (só administrador)"):
+            _gerenciar_materiais(usuario)
+    avaliacao = em_avaliacao(usuario)
+    baixados = _pdfs_baixados(usuario["id"]) if avaliacao else set()
+    if avaliacao:
+        with st.container(border=True):
+            st.markdown("**Você está na avaliação grátis.** Pode baixar **1 PDF** (um resumo ou um mapa mental, da lei que "
+                        "escolher). A lei seca comentada, o relatório e todos os outros PDFs são liberados na aquisição.")
+            with st.popover("💳 Adquirir acesso"):
+                _bloco_pagamento(usuario)
+
+    mats = db.consultar(
+        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado, trilha FROM material_estudo "
+        f"WHERE (publicado OR %s) AND trilha IN (%s, 'todas') ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo",
+        (equipe, trilha_atual()))
+    if not mats:
+        st.info("Ainda não há materiais publicados. Eles vão aparecer aqui.")
+        return
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    leis = sorted({m["lei"] for m in mats}, key=lambda s: (pos.get(s, len(pos)), s))
+    for lei in leis:
+        st.subheader(lei)
+        _revisao_lei(lei, usuario)
+        for m in [m for m in mats if m["lei"] == lei]:
+            with st.container(border=True):
+                rascunho = "" if m["publicado"] else " · 🔒 rascunho (alunos ainda não veem)"
+                st.markdown(f"**{esc(m['titulo'])}**", unsafe_allow_html=True)
+                st.caption(f"{TIPOS_MATERIAL.get(m['tipo'], m['tipo'])} · {m['paginas'] or '?'} página(s) · "
+                           f"{_mb(m['tamanho'])}{rascunho}")
+                if m["descricao"]:
+                    st.write(m["descricao"])
+                if usuario["perfil"] == "admin":
+                    _acoes_material(m, usuario)
+                if avaliacao:
+                    if m["tipo"] not in AVALIACAO_TIPOS_PDF:
+                        st.caption("🔒 A lei seca comentada e o relatório de revisão são liberados na aquisição do acesso.")
+                        continue
+                    if baixados and m["id"] not in baixados and len(baixados) >= AVALIACAO_PDFS:
+                        st.caption("🔒 Você já usou o seu PDF grátis da avaliação. Os demais são liberados na aquisição.")
+                        continue
+                    st.caption("🎁 Na avaliação você pode baixar **1** resumo ou mapa mental, de uma lei à sua escolha.")
+                pronto = st.session_state.get(f"mat_pdf_{m['id']}")
+                c1, c2 = st.columns([1, 1.4])
+                if c1.button("Preparar meu PDF", key=f"mat_prep_{m['id']}", width="stretch",
+                             type="secondary" if pronto else "primary"):
+                    with st.spinner("Colocando seu nome no PDF..."):
+                        _preparar_material(m, usuario)
+                    pronto = st.session_state[f"mat_pdf_{m['id']}"]
+                if pronto:
+                    c2.download_button("📥 Baixar o PDF", data=pronto[0], file_name=_nome_arquivo(m["titulo"], usuario["login"]),
+                                       mime="application/pdf", key=f"mat_dl_{m['id']}", width="stretch", type="primary")
+                    st.caption(f"Pronto. Código deste PDF: **{pronto[1]}**.")
+
+
+PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "LC 053/90", "mariadapenha": "Lei 11.340/06",
+                     "rdpmms": "RDPMMS", "cppm": "CPPM", "cpm": "CPM", "drogas": "Lei 11.343/06",
+                     "desarmamento": "Lei 10.826/03", "tortura": "Lei 9.455/97", "cf": "CF/88", "ce": "CE/MS",
+                     "lc127": "LC 127/08", "dec1261": "Dec. 1.261/81", "dec1093": "Dec. 1.093/81",
+                     "dec10769": "Dec. 10.769/02", "portugues": "Língua Portuguesa",
+                     "penal": "Direito Penal", "codigopenal": "Direito Penal",
+                     "diversidade": "Diversidade, Gênero e Combate à Discriminação", "genero": "Diversidade, Gênero e Combate à Discriminação",
+                     "racismo": "Diversidade, Gênero e Combate à Discriminação", "indigenas": "Povos Indígenas de MS",
+                     "tea": "Atendimento à Pessoa com TEA", "autismo": "Atendimento à Pessoa com TEA",
+                     "choque": "Policiamento de Choque", "ostensivo": "Técnicas de Policiamento Ostensivo",
+                     "tpo": "Técnicas de Policiamento Ostensivo", "processual": "Direito Processual Penal",
+                     "processo": "Direito Processual Penal", "forca": "Uso Diferenciado da Força",
+                     "aph": "Atendimento Pré-Hospitalar (APH)", "inteligencia": "Inteligência de Segurança Pública",
+                     "topicos": "Tópicos Especiais: Abuso de Autoridade e Maria da Penha",
+                     "direitoshumanos": "Direitos Humanos", "dh": "Direitos Humanos",
+                     "processos": "Processos e Procedimentos Administrativos", "p187": "Processos e Procedimentos Administrativos",
+                     "bravura": "Processos e Procedimentos Administrativos", "dec2426": "Processos e Procedimentos Administrativos",
+                     "dpm": "Direito Penal Militar", "penalmilitar": "Direito Penal Militar"}
+TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
+TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
+               "relatorio": "Relatório de revisão"}
+
+
+def _leis_material() -> list[str]:
+    materias = [m["nome"] for m in db.consultar("SELECT nome FROM materia WHERE nome <> 'Legislação' ORDER BY id")]
+    return materias + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
+
+
+def _adivinhar_material(nome_arquivo: str, leis: list[str]) -> tuple[str, str, str]:
+    """'lc190_resumo.pdf' → ('LC 190/14 · Resumo esquematizado', 'LC 190/14', 'resumo'). O que não reconhecer vai como 'Geral'."""
+    base = re.sub(r"\s*\(\d+\)$", "", re.sub(r"\.pdf$", "", nome_arquivo.strip().lower()))
+    partes = re.split(r"[_\-\s]+", base)
+    tipo = next((t for t in ("relatorio", "resumo", "mapa", "lei") if t in partes), "resumo")
+    lei = next((PREFIXOS_MATERIAL[p] for p in partes if p in PREFIXOS_MATERIAL), "Geral")
+    if lei not in leis:
+        lei = "Geral"
+    titulo = f"{lei} · {TITULO_TIPO[tipo]}" if lei != "Geral" else nome_arquivo.rsplit(".", 1)[0]
+    return titulo, lei, tipo
+
+
+def _ler_pdf(dados: bytes) -> int | None:
+    from io import BytesIO
+    from pypdf import PdfReader
+    try:
+        return len(PdfReader(BytesIO(dados)).pages)
+    except Exception:
+        return None
+
+
+def _guardar_material(titulo, lei, tipo, descricao, dados, paginas, publicar, uid):
+    db.executar(
+        """INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado, enviado_por, trilha)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (titulo) DO UPDATE SET lei = EXCLUDED.lei, tipo = EXCLUDED.tipo, trilha = EXCLUDED.trilha,
+               descricao = COALESCE(EXCLUDED.descricao, material_estudo.descricao), arquivo = EXCLUDED.arquivo,
+               tamanho = EXCLUDED.tamanho, paginas = EXCLUDED.paginas, publicado = EXCLUDED.publicado,
+               atualizado_em = now()""",
+        (titulo, lei, tipo, descricao, dados, len(dados), paginas, publicar, uid, trilha_atual()))
+
+
+def _acoes_material(m: dict, usuario: dict):
+    """Botões do administrador em cada material: publicar/tirar do ar, editar (renomear, trocar o PDF) e excluir."""
+    mid = m["id"]
+    c1, c2, c3 = st.columns(3)
+    if m["publicado"]:
+        if c1.button("Tirar do ar (voltar a rascunho)", key=f"mat_off_{mid}", width="stretch"):
+            db.executar("UPDATE material_estudo SET publicado = FALSE, atualizado_em = now() WHERE id = %s", (mid,))
+            st.rerun()
+    elif c1.button("Publicar para os alunos", key=f"mat_on_{mid}", type="primary", width="stretch"):
+        db.executar("UPDATE material_estudo SET publicado = TRUE, atualizado_em = now() WHERE id = %s", (mid,))
+        st.rerun()
+    with c2.popover("✏️ Editar", width="stretch"):
+        leis = _leis_material()
+        with st.form(f"mat_ed_{mid}"):
+            titulo = st.text_input("Título", value=m["titulo"], key=f"mat_ed_tit_{mid}")
+            lei = st.selectbox("Lei / matéria", leis, index=leis.index(m["lei"]) if m["lei"] in leis else len(leis) - 1,
+                               key=f"mat_ed_lei_{mid}")
+            tipos = list(TIPOS_MATERIAL)
+            tipo = st.selectbox("Tipo", tipos, index=tipos.index(m["tipo"]) if m["tipo"] in tipos else 0,
+                                format_func=TIPOS_MATERIAL.get, key=f"mat_ed_tipo_{mid}")
+            trilhas = list(TRILHA_MATERIAL)
+            trilha = st.selectbox("Trilha", trilhas, index=trilhas.index(m.get("trilha") or "cfs"),
+                                  format_func=TRILHA_MATERIAL.get, key=f"mat_ed_tri_{mid}",
+                                  help="Em qual trilha o material aparece para os alunos.")
+            desc = st.text_area("Descrição curta (opcional)", value=m["descricao"] or "", height=68, key=f"mat_ed_desc_{mid}")
+            arq = st.file_uploader("Trocar o PDF (opcional)", type=["pdf"], key=f"mat_ed_arq_{mid}")
+            salvar = st.form_submit_button("Salvar alterações", type="primary")
+        if salvar:
+            titulo = titulo.strip()
+            outro = db.um("SELECT id FROM material_estudo WHERE titulo = %s AND id <> %s", (titulo, mid))
+            if not titulo or outro:
+                st.error("Título vazio ou já usado por outro material.")
+            else:
+                db.executar("""UPDATE material_estudo SET titulo = %s, lei = %s, tipo = %s, descricao = %s, trilha = %s,
+                               atualizado_em = now() WHERE id = %s""", (titulo, lei, tipo, desc.strip() or None, trilha, mid))
+                if arq is not None:
+                    dados = arq.getvalue()
+                    pag = _ler_pdf(dados)
+                    if pag is None or len(dados) > LIMITE_MATERIAL_MB * 1048576:
+                        st.error("O PDF novo não foi aceito (inválido ou grande demais); o resto foi salvo.")
+                        return
+                    db.executar("UPDATE material_estudo SET arquivo = %s, tamanho = %s, paginas = %s WHERE id = %s",
+                                (dados, len(dados), pag, mid))
+                st.session_state.pop(f"mat_pdf_{mid}", None)
+                st.rerun()
+    with c3.popover("🗑️ Excluir", width="stretch"):
+        st.markdown(f"Excluir **{esc(m['titulo'])}**? Some para os alunos e apaga o registro dos downloads.",
+                    unsafe_allow_html=True)
+        if st.button("Apagar definitivamente", key=f"mat_apagar_{mid}", type="primary", width="stretch"):
+            db.executar("DELETE FROM material_estudo WHERE id = %s", (mid,))
+            st.session_state.pop(f"mat_pdf_{mid}", None)
+            st.rerun()
+
+
+def _gerenciar_materiais(usuario: dict):
+    """Envio em lote: escolhe vários PDFs de uma vez; o app sugere título, lei e tipo pelo nome do arquivo
+    (ex.: lc190_resumo.pdf) e você confere/renomeia na tabela antes de guardar. Título igual substitui o PDF antigo."""
+    leis = _leis_material()
+    st.markdown("**Enviar materiais** (pode escolher vários PDFs de uma vez)")
+    st.caption(f"Os PDFs enviados aqui entram na trilha **{TRILHAS[trilha_atual()]['nome']}** (troque a trilha no menu "
+               "lateral). Depois dá para mudar em ✏️ Editar.")
+    rodada = st.session_state.setdefault("mat_lote_n", 0)
+    arqs = st.file_uploader("PDFs sem marca-d'água (o app coloca na hora do download)", type=["pdf"],
+                            accept_multiple_files=True, key=f"mat_lote_{rodada}")
+    if arqs:
+        linhas = []
+        for a in arqs:
+            titulo, lei, tipo = _adivinhar_material(a.name, leis)
+            linhas.append({"Arquivo": a.name, "Título": titulo, "Lei": lei, "Tipo": TIPOS_MATERIAL[tipo], "Publicar": True})
+        st.caption("Confira e, se quiser, mude o título, a lei e o tipo direto na tabela. Material com o mesmo título de "
+                   "um que já existe tem o PDF substituído (bom para atualizar).")
+        tabela = st.data_editor(
+            pd.DataFrame(linhas), hide_index=True, width="stretch", key=f"mat_lote_tab_{rodada}",
+            column_config={"Arquivo": st.column_config.TextColumn(disabled=True),
+                           "Lei": st.column_config.SelectboxColumn(options=leis, required=True),
+                           "Tipo": st.column_config.SelectboxColumn(options=list(TIPOS_MATERIAL.values()), required=True),
+                           "Publicar": st.column_config.CheckboxColumn()})
+        if st.button(f"Guardar {len(arqs)} material(is)", type="primary", key=f"mat_lote_ok_{rodada}"):
+            titulos = [str(t).strip() for t in tabela["Título"]]
+            if any(not t for t in titulos) or len(set(titulos)) != len(titulos):
+                st.error("Há título vazio ou repetido na tabela. Ajuste antes de guardar.")
+                return
+            erros, ok = [], 0
+            por_nome = {a.name: a for a in arqs}
+            for _, r in tabela.iterrows():
+                dados = por_nome[r["Arquivo"]].getvalue()
+                pag = _ler_pdf(dados)
+                if pag is None:
+                    erros.append(f"{r['Arquivo']}: não parece ser um PDF válido")
+                elif len(dados) > LIMITE_MATERIAL_MB * 1048576:
+                    erros.append(f"{r['Arquivo']}: grande demais (limite de {LIMITE_MATERIAL_MB} MB)")
+                else:
+                    _guardar_material(str(r["Título"]).strip(), r["Lei"], _chave(TIPOS_MATERIAL, r["Tipo"]), None, dados,
+                                      pag, bool(r["Publicar"]), usuario["id"])
+                    ok += 1
+            st.session_state["mat_lote_msg"] = (ok, erros)
+            st.session_state["mat_lote_n"] = rodada + 1
+            st.rerun()
+    msg = st.session_state.pop("mat_lote_msg", None)
+    if msg:
+        st.success(f"{msg[0]} material(is) guardado(s).")
+        for e in msg[1]:
+            st.error(e)
+    st.caption("Para renomear, trocar o PDF, publicar ou excluir, use os botões de cada material na lista abaixo.")
+
+    lista = db.consultar(
+        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.trilha,
+                  COUNT(d.id) AS downloads, COUNT(DISTINCT d.usuario_id) AS pessoas
+           FROM material_estudo m LEFT JOIN material_download d ON d.material_id = m.id
+           GROUP BY m.id ORDER BY m.trilha, m.ordem, m.lei, m.titulo""")
+    if lista:
+        st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Trilha": TRILHA_MATERIAL.get(m["trilha"], m["trilha"]),
+                                    "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
+                                    "Situação": "Publicado" if m["publicado"] else "Rascunho", "Páginas": m["paginas"],
+                                    "Downloads": m["downloads"], "Pessoas": m["pessoas"]} for m in lista]),
+                     hide_index=True, width="stretch")
+
+    st.markdown("**Rastrear um PDF que vazou**")
+    cod = st.text_input("Código impresso no topo das páginas", key="mat_rastro", max_chars=6,
+                        placeholder="ex.: A3F09C").strip().upper()
+    if cod:
+        r = db.um("""SELECT u.nome, u.login, m.titulo, d.baixado_em FROM material_download d
+                     JOIN usuario u ON u.id = d.usuario_id JOIN material_estudo m ON m.id = d.material_id
+                     WHERE d.codigo = %s""", (cod,))
+        if r:
+            st.warning(f"Código {cod}: **{esc(r['nome'])}** ({r['login']}) baixou \"{esc(r['titulo'])}\" "
+                       f"em {_local(r['baixado_em']):%d/%m/%Y às %H:%M}.")
+        else:
+            st.info("Nenhum download com esse código.")
+
+
+# ======================================================================
+# TELAS_GESTAO
+# ======================================================================
+STATUS = {"em_revisao": "Em revisão", "aprovada": "Aprovada", "desatualizada": "Desatualizada",
+          "anulada": "Anulada", "rascunho": "Rascunho"}
+
+
+# ======================================================================= REVISÃO
+def tela_revisao(usuario: dict):
+    st.header("Revisão da equipe")
+    n_rep = db.um("SELECT COUNT(*) AS n FROM reporte_erro WHERE status = 'aberto'")["n"]
+    abas = ["Pareceres", "Erros reportados" + (f" ({n_rep})" if n_rep else ""), "Qualidade das questões"]
+    if usuario["perfil"] == "admin":
+        abas.insert(1, "Aprovar por lote")
+    t = dict(zip(abas, st.tabs(abas)))
+    with t["Pareceres"]:
+        _revisao_pareceres(usuario)
+    if "Aprovar por lote" in t:
+        with t["Aprovar por lote"]:
+            _aprovar_lote(usuario)
+    with t[abas[-2]]:
+        _erros_reportados(usuario)
+    with t["Qualidade das questões"]:
+        _qualidade(usuario)
+
+
+# Lote = conjunto de questões com a mesma fonte (cada lote gerado tem a sua); o acervo forma um lote só.
+LOTE_SQL = "CASE WHEN q.origem::text = 'material' THEN 'Acervo (questões antigas)' ELSE COALESCE(q.fonte, '(sem fonte)') END"
+SEM_PENDENCIA = """NOT EXISTS (SELECT 1 FROM parecer p WHERE p.questao_id = q.id AND p.voto = 'ajustar')
+                   AND NOT EXISTS (SELECT 1 FROM reporte_erro e WHERE e.questao_id = q.id AND e.status = 'aberto')"""
+
+
+def _aprovar_lote(usuario: dict):
+    st.caption("Confira uma amostra sorteada do lote. Se estiver boa, aprove o lote inteiro de uma vez. "
+               "Questões com pedido de ajuste ou erro reportado em aberto ficam de fora.")
+    lotes = db.consultar(
+        f"""SELECT {LOTE_SQL} AS lote, COUNT(*) AS total,
+                   COUNT(*) FILTER (WHERE q.status = 'em_revisao') AS revisao,
+                   COUNT(*) FILTER (WHERE q.status = 'em_revisao' AND {SEM_PENDENCIA}) AS livres,
+                   COUNT(*) FILTER (WHERE q.status = 'aprovada') AS aprovadas, MIN(q.codigo) AS primeiro
+            FROM questao q GROUP BY 1 ORDER BY primeiro""")
+    df = pd.DataFrame(lotes)
+    st.dataframe(df[["lote", "total", "aprovadas", "revisao"]].rename(
+        columns={"lote": "Lote", "total": "Questões", "aprovadas": "Aprovadas", "revisao": "Em revisão"}),
+        hide_index=True, width="stretch")
+    pendentes = [l for l in lotes if l["revisao"]]
+    if not pendentes:
+        st.success("Nenhum lote com questões em revisão.")
+        return
+    rot = {f"{l['lote']} — {l['revisao']} em revisão": l for l in pendentes}
+    lote = rot[st.selectbox("Lote", list(rot), key="lote_sel")]
+    chave = f"amostra::{lote['lote']}"
+    qtd = st.slider("Tamanho da amostra", 5, 20, 10, key="lote_qtd")
+    if st.button("🎲 Sortear amostra", key="lote_sortear") or chave not in st.session_state:
+        st.session_state[chave] = [r["id"] for r in db.consultar(
+            f"SELECT q.id FROM questao q WHERE {LOTE_SQL} = %s AND q.status = 'em_revisao' ORDER BY random() LIMIT %s",
+            (lote["lote"], qtd))]
+    for i, qid in enumerate(st.session_state[chave], start=1):
+        q = db.um("SELECT codigo, enunciado, comentario, texto_apoio FROM questao WHERE id = %s", (qid,))
+        with st.expander(f"{i}. {q['codigo']} — {q['enunciado'][:90]}…"):
+            if q["texto_apoio"]:
+                st.caption("(questão com texto de apoio)")
+            st.markdown(f"**{esc(q['enunciado'])}**", unsafe_allow_html=True)
+            for a in _alternativas(qid):
+                marca = "✅" if a["correta"] else "▫️"
+                st.markdown(f"{marca} **{a['letra']})** {esc(a['texto'])}  \n<small>{esc(a['comentario'] or '')}</small>",
+                            unsafe_allow_html=True)
+            st.markdown(f"<small><b>Comentário:</b> {esc(q['comentario'])}</small>", unsafe_allow_html=True)
+    st.divider()
+    fora = lote["revisao"] - lote["livres"]
+    if fora:
+        st.warning(f"{fora} questão(ões) deste lote têm pedido de ajuste ou erro reportado e não serão aprovadas agora.")
+    ok = st.checkbox(f"Conferi a amostra e quero aprovar as {lote['livres']} questões em revisão deste lote",
+                     key=f"lote_ok::{lote['lote']}")
+    if st.button("Aprovar o lote", type="primary", disabled=not ok or not lote["livres"], key="lote_aprovar"):
+        db.executar(f"""UPDATE questao q SET status = 'aprovada', revisado_por = %s, revisado_em = now()
+                        WHERE {LOTE_SQL} = %s AND q.status = 'em_revisao' AND {SEM_PENDENCIA}""",
+                    (usuario["nome"], lote["lote"]))
+        st.session_state.pop("filtro_ativo", None)
+        st.session_state.pop(chave, None)
+        st.success(f"{lote['livres']} questões aprovadas. Os alunos já podem vê-las.")
+        st.rerun()
+
+
+def _erros_reportados(usuario: dict):
+    linhas = db.consultar(
+        """SELECT e.id, e.descricao, e.criado_em, q.id AS qid, q.codigo, q.status::text AS status, u.nome
+           FROM reporte_erro e JOIN questao q ON q.id = e.questao_id LEFT JOIN usuario u ON u.id = e.usuario_id
+           WHERE e.status = 'aberto' ORDER BY e.criado_em""")
+    if not linhas:
+        st.success("Nenhum erro reportado em aberto.")
+        return
+    st.caption("Enquanto houver erro em aberto, a questão não entra na aprovação por lote.")
+    for e in linhas:
+        with st.container(border=True):
+            st.markdown(f"**{e['codigo']}** · {STATUS.get(e['status'], e['status'])} · por {esc(e['nome'] or '—')} "
+                        f"em {e['criado_em']:%d/%m %H:%M}")
+            st.write(e["descricao"])
+            with st.expander("Ver a questão e o gabarito"):
+                for a in _alternativas(e["qid"]):
+                    st.markdown(f"{'✅' if a['correta'] else '▫️'} **{a['letra']})** {esc(a['texto'])}",
+                                unsafe_allow_html=True)
+            if usuario["perfil"] != "admin":
+                continue
+            c1, c2, c3 = st.columns(3)
+            if c1.button("Procedente: tirar do ar", key=f"rep_proc_{e['id']}",
+                         help="A questão volta para 'Em revisão' e some para os alunos até ser corrigida."):
+                db.executar("UPDATE questao SET status = 'em_revisao' WHERE id = %s", (e["qid"],))
+                db.executar("UPDATE reporte_erro SET status = 'procedente' WHERE id = %s", (e["id"],))
+                st.session_state.pop("filtro_ativo", None)
+                st.rerun()
+            if c2.button("Procedente: já corrigi", key=f"rep_corr_{e['id']}"):
+                db.executar("UPDATE reporte_erro SET status = 'procedente' WHERE id = %s", (e["id"],))
+                st.rerun()
+            if c3.button("Improcedente", key=f"rep_imp_{e['id']}"):
+                db.executar("UPDATE reporte_erro SET status = 'improcedente' WHERE id = %s", (e["id"],))
+                st.rerun()
+
+
+def _dif_observada(pct: float) -> int:
+    return 1 if pct >= 75 else (3 if pct < 40 else 2)
+
+
+def _qualidade(usuario: dict):
+    st.caption("Conta só a 1ª resposta de cada pessoa em cada questão. Use para achar questões fáceis demais, "
+               "difíceis demais ou com possível erro de gabarito.")
+    minimo = st.slider("Mínimo de pessoas que responderam", 3, 50, 10, key="qual_min")
+    linhas = db.consultar(
+        f"""WITH primeira AS (
+                SELECT DISTINCT ON (r.usuario_id, r.questao_id) r.questao_id, r.acertou, a.letra
+                FROM resposta r JOIN alternativa a ON a.id = r.alternativa_id
+                ORDER BY r.usuario_id, r.questao_id, r.respondida_em),
+            por_letra AS (
+                SELECT questao_id, letra, COUNT(*) AS n, BOOL_OR(acertou) AS certa FROM primeira GROUP BY 1, 2),
+            errada_top AS (
+                SELECT DISTINCT ON (questao_id) questao_id, letra, n FROM por_letra WHERE NOT certa
+                ORDER BY questao_id, n DESC)
+            SELECT q.id, q.codigo, q.dificuldade, {LOTE_SQL} AS lote, COUNT(p.*) AS n,
+                   ROUND(100.0 * AVG(p.acertou::int)) AS pct, et.letra AS errada, et.n AS n_errada
+            FROM questao q JOIN primeira p ON p.questao_id = q.id
+            LEFT JOIN errada_top et ON et.questao_id = q.id
+            WHERE q.status::text <> 'anulada'
+            GROUP BY q.id, et.letra, et.n HAVING COUNT(p.*) >= %s""", (minimo,))
+
+    # Equilíbrio da dificuldade declarada (não depende de respostas)
+    dist = db.consultar(
+        """SELECT COALESCE(d.sigla, m.nome) AS grupo, q.dificuldade, COUNT(DISTINCT q.id) AS n
+           FROM questao q JOIN materia m ON m.id = q.materia_id
+           LEFT JOIN questao_assunto qa ON qa.questao_id = q.id LEFT JOIN assunto a ON a.id = qa.assunto_id
+           LEFT JOIN diploma d ON d.id = a.diploma_id
+           WHERE q.status::text <> 'anulada' AND q.origem::text <> 'material' GROUP BY 1, 2""")
+    with st.expander("Equilíbrio de dificuldade por matéria/lei (dificuldade declarada)"):
+        dd = pd.DataFrame(dist)
+        if not dd.empty:
+            tab = dd.pivot_table(index="grupo", columns="dificuldade", values="n", fill_value=0, aggfunc="sum")
+            tab = tab.rename(columns=DIF)
+            tab["% difíceis"] = (100 * tab.get("Difícil", 0) / tab.sum(axis=1)).round(0)
+            st.dataframe(tab.sort_values("% difíceis"), width="stretch")
+            st.caption("Referência: algo perto de 30% fáceis, 45% médias e 25% difíceis.")
+
+    if not linhas:
+        st.info(f"Ainda não há questões com pelo menos {minimo} pessoas respondendo. "
+                "Os números aparecem conforme os alunos usam o app.")
+        return
+    df = pd.DataFrame(linhas)
+    df["observada"] = df["pct"].astype(float).map(_dif_observada)
+    df["suspeita"] = (df["pct"].astype(float) < 35) & (df["n_errada"].fillna(0) >= 0.5 * df["n"])
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Com estatística", len(df))
+    c2.metric("Fáceis demais (≥ 90%)", int((df["pct"] >= 90).sum()))
+    c3.metric("Difíceis demais (< 25%)", int((df["pct"] < 25).sum()))
+    c4.metric("Suspeita de gabarito", int(df["suspeita"].sum()))
+    filtro = st.radio("Mostrar", ["Suspeita de gabarito", "Fáceis demais", "Difíceis demais",
+                                  "Dificuldade declarada diferente da observada", "Todas"], horizontal=True, key="qual_f")
+    vis = {"Suspeita de gabarito": df[df["suspeita"]], "Fáceis demais": df[df["pct"] >= 90],
+           "Difíceis demais": df[df["pct"] < 25],
+           "Dificuldade declarada diferente da observada": df[df["dificuldade"] != df["observada"]],
+           "Todas": df}[filtro]
+    st.dataframe(vis.assign(dificuldade=vis["dificuldade"].map(DIF), observada=vis["observada"].map(DIF))
+                 [["codigo", "lote", "n", "pct", "errada", "n_errada", "dificuldade", "observada"]]
+                 .rename(columns={"codigo": "Código", "lote": "Lote", "n": "Pessoas", "pct": "% acerto",
+                                  "errada": "Errada mais marcada", "n_errada": "Marcaram",
+                                  "dificuldade": "Declarada", "observada": "Observada"})
+                 .sort_values("% acerto"), hide_index=True, width="stretch")
+    st.caption("Suspeita de gabarito: menos de 35% de acerto e metade ou mais marcando a mesma alternativa errada. "
+               "Confira se essa alternativa também está correta.")
+    difer = df[df["dificuldade"] != df["observada"]]
+    if usuario["perfil"] == "admin" and len(difer):
+        if st.button(f"Ajustar a dificuldade de {len(difer)} questões para a observada", key="qual_ajusta"):
+            for _, r in difer.iterrows():
+                db.executar("UPDATE questao SET dificuldade = %s WHERE id = %s", (int(r["observada"]), int(r["id"])))
+            st.success("Dificuldades ajustadas.")
+            st.rerun()
+
+
+def _revisao_pareceres(usuario: dict):
+    st.caption("Regra sugerida: questão com pelo menos 2 aprovações e nenhum pedido de ajuste está pronta para ser aprovada.")
+    linhas = db.consultar(
+        """SELECT q.id, q.codigo, q.status::text AS status, q.tipo,
+                  (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
+                    WHERE qa.questao_id = q.id) AS assunto,
+                  COUNT(p.*) FILTER (WHERE p.voto = 'aprovar') AS aprovacoes,
+                  COUNT(p.*) FILTER (WHERE p.voto = 'ajustar') AS ajustes
+           FROM questao q LEFT JOIN parecer p ON p.questao_id = q.id
+           GROUP BY q.id ORDER BY q.codigo"""
+    )
+    df = pd.DataFrame(linhas)
+    df["pronta"] = (df["aprovacoes"] >= 2) & (df["ajustes"] == 0) & (df["status"] == "em_revisao")
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Questões", len(df))
+    c2.metric("Aprovadas", int((df["status"] == "aprovada").sum()))
+    c3.metric("Prontas para aprovar", int(df["pronta"].sum()))
+    c4.metric("Com pedido de ajuste", int((df["ajustes"] > 0).sum()))
+
+    filtro = st.radio("Mostrar", ["Todas", "Prontas para aprovar", "Com pedido de ajuste", "Sem nenhum parecer"],
+                      horizontal=True, key="rev_filtro")
+    vis = {"Todas": df, "Prontas para aprovar": df[df["pronta"]], "Com pedido de ajuste": df[df["ajustes"] > 0],
+           "Sem nenhum parecer": df[(df["aprovacoes"] + df["ajustes"]) == 0]}[filtro]
+    st.dataframe(
+        vis.assign(status=vis["status"].map(STATUS),
+                   tipo=vis["tipo"].map({k: v[1] for k, v in ROTULO_TIPO.items()}))
+           [["codigo", "status", "tipo", "assunto", "aprovacoes", "ajustes"]]
+           .rename(columns={"codigo": "Código", "status": "Situação", "tipo": "Tipo", "assunto": "Assunto",
+                            "aprovacoes": "Aprovações", "ajustes": "Ajustes"}),
+        hide_index=True, width="stretch",
+    )
+
+    st.subheader("Pareceres de uma questão")
+    codigo = st.selectbox("Questão", df["codigo"].tolist(), key="rev_cod")
+    linha = df[df["codigo"] == codigo].iloc[0]
+    pareceres = db.consultar(
+        """SELECT u.nome, p.voto, p.nota, p.atualizado_em FROM parecer p JOIN usuario u ON u.id = p.usuario_id
+           WHERE p.questao_id = %s ORDER BY p.atualizado_em""", (int(linha["id"]),))
+    if not pareceres:
+        st.caption("Nenhum parecer ainda.")
+    for p in pareceres:
+        icone = "✅" if p["voto"] == "aprovar" else "✏️"
+        st.markdown(f"{icone} **{p['nome']}** ({p['atualizado_em']:%d/%m %H:%M}) {p['nota'] or ''}")
+
+    if usuario["perfil"] != "admin":
+        return
+    st.markdown("**Decisão do administrador**")
+    situacoes = list(STATUS)[:4]
+    novo = _chave(STATUS, st.selectbox("Situação da questão", [STATUS[s] for s in situacoes],
+                                       index=situacoes.index(linha["status"]) if linha["status"] in situacoes else 0,
+                                       key="rev_status"))
+    if st.button("Salvar situação", key="rev_salvar"):
+        db.executar("UPDATE questao SET status = %s::status_questao, revisado_por = %s, revisado_em = now() WHERE id = %s",
+                    (novo, usuario["nome"], int(linha["id"])))
+        st.success(f"{codigo} agora está como: {STATUS[novo]}.")
+        st.session_state.pop("filtro_ativo", None)
+        st.rerun()
+
+    prontas = df[df["pronta"]]["codigo"].tolist()
+    if prontas:
+        st.markdown(f"**Aprovar de uma vez as {len(prontas)} questões prontas:** {', '.join(prontas)}")
+        if st.button("Aprovar todas as prontas", type="primary", key="rev_lote"):
+            db.executar("""UPDATE questao SET status = 'aprovada', revisado_por = %s, revisado_em = now()
+                           WHERE codigo = ANY(%s)""", (usuario["nome"], prontas))
+            st.session_state.pop("filtro_ativo", None)
+            st.rerun()
+
+
+# ======================================================================= DESEMPENHO
+def tela_desempenho(usuario: dict):
+    st.header("Meu desempenho")
+    uid = usuario["id"]
+    tot = db.um("""SELECT COUNT(*) AS n, COALESCE(SUM(r.acertou::int), 0) AS ok, COUNT(DISTINCT r.questao_id) AS distintas
+                   FROM resposta r JOIN questao q ON q.id = r.questao_id WHERE r.usuario_id = %s""" + filtro_trilha(), (uid,))
+    if not tot["n"]:
+        st.info("Você ainda não respondeu nenhuma questão. Vá em **Resolver questões** para começar.")
+        _historico_simulados(usuario)
+        return
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Respostas", tot["n"])
+    c2.metric("Acertos", f"{100 * tot['ok'] / tot['n']:.0f}%")
+    c3.metric("Questões diferentes", tot["distintas"])
+
+    _raio_x(usuario)
+    _historico_simulados(usuario)
+
+    tipo = db.consultar(
+        """SELECT CASE q.tipo WHEN 'caso_pratico' THEN 'Caso prático' WHEN 'portugues' THEN 'Português'
+                              WHEN 'teoria' THEN 'Conteúdo do curso' ELSE 'Lei seca' END AS tipo,
+                  COUNT(*) AS respostas, ROUND(100.0 * AVG(r.acertou::int), 0) AS pct
+           FROM resposta r JOIN questao q ON q.id = r.questao_id WHERE r.usuario_id = %s""" + filtro_trilha()
+        + " GROUP BY 1 ORDER BY 1", (uid,))
+    st.subheader("Decorar ou aplicar?")
+    st.caption("Compare seu acerto em lei seca (memória do texto) com casos práticos (aplicação da regra).")
+    st.dataframe(pd.DataFrame(tipo).rename(columns={"tipo": "Tipo", "respostas": "Respostas", "pct": "% de acerto"}),
+                 hide_index=True, width="stretch")
+
+    ass = db.consultar(
+        """SELECT a.nome AS assunto, COUNT(*) AS respostas, ROUND(100.0 * AVG(r.acertou::int), 0) AS pct
+           FROM resposta r JOIN questao_assunto qa ON qa.questao_id = r.questao_id JOIN assunto a ON a.id = qa.assunto_id
+           JOIN questao q ON q.id = r.questao_id
+           WHERE r.usuario_id = %s""" + filtro_trilha() + " GROUP BY a.nome ORDER BY pct ASC, respostas DESC", (uid,))
+    with st.expander("Tabela de todas as respostas por assunto"):
+        df = pd.DataFrame(ass)
+        st.dataframe(df.rename(columns={"assunto": "Assunto", "respostas": "Respostas", "pct": "% de acerto"}),
+                     hide_index=True, width="stretch")
+
+
+# ----------------------------------------------------------------------- RAIO-X DO DESEMPENHO
+# Para cada lei/matéria, cada assunto ganha uma cor pelo acerto do aluno, considerando a ÚLTIMA resposta de cada questão
+# (assim o Raio-X melhora quando o aluno refaz e acerta). Poucos dados (< RX_MINIMO questões) ficam em cinza.
+RX_MINIMO = 3
+RX_FAIXAS = [(50, "vermelho", "Prioridade"), (70, "amarelo", "Atenção"), (101, "verde", "Bom")]
+
+
+def _rx_cor(pct, n) -> tuple[str, str]:
+    if n == 0:
+        return "branco", "Não estudado"
+    if n < RX_MINIMO:
+        return "cinza", "Poucos dados"
+    return next((c, r) for lim, c, r in RX_FAIXAS if pct < lim)
+
+
+def _rx_dados(usuario: dict) -> list[dict]:
+    status = status_visiveis(usuario["perfil"], True)
+    linhas = db.consultar(
+        """WITH ultima AS (
+               SELECT DISTINCT ON (r.questao_id) r.questao_id, r.acertou
+               FROM resposta r WHERE r.usuario_id = %(u)s ORDER BY r.questao_id, r.respondida_em DESC),
+           disp AS (
+               SELECT qa.assunto_id, COUNT(DISTINCT q.id) AS total
+               FROM questao_assunto qa JOIN questao q ON q.id = qa.questao_id
+               WHERE q.status::text = ANY(%(st)s) AND q.origem::text <> 'material' """
+        + (FILTRO_AMOSTRA if _so_amostra() else "") + filtro_trilha() + """ GROUP BY 1),
+           feito AS (
+               SELECT qa.assunto_id, COUNT(*) AS n, SUM(u.acertou::int) AS ok
+               FROM ultima u JOIN questao_assunto qa ON qa.questao_id = u.questao_id GROUP BY 1)
+           SELECT a.id, a.nome, a.ordem, COALESCE(d.sigla, m.nome) AS grupo, COALESCE(d.id, 0) AS ordem_grupo,
+                  d.nome_popular, disp.total, COALESCE(f.n, 0) AS n, COALESCE(f.ok, 0) AS ok
+           FROM assunto a JOIN materia m ON m.id = a.materia_id LEFT JOIN diploma d ON d.id = a.diploma_id
+           JOIN disp ON disp.assunto_id = a.id LEFT JOIN feito f ON f.assunto_id = a.id""",
+        {"u": usuario["id"], "st": status})
+    pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
+    grupos: dict[str, dict] = {}
+    for l in linhas:
+        l["pct"] = round(100 * l["ok"] / l["n"]) if l["n"] else None
+        l["cor"], l["rotulo_cor"] = _rx_cor(l["pct"], l["n"])
+        g = grupos.setdefault(l["grupo"], {"sigla": l["grupo"], "popular": l["nome_popular"], "ordem": l["ordem_grupo"],
+                                           "subs": [], "n": 0, "ok": 0})
+        g["subs"].append(l)
+        g["n"] += l["n"]
+        g["ok"] += l["ok"]
+    lista = sorted(grupos.values(), key=lambda g: (pos.get(g["sigla"], len(pos)), g["ordem"], g["sigla"]))
+    for g in lista:
+        g["subs"].sort(key=lambda a: (a["ordem"], a["nome"]))
+        g["pct"] = round(100 * g["ok"] / g["n"]) if g["n"] else None
+        g["cor"], _ = _rx_cor(g["pct"], g["n"])
+    return lista
+
+
+def _rx_treinar(sigla: str, assunto_id: int, perfil: str):
+    """Leva o aluno para Resolver questões já filtrado no assunto escolhido."""
+    arv = _arvore(status_visiveis(perfil, True), "")
+    g = next((x for x in arv if x["sigla"] == sigla), None)
+    if g is None:
+        return
+    st.session_state["f_orig"] = ORIGENS[""]
+    st.session_state["f_grupo"] = g["rotulo"]
+    st.session_state[f"f_sub_{sigla}"] = [a["rotulo"] for a in g["subs"] if a["id"] == assunto_id]
+    st.session_state.pop("filtro_ativo", None)
+    st.session_state["menu"] = "Resolver questões"
+
+
+def _rx_simulado(fracos: list[dict]):
+    """Leva o aluno para Simulados com as leis e os assuntos mais fracos já marcados."""
+    st.session_state["sim_grupos"] = list(dict.fromkeys(a["grupo"] for a in fracos))
+    st.session_state["sim_assuntos"] = [a["id"] for a in fracos]
+    st.session_state["sim_qtd"] = 20
+    st.session_state.pop("sim_ver", None)
+    st.session_state["sim_aviso_rx"] = True
+    st.session_state["menu"] = "Simulados"
+
+
+def _rx_pdf(usuario: dict, grupos: list[dict]) -> bytes:
+    """Raio-X em PDF (A4), com o nome do aluno no cabeçalho de cada página."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    cores = {"vermelho": (0.64, 0.20, 0.16), "amarelo": (0.85, 0.62, 0.10), "verde": (0.12, 0.42, 0.23),
+             "cinza": (0.62, 0.62, 0.62), "branco": (0.86, 0.86, 0.86)}
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    w, h = A4
+    quando = f"{_local(pd.Timestamp.now(tz='UTC').to_pydatetime()):%d/%m/%Y %H:%M}"
+
+    def cabecalho():
+        c.setFillColorRGB(0.29, 0.35, 0.14)
+        c.rect(0, h - 58, w, 58, stroke=0, fill=1)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont("Helvetica-Bold", 15)
+        c.drawString(40, h - 30, "Raio-X do desempenho")
+        c.setFont("Helvetica", 9)
+        c.drawString(40, h - 46, f"{usuario['nome']} ({usuario['login']}) · {quando} · {NOME_APP}")
+        y = h - 76
+        c.setFont("Helvetica", 7.5)
+        x = 40
+        for cor, txt in (("vermelho", "abaixo de 50%: prioridade"), ("amarelo", "50 a 69%: atenção"),
+                         ("verde", "70% ou mais: bom"), ("cinza", f"menos de {RX_MINIMO} questões"),
+                         ("branco", "não estudado")):
+            c.setFillColorRGB(*cores[cor])
+            c.rect(x, y - 1, 8, 8, stroke=0, fill=1)
+            c.setFillColorRGB(0.2, 0.2, 0.2)
+            c.drawString(x + 11, y, txt)
+            x += c.stringWidth(txt, "Helvetica", 7.5) + 26
+        return y - 18
+
+    y = cabecalho()
+    for g in grupos:
+        if y < 90:
+            c.showPage()
+            y = cabecalho()
+        titulo = g["sigla"] + (f" · {g['popular']}" if g["popular"] and g["popular"] != g["sigla"] else "")
+        c.setFillColorRGB(0.2, 0.25, 0.09)
+        c.setFont("Helvetica-Bold", 10.5)
+        c.drawString(40, y, titulo[:80])
+        c.setFont("Helvetica", 8.5)
+        resumo = f"{g['pct']}% de acerto · {g['n']} questões" if g["n"] else "ainda não estudado"
+        c.drawRightString(w - 40, y, resumo)
+        y -= 14
+        for a in g["subs"]:
+            if y < 50:
+                c.showPage()
+                y = cabecalho()
+            nome = a["nome"] if len(a["nome"]) <= 70 else a["nome"][:67] + "..."
+            c.setFillColorRGB(0.15, 0.15, 0.15)
+            c.setFont("Helvetica", 8)
+            c.drawString(52, y, nome)
+            larg = 120
+            c.setFillColorRGB(0.92, 0.92, 0.92)
+            c.rect(w - 40 - larg - 70, y - 1.5, larg, 8, stroke=0, fill=1)
+            if a["n"]:
+                c.setFillColorRGB(*cores[a["cor"]])
+                c.rect(w - 40 - larg - 70, y - 1.5, larg * (a["pct"] or 0) / 100, 8, stroke=0, fill=1)
+            c.setFillColorRGB(0.25, 0.25, 0.25)
+            c.drawRightString(w - 40, y, f"{a['pct']}% · {a['n']}/{a['total']}" if a["n"] else f"0/{a['total']}")
+            y -= 12
+        y -= 8
+    c.save()
+    return buf.getvalue()
+
+
+def _raio_x(usuario: dict):
+    st.subheader("Raio-X do desempenho")
+    st.caption("Cada assunto ganha uma cor pelo seu acerto, contando a sua última resposta em cada questão: refez e "
+               "acertou, o Raio-X melhora. Use para decidir o que estudar primeiro.")
+    grupos = _rx_dados(usuario)
+    if not grupos:
+        st.info("Ainda não há questões disponíveis para montar o Raio-X.")
+        return
+    estudados = [g for g in grupos if g["n"]]
+    if estudados:
+        mostrar = st.radio("Mostrar", ["Só o que já estudei", "Todas as matérias e leis"], horizontal=True,
+                           key="rx_mostrar", label_visibility="collapsed")
+        vis = estudados if mostrar == "Só o que já estudei" else grupos
+    else:
+        st.info("Você ainda não respondeu questões. Abaixo estão todos os assuntos: resolva algumas questões e "
+                "eles vão ganhando cor.")
+        vis = grupos
+
+    fracos = sorted([a for g in grupos for a in g["subs"] if a["n"] >= RX_MINIMO and a["pct"] < 70],
+                    key=lambda a: (a["pct"], -a["n"]))[:5]
+    if fracos:
+        with st.container(border=True):
+            st.markdown("**Prioridades de estudo** (os assuntos em que você mais erra)")
+            for a in fracos:
+                c1, c2 = st.columns([3.2, 1])
+                c1.markdown(f'<span class="rx-dot rx-{a["cor"]}"></span> <b>{esc(a["grupo"])}</b> › {esc(a["nome"])} '
+                            f'<span class="rx-num">{a["pct"]}% em {a["n"]} questões</span>', unsafe_allow_html=True)
+                c2.button("Treinar", key=f"rx_treinar_{a['id']}", width="stretch",
+                          on_click=_rx_treinar, args=(a["grupo"], a["id"], usuario["perfil"]))
+            st.button("Montar um simulado com meus pontos fracos", key="rx_simulado", type="primary",
+                      on_click=_rx_simulado, args=(fracos,))
+    elif estudados:
+        st.success(f"Nenhum assunto abaixo de 70% com pelo menos {RX_MINIMO} questões. Continue assim.")
+
+    partes = []
+    for g in vis:
+        resumo = f"{g['pct']}% · {g['n']} questões" if g["n"] else "não estudado"
+        titulo = esc(g["sigla"]) + (f' <span class="rx-pop">· {esc(g["popular"])}</span>'
+                                    if g["popular"] and g["popular"] != g["sigla"] else "")
+        chips = "".join(
+            f'<div class="rx-chip rx-{a["cor"]}" title="{esc(a["rotulo_cor"])}"><span class="rx-nome">{esc(a["nome"])}</span>'
+            f'<span class="rx-num">{(str(a["pct"]) + "%") if a["n"] else "—"} · {a["n"]}/{a["total"]}</span></div>'
+            for a in g["subs"])
+        partes.append(f'<div class="rx-grupo"><div class="rx-cab"><span class="rx-dot rx-{g["cor"]}"></span>{titulo}'
+                      f'<span class="rx-res">{resumo}</span></div><div class="rx-grid">{chips}</div></div>')
+    st.markdown("".join(partes) or "<p>Nada para mostrar.</p>", unsafe_allow_html=True)
+    st.markdown('<div class="rx-leg"><span class="rx-dot rx-vermelho"></span>abaixo de 50% · '
+                '<span class="rx-dot rx-amarelo"></span>50 a 69% · <span class="rx-dot rx-verde"></span>70% ou mais · '
+                f'<span class="rx-dot rx-cinza"></span>menos de {RX_MINIMO} questões · '
+                '<span class="rx-dot rx-branco"></span>não estudado · números: acerto · feitas/disponíveis</div>',
+                unsafe_allow_html=True)
+    st.download_button("📥 Baixar meu Raio-X em PDF", data=_rx_pdf(usuario, grupos),
+                       file_name=f"raio-x-{usuario['login']}.pdf", mime="application/pdf", key="rx_pdf")
+
+
+# ======================================================================= USUÁRIOS (ADMIN)
+# ======================================================================= FINANCEIRO (só admin)
+def tela_financeiro(usuario: dict):
+    st.header("Financeiro")
+    st.caption("Cadastros e pagamentos por período. Cada liberação de acesso feita em Usuários com valor maior que zero "
+               "entra aqui automaticamente; pagamentos avulsos podem ser lançados abaixo.")
+    hoje = _local(datetime.now(timezone.utc)).date()
+    periodos = {"Este mês": (hoje.replace(day=1), hoje),
+                "Mês passado": ((hoje.replace(day=1) - timedelta(days=1)).replace(day=1), hoje.replace(day=1) - timedelta(days=1)),
+                "Últimos 7 dias": (hoje - timedelta(days=6), hoje),
+                "Este ano": (hoje.replace(month=1, day=1), hoje),
+                "Tudo": (datetime(2026, 1, 1).date(), hoje),
+                "Escolher datas": None}
+    esc_p = st.radio("Período", list(periodos), horizontal=True, key="fin_periodo")
+    if periodos[esc_p] is None:
+        c1, c2 = st.columns(2)
+        ini = c1.date_input("De", value=hoje.replace(day=1), format="DD/MM/YYYY", key="fin_ini")
+        fim = c2.date_input("Até", value=hoje, format="DD/MM/YYYY", key="fin_fim")
+    else:
+        ini, fim = periodos[esc_p]
+    t0 = datetime(ini.year, ini.month, ini.day, tzinfo=FUSO)
+    t1 = datetime(fim.year, fim.month, fim.day, tzinfo=FUSO) + timedelta(days=1)
+    r = db.um("""SELECT (SELECT COUNT(*) FROM usuario WHERE perfil = 'aluno' AND criado_em >= %(a)s AND criado_em < %(b)s) AS cadastros,
+                        (SELECT COUNT(*) FROM pagamento WHERE pago_em >= %(a)s AND pago_em < %(b)s) AS pagamentos,
+                        (SELECT COALESCE(SUM(valor), 0) FROM pagamento WHERE pago_em >= %(a)s AND pago_em < %(b)s) AS receita,
+                        (SELECT COUNT(DISTINCT usuario_id) FROM pagamento WHERE pago_em >= %(a)s AND pago_em < %(b)s) AS pagantes,
+                        (SELECT COUNT(*) FROM usuario WHERE perfil = 'aluno') AS alunos_total,
+                        (SELECT COALESCE(SUM(valor), 0) FROM pagamento) AS receita_total""", {"a": t0, "b": t1})
+    real = lambda v: f"R$ {float(v):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Receita no período", real(r["receita"]))
+    m2.metric("Pagamentos", r["pagamentos"])
+    m3.metric("Novos alunos", r["cadastros"])
+    m4.metric("Ticket médio", real(r["receita"] / r["pagamentos"]) if r["pagamentos"] else "—")
+    st.caption(f"Desde o início: **{real(r['receita_total'])}** recebidos · **{r['alunos_total']}** alunos cadastrados.")
+
+    mensal = db.consultar(
+        """SELECT to_char(date_trunc('month', pago_em AT TIME ZONE 'America/Campo_Grande'), 'YYYY-MM') AS mes,
+                  SUM(valor)::float AS receita, COUNT(*) AS pagamentos
+           FROM pagamento GROUP BY 1 ORDER BY 1""")
+    cad = db.consultar(
+        """SELECT to_char(date_trunc('month', criado_em AT TIME ZONE 'America/Campo_Grande'), 'YYYY-MM') AS mes,
+                  COUNT(*) AS cadastros FROM usuario WHERE perfil = 'aluno' GROUP BY 1 ORDER BY 1""")
+    if mensal or cad:
+        df = pd.merge(pd.DataFrame(mensal or [], columns=["mes", "receita", "pagamentos"]),
+                      pd.DataFrame(cad or [], columns=["mes", "cadastros"]), on="mes", how="outer").fillna(0).sort_values("mes")
+        for col in ("receita", "pagamentos", "cadastros"):        # tabela vazia vira 'object': o gráfico precisa de número
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        st.subheader("Mês a mês")
+        if df["receita"].sum() > 0:
+            grafico_barras([f"{m[5:]}/{m[2:4]}" for m in df["mes"]], [float(v) for v in df["receita"]],
+                           texto=lambda v: real(v).replace("R$ ", ""))
+        else:
+            st.caption("O gráfico de receita aparece a partir do primeiro pagamento registrado.")
+        st.dataframe(df.assign(receita=df["receita"].map(real), pagamentos=df["pagamentos"].astype(int),
+                               cadastros=df["cadastros"].astype(int))
+                       .rename(columns={"mes": "Mês", "receita": "Receita", "pagamentos": "Pagamentos",
+                                        "cadastros": "Novos alunos"}), hide_index=True, width="stretch")
+
+    st.subheader("Novos alunos do período")
+    novos = db.consultar(
+        """SELECT u.nome, u.login, u.whatsapp, u.concurso, u.criado_em, u.acesso_tipo, u.acesso_ate,
+                  EXISTS (SELECT 1 FROM acesso_log l WHERE l.usuario_id = u.id AND l.evento = 'cadastro_proprio') AS proprio,
+                  EXISTS (SELECT 1 FROM acesso_log l WHERE l.usuario_id = u.id AND l.evento = 'perfil_aluno') AS ex_equipe
+           FROM usuario u WHERE u.perfil = 'aluno' AND u.criado_em >= %s AND u.criado_em < %s ORDER BY u.criado_em DESC""",
+        (t0, t1))
+    if novos:
+        st.dataframe(pd.DataFrame([{
+            "Cadastro": f"{_local(n['criado_em']):%d/%m/%Y %H:%M}", "Nome": n["nome"], "Usuário": n["login"],
+            "WhatsApp": n["whatsapp"] or "", "Concurso": CONCURSOS_CURTO.get(n["concurso"], n["concurso"]),
+            "Como entrou": "criou a conta no app" if n["proprio"] else (
+                "era da equipe (perfil trocado)" if n["ex_equipe"] else "cadastrado por você"),
+            "Acesso": _rotulo_acesso(n | {"perfil": "aluno",
+                                          "acesso_vencido": n["acesso_ate"] is not None
+                                          and n["acesso_ate"] <= datetime.now(timezone.utc)})} for n in novos]),
+            hide_index=True, width="stretch")
+    else:
+        st.info("Nenhum aluno novo neste período.")
+
+    st.subheader("Pagamentos do período")
+    pags = db.consultar(
+        """SELECT p.id, p.pago_em, u.nome, u.login, p.valor::float AS valor, p.descricao, p.acesso_ate
+           FROM pagamento p JOIN usuario u ON u.id = p.usuario_id
+           WHERE p.pago_em >= %s AND p.pago_em < %s ORDER BY p.pago_em DESC""", (t0, t1))
+    if pags:
+        dp = pd.DataFrame(pags)
+        vis = pd.DataFrame({"Data": dp["pago_em"].map(lambda d: f"{_local(d):%d/%m/%Y %H:%M}"), "Aluno": dp["nome"],
+                            "Usuário": dp["login"], "Valor": dp["valor"].map(real), "Descrição": dp["descricao"].fillna(""),
+                            "Acesso até": dp["acesso_ate"].map(lambda d: f"{_local(d):%d/%m/%Y}" if pd.notna(d) else "sem prazo")})
+        st.dataframe(vis, hide_index=True, width="stretch")
+        st.download_button("📥 Baixar planilha (CSV)", vis.to_csv(index=False, sep=";").encode("utf-8-sig"),
+                           file_name=f"pagamentos_{ini:%Y%m%d}_{fim:%Y%m%d}.csv", mime="text/csv", key="fin_csv")
+        with st.expander("Corrigir um lançamento errado"):
+            rot = {p["id"]: f"{_local(p['pago_em']):%d/%m %H:%M} · {p['nome']} · {real(p['valor'])}" for p in pags}
+            pid = st.selectbox("Lançamento", list(rot), format_func=rot.get, key="fin_del_sel")
+            if st.button("Excluir este lançamento", key="fin_del"):
+                db.executar("DELETE FROM pagamento WHERE id = %s", (pid,))
+                auth.registrar("pagamento_excluido", usuario["id"])
+                st.rerun()
+    else:
+        st.info("Nenhum pagamento neste período.")
+
+    with st.expander("Lançar pagamento avulso (sem mexer no acesso)"):
+        alunos = db.consultar("SELECT id, nome, login FROM usuario WHERE perfil = 'aluno' ORDER BY nome")
+        if alunos:
+            with st.form("fin_avulso", clear_on_submit=True):
+                rot_a = {a["id"]: f"{a['nome']} ({a['login']})" for a in alunos}
+                aid = st.selectbox("Aluno", list(rot_a), format_func=rot_a.get, key="fin_av_aluno")
+                c1, c2 = st.columns(2)
+                val = c1.number_input("Valor (R$)", min_value=0.0, step=10.0, value=_valor_padrao(), format="%.2f",
+                                      key="fin_av_valor")
+                data_p = c2.date_input("Data do pagamento", value=hoje, format="DD/MM/YYYY", key="fin_av_data")
+                desc = st.text_input("Descrição", value="Pagamento avulso", key="fin_av_desc")
+                if st.form_submit_button("Lançar", type="primary") and val > 0:
+                    db.executar("""INSERT INTO pagamento (usuario_id, valor, pago_em, descricao, registrado_por)
+                                   VALUES (%s, %s, %s, %s, %s)""",
+                                (aid, round(val, 2), datetime(data_p.year, data_p.month, data_p.day, 12, tzinfo=FUSO),
+                                 desc.strip() or None, usuario["id"]))
+                    st.rerun()
+
+
+# ======================================================================= ACESSO E PAGAMENTO
+# Aluno com usuario.acesso_ate preenchido só usa o app até essa data (NULL = sem prazo). Equipe nunca é bloqueada.
+# Pagamento: Pix com QR Code gerado pelo próprio app (sem intermediário e sem taxa). O aluno paga, manda o comprovante
+# pelo WhatsApp e o administrador libera em Usuários. Dados do Pix ficam nos Secrets do Streamlit, seção [pix].
+AVALIACAO_DIAS = 2
+ACESSO_OPCOES = {"avaliacao": f"Avaliação grátis ({AVALIACAO_DIAS} dias)", "livre": "Sem prazo"}
+
+
+def _acesso(uid: int) -> dict:
+    a = db.um("""SELECT acesso_ate, acesso_tipo, concurso, (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS vencido
+                 FROM usuario WHERE id = %s""", (uid,))
+    return a or {"acesso_ate": None, "acesso_tipo": None, "concurso": "cfs", "vencido": False}
+
+
+def em_avaliacao(usuario: dict) -> bool:
+    """Aluno na avaliação grátis: usa tudo, menos baixar os PDFs."""
+    return usuario["perfil"] == "aluno" and _acesso(usuario["id"])["acesso_tipo"] == "avaliacao"
+
+
+def _pix_cfg() -> dict | None:
+    try:
+        cfg = {k: str(v) for k, v in dict(st.secrets.get("pix", {})).items()}
+    except Exception:
+        cfg = {}
+    return cfg if cfg.get("chave") else None
+
+
+def _sem_acento(t: str) -> str:
+    t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode()
+    return re.sub(r"[^A-Za-z0-9 ]", "", t).upper().strip()
+
+
+def _crc16(dados: str) -> str:
+    crc = 0xFFFF
+    for b in dados.encode("utf-8"):
+        crc ^= b << 8
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x1021) if crc & 0x8000 else (crc << 1)
+            crc &= 0xFFFF
+    return f"{crc:04X}"
+
+
+def pix_copia_e_cola(chave: str, nome: str, cidade: str, valor: str | None = None, txid: str = "***") -> str:
+    """Código Pix estático (padrão BR Code do Banco Central), o mesmo que o app do banco gera para "Receber"."""
+    campo = lambda i, v: f"{i}{len(v):02d}{v}"
+    conta = campo("00", "br.gov.bcb.pix") + campo("01", chave.strip())
+    p = campo("00", "01") + campo("26", conta) + campo("52", "0000") + campo("53", "986")
+    if valor:
+        p += campo("54", f"{float(str(valor).replace(',', '.')):.2f}")
+    p += campo("58", "BR") + campo("59", _sem_acento(nome)[:25]) + campo("60", _sem_acento(cidade)[:15])
+    p += campo("62", campo("05", re.sub(r"[^A-Za-z0-9]", "", txid)[:25] or "***"))
+    p += "6304"
+    return p + _crc16(p)
+
+
+def _qr_img(texto: str, tamanho: int = 230) -> str:
+    """QR Code como <img> SVG (usa o reportlab, que o app já tem)."""
+    from reportlab.graphics import renderSVG
+    from reportlab.graphics.barcode.qr import QrCodeWidget
+    from reportlab.graphics.shapes import Drawing
+
+    w = QrCodeWidget(texto)
+    x0, y0, x1, y1 = w.getBounds()
+    d = Drawing(tamanho, tamanho, transform=[tamanho / (x1 - x0), 0, 0, tamanho / (y1 - y0), 0, 0])
+    d.add(w)
+    svg = renderSVG.drawToString(d)
+    return (f'<img alt="QR Code Pix" style="background:#fff;padding:6px;border-radius:8px" '
+            f'src="data:image/svg+xml;base64,{base64.b64encode(svg.encode()).decode()}">')
+
+
+def _bloco_pagamento(usuario: dict):
+    cfg = _pix_cfg()
+    if not cfg:
+        st.info("Para adquirir o acesso, fale com o administrador do app.")
+        return
+    if cfg.get("oferta"):
+        st.markdown(f"**{esc(cfg['oferta'])}**", unsafe_allow_html=True)
+    valor = cfg.get("valor")
+    if valor:
+        st.markdown(f"Valor: **R$ {float(valor.replace(',', '.')):.2f}**".replace(".", ","))
+    codigo = pix_copia_e_cola(cfg["chave"], cfg.get("nome", NOME_APP), cfg.get("cidade", "CAMPO GRANDE"), valor,
+                              txid=usuario["login"])
+    c1, c2 = st.columns([1, 1.5])
+    c1.markdown(_qr_img(codigo), unsafe_allow_html=True)
+    with c2:
+        st.markdown("**1.** Abra o app do seu banco, escolha **Pix → Ler QR Code** (ou **Pix copia e cola**) e pague.  \n"
+                    f"**2.** Mande o comprovante pelo WhatsApp, informando o seu usuário: **{esc(usuario['login'])}**.  \n"
+                    "**3.** Assim que o pagamento for conferido, o seu acesso é liberado. É só entrar de novo.")
+        if cfg.get("whatsapp"):
+            from urllib.parse import quote
+            msg = (f"Olá! Fiz o Pix do {NOME_APP}. Meu usuário é {usuario['login']} "
+                   f"({usuario['nome']}). Segue o comprovante.")
+            st.link_button("📲 Enviar comprovante pelo WhatsApp",
+                           f"https://wa.me/{re.sub(r'[^0-9]', '', cfg['whatsapp'])}?text={quote(msg)}",
+                           type="primary", width="stretch")
+    st.caption("Pix copia e cola:")
+    st.code(codigo, language=None)
+
+
+def tela_acesso_encerrado(usuario: dict, acesso: dict):
+    _cabecalho()
+    quando = _local(acesso["acesso_ate"])
+    st.warning(f"Olá, {usuario['nome']}. O seu acesso ao app terminou em **{quando:%d/%m/%Y às %H:%M}**. "
+               "Suas respostas, simulados e o seu Raio-X continuam guardados: quando o acesso for liberado, "
+               "está tudo lá.")
+    st.subheader("Como continuar")
+    _bloco_pagamento(usuario)
+    st.button("Sair", key="ae_sair", on_click=_sair, args=(usuario["id"],))
+
+
+def _aviso_prazo(usuario: dict, acesso: dict):
+    resta = acesso["acesso_ate"] - datetime.now(timezone.utc)
+    horas = max(0, int(resta.total_seconds() // 3600))
+    tempo = f"{horas // 24} dia(s) e {horas % 24} h" if horas >= 24 else f"{horas} h"
+    st.caption(f"⏳ Seu acesso vai até **{_local(acesso['acesso_ate']):%d/%m %H:%M}** (faltam {tempo}).")
+    with st.popover("💳 Adquirir acesso", width="stretch"):
+        _bloco_pagamento(usuario)
+
+
+AVALIACAO_SIMULADOS = 1
+AVALIACAO_PDFS = 1
+AVALIACAO_TIPOS_PDF = ("resumo", "mapa")      # a lei seca comentada e o relatório ficam só para quem adquiriu
+
+
+def _contador_amostra(usuario: dict):
+    r = db.um("""SELECT (SELECT COUNT(*) FROM questao q WHERE q.status = 'aprovada' AND (q.essencial OR q.amostra)"""
+              + filtro_trilha() + """) AS total,
+                        (SELECT COUNT(DISTINCT r.questao_id) FROM resposta r JOIN questao q ON q.id = r.questao_id
+                          WHERE r.usuario_id = %s AND (q.essencial OR q.amostra)""" + filtro_trilha() + """) AS feitas""",
+              (usuario["id"],))
+    total, feitas = r["total"], min(r["feitas"], r["total"])
+    st.progress(feitas / total if total else 0, text=f"🎁 Avaliação: {feitas} de {total} questões grátis")
+    if total and feitas >= total:
+        st.caption("Você fez todas as questões da avaliação. Adquira o acesso para liberar as mais de 2.000 do banco.")
+
+
+def _simulados_feitos(uid: int) -> int:
+    return db.um("SELECT COUNT(*) AS n FROM simulado WHERE usuario_id = %s AND status <> 'descartado'", (uid,))["n"]
+
+
+def _pdfs_baixados(uid: int) -> set[int]:
+    return {r["material_id"] for r in db.consultar("SELECT DISTINCT material_id FROM material_download WHERE usuario_id = %s",
+                                                    (uid,))}
+
+
+def _rotulo_acesso(c: dict) -> str:
+    if c["perfil"] != "aluno":
+        return "equipe"
+    tipo = " (avaliação)" if c.get("acesso_tipo") == "avaliacao" else ""
+    if c["acesso_ate"] is None:
+        return "sem prazo" + tipo
+    d = _local(c["acesso_ate"])
+    return (f"encerrado em {d:%d/%m %H:%M}" if c["acesso_vencido"] else f"até {d:%d/%m/%Y %H:%M}") + tipo
+
+
+def _definir_acesso(alvo_id: int, ate, evento: str, tipo: str | None = "pago"):
+    """tipo: 'avaliacao' (sem download de PDF) ou 'pago'. tipo=None mantém o que estava (ex.: encerrar agora)."""
+    if tipo is None:
+        db.executar("UPDATE usuario SET acesso_ate = %s WHERE id = %s", (ate, alvo_id))
+    else:
+        db.executar("UPDATE usuario SET acesso_ate = %s, acesso_tipo = %s WHERE id = %s", (ate, tipo, alvo_id))
+    auth.registrar(evento, alvo_id)
+
+
+def _registrar_pagamento(alvo_id: int, valor: float, ate, descricao: str, admin_id: int):
+    if valor and valor > 0:
+        db.executar("""INSERT INTO pagamento (usuario_id, valor, acesso_ate, descricao, registrado_por)
+                       VALUES (%s, %s, %s, %s, %s)""", (alvo_id, round(float(valor), 2), ate, descricao, admin_id))
+
+
+def _valor_padrao() -> float:
+    try:
+        return float(str((_pix_cfg() or {}).get("valor", "0")).replace(",", "."))
+    except ValueError:
+        return 0.0
+
+
+def _gerenciar_acesso(alvo: dict, admin: dict | None = None):
+    """Liberar, estender ou encerrar o acesso de um aluno (avaliação grátis ou período pago).
+    Ao liberar (+30 dias, sem prazo, até a data), o valor informado entra no Financeiro (0 = cortesia, não registra)."""
+    st.markdown(f"**Acesso de {esc(alvo['nome'])}:** {_rotulo_acesso(alvo)}", unsafe_allow_html=True)
+    admin_id = admin["id"] if admin else None
+    valor = st.number_input("Valor recebido nesta liberação (R$) · deixe 0 para cortesia", min_value=0.0, step=10.0,
+                            value=_valor_padrao(), format="%.2f", key=f"acval_{alvo['id']}")
+    agora = datetime.now(timezone.utc)
+    base = max(agora, alvo["acesso_ate"]) if alvo["acesso_ate"] is not None else agora
+    a1, a2, a3, a4 = st.columns(4)
+    if a1.button("Liberar +30 dias", key=f"ac30_{alvo['id']}", width="stretch",
+                 help="Soma 30 dias ao prazo atual (ou a partir de agora, se já venceu)."):
+        _definir_acesso(alvo["id"], base + timedelta(days=30), "acesso_mais_30")
+        _registrar_pagamento(alvo["id"], valor, base + timedelta(days=30), "Liberação +30 dias", admin_id)
+        st.rerun()
+    if a2.button(f"Avaliação de {AVALIACAO_DIAS} dias", key=f"acav_{alvo['id']}", width="stretch",
+                 help=f"Libera {AVALIACAO_DIAS} dias a partir de agora."):
+        _definir_acesso(alvo["id"], agora + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao", "avaliacao")
+        st.rerun()
+    if a3.button("Sem prazo", key=f"aclivre_{alvo['id']}", width="stretch"):
+        _definir_acesso(alvo["id"], None, "acesso_sem_prazo")
+        _registrar_pagamento(alvo["id"], valor, None, "Liberação sem prazo", admin_id)
+        st.rerun()
+    if a4.button("Encerrar agora", key=f"acfim_{alvo['id']}", width="stretch"):
+        _definir_acesso(alvo["id"], agora, "acesso_encerrado", None)
+        st.rerun()
+    d1, d2 = st.columns([1.4, 1])
+    data = d1.date_input("Ou liberar até a data", value=(_local(base) + timedelta(days=30)).date(), format="DD/MM/YYYY",
+                         key=f"acdata_{alvo['id']}")
+    if d2.button("Liberar até essa data", key=f"acdt_{alvo['id']}", width="stretch"):
+        ate = datetime(data.year, data.month, data.day, 23, 59, tzinfo=FUSO)
+        _definir_acesso(alvo["id"], ate, "acesso_ate_data")
+        _registrar_pagamento(alvo["id"], valor, ate, f"Liberação até {data:%d/%m/%Y}", admin_id)
+        st.rerun()
+
+
+def tela_usuarios(usuario: dict):
+    st.header("Usuários")
+    st.caption("A senha provisória aparece uma única vez: envie em particular.")
+    aberto = config_app("cadastro_aberto", "1") == "1"
+    novo = st.toggle(f"Cadastro aberto na tela de entrada (quem se cadastra ganha {AVALIACAO_DIAS} dias de avaliação)",
+                     value=aberto, key="cfg_cadastro")
+    if novo != aberto:
+        definir_config("cadastro_aberto", "1" if novo else "0")
+        auth.registrar("cadastro_aberto" if novo else "cadastro_fechado", usuario["id"])
+    tot = db.um("""SELECT COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo) AS alunos,
+                          COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo AND acesso_tipo = 'avaliacao'
+                                           AND acesso_ate > now()) AS avaliacao,
+                          COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo AND COALESCE(acesso_tipo, '') <> 'avaliacao'
+                                           AND (acesso_ate IS NULL OR acesso_ate > now())) AS liberados,
+                          COUNT(*) FILTER (WHERE perfil = 'aluno' AND ativo AND acesso_ate <= now()) AS vencidos,
+                          COUNT(*) FILTER (WHERE perfil <> 'aluno' AND ativo) AS equipe
+                   FROM usuario WHERE login IS NOT NULL""")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("Alunos", tot["alunos"])
+    m2.metric("Em avaliação", tot["avaliacao"])
+    m3.metric("Com acesso liberado", tot["liberados"])
+    m4.metric("Acesso vencido", tot["vencidos"])
+    m5.metric("Equipe", tot["equipe"])
+
+    with st.form("novo_usuario", clear_on_submit=True):
+        st.markdown("**Cadastrar pessoa**")
+        c1, c2, c3, c4 = st.columns([2, 1.4, 1, 1.4])
+        nome = c1.text_input("Nome (ex.: Cb PM Lozo)", key="nu_nome")
+        login = c2.text_input("Usuário (ex.: lozo)", key="nu_login")
+        perfil = _chave(auth.PERFIS, c3.selectbox("Perfil", list(auth.PERFIS.values()), index=2, key="nu_perfil"))
+        acesso_ini = _chave(ACESSO_OPCOES, c4.selectbox("Acesso (aluno)", list(ACESSO_OPCOES.values()), key="nu_acesso",
+                                                        help="Avaliação grátis: o app bloqueia sozinho no fim do prazo."))
+        criar = st.form_submit_button("Cadastrar", type="primary")
+    if criar:
+        login_n = auth.normalizar_login(login)
+        erro = ("Preencha o nome." if not nome.strip() else
+                "Usuário inválido: 3 a 30 caracteres entre letras minúsculas, números, ponto, hífen ou sublinhado."
+                if not LOGIN_OK.match(login_n) else
+                "Esse usuário já existe." if auth.login_existe(login_n) else None)
+        if erro:
+            st.error(erro)
+        else:
+            senha = auth.senha_provisoria()
+            uid = auth.criar_usuario(nome, login_n, perfil, senha, trocar=True)
+            auth.registrar("usuario_criado", uid)
+            if perfil == "aluno" and acesso_ini == "avaliacao":
+                _definir_acesso(uid, datetime.now(timezone.utc) + timedelta(days=AVALIACAO_DIAS), "acesso_avaliacao",
+                                "avaliacao")
+            st.session_state["senha_mostrar"] = (nome.strip(), login_n, senha)
+    _mostrar_senha()
+
+    contas = db.consultar(
+        """SELECT id, nome, login, perfil, ativo, ultimo_acesso, acesso_ate, acesso_tipo, whatsapp, concurso, criado_em,
+                  (acesso_ate IS NOT NULL AND acesso_ate <= now()) AS acesso_vencido,
+                  (bloqueado_ate IS NOT NULL AND bloqueado_ate > now()) AS bloqueado,
+                  (SELECT COUNT(*) FROM resposta r WHERE r.usuario_id = u.id) AS respostas,
+                  (SELECT COUNT(*) FROM parecer p WHERE p.usuario_id = u.id) AS pareceres
+           FROM usuario u WHERE login IS NOT NULL ORDER BY ativo DESC, nome""")
+    df = pd.DataFrame(contas)
+    df["acesso"] = [_rotulo_acesso(c) for c in contas]
+    df["concurso"] = df["concurso"].map(lambda c: CONCURSOS_CURTO.get(c, c))
+    df["whatsapp"] = df["whatsapp"].fillna("")
+    df["criado_em"] = df["criado_em"].apply(lambda d: f"{_local(d):%d/%m/%Y}" if pd.notna(d) else "")
+    st.dataframe(
+        df.assign(perfil=df["perfil"].map(auth.PERFIS),
+                  ativo=df["ativo"].map({True: "Ativo", False: "Desativado"}),
+                  bloqueado=df["bloqueado"].map({True: "Bloqueado", False: ""}),
+                  ultimo_acesso=df["ultimo_acesso"].apply(lambda d: f"{d:%d/%m/%Y %H:%M}" if pd.notna(d) else "nunca"))
+          [["nome", "login", "perfil", "concurso", "whatsapp", "criado_em", "ativo", "acesso", "bloqueado", "ultimo_acesso",
+            "respostas", "pareceres"]]
+          .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação", "acesso": "Acesso",
+                           "concurso": "Concurso", "whatsapp": "WhatsApp", "criado_em": "Cadastro",
+                           "bloqueado": "Bloqueio", "ultimo_acesso": "Último acesso", "respostas": "Respostas",
+                           "pareceres": "Pareceres"}),
+        hide_index=True, width="stretch")
+
+    st.subheader("Gerenciar uma conta")
+    nomes = {f"{c['nome']} ({c['login']})": c["id"] for c in contas}
+    alvo_id = nomes[st.selectbox("Conta", list(nomes), key="gu_alvo")]
+    alvo = next(c for c in contas if c["id"] == alvo_id)
+    eu = alvo_id == usuario["id"]
+    c1, c2, c3 = st.columns(3)
+    if c1.button("Gerar nova senha provisória", key="gu_reset", width="stretch"):
+        senha = auth.senha_provisoria()
+        auth.definir_senha(alvo_id, senha, provisoria=True)
+        st.session_state["senha_mostrar"] = (alvo["nome"], alvo["login"], senha)
+        st.rerun()
+    if alvo["ativo"]:
+        if c2.button("Desativar acesso", key="gu_off", disabled=eu, width="stretch",
+                     help="Você não pode desativar a própria conta." if eu else "A pessoa não consegue mais entrar."):
+            db.executar("UPDATE usuario SET ativo = FALSE WHERE id = %s", (alvo_id,))
+            auth.registrar("usuario_desativado", alvo_id)
+            st.rerun()
+    elif c2.button("Reativar acesso", key="gu_on", width="stretch"):
+        db.executar("UPDATE usuario SET ativo = TRUE, tentativas_falhas = 0, bloqueado_ate = NULL WHERE id = %s", (alvo_id,))
+        auth.registrar("usuario_reativado", alvo_id)
+        st.rerun()
+    novo_perfil = _chave(auth.PERFIS, c3.selectbox("Perfil", list(auth.PERFIS.values()),
+                                                   index=list(auth.PERFIS).index(alvo["perfil"]),
+                                                   key=f"gu_perfil_{alvo_id}", disabled=eu, label_visibility="collapsed"))
+    if not eu and novo_perfil != alvo["perfil"]:
+        db.executar("UPDATE usuario SET perfil = %s WHERE id = %s", (novo_perfil, alvo_id))
+        auth.registrar(f"perfil_{novo_perfil}", alvo_id)
+        st.rerun()
+    if alvo["perfil"] == "aluno":
+        with st.container(border=True):
+            atual = alvo.get("concurso") or "cfs"
+            novo = _chave(CONCURSOS, st.selectbox(
+                "Concurso / trilha do aluno", list(CONCURSOS.values()),
+                index=list(CONCURSOS).index(atual) if atual in CONCURSOS else 0, key=f"gu_conc_{alvo_id}",
+                help="Define o que o aluno vê: o banco do CFS ou o do Provão de conclusão do CFS 2026."))
+            if novo != atual:
+                db.executar("UPDATE usuario SET concurso = %s WHERE id = %s", (novo, alvo_id))
+                auth.registrar(f"concurso_{novo}", alvo_id)
+                st.rerun()
+            _gerenciar_acesso(alvo, usuario)
+
+    with st.expander("Registro de acessos (últimos 100)"):
+        log = db.consultar(
+            """SELECT l.em, COALESCE(u.nome, '—') AS nome, COALESCE(u.login, l.login_tentado) AS usuario, l.evento
+               FROM acesso_log l LEFT JOIN usuario u ON u.id = l.usuario_id ORDER BY l.em DESC LIMIT 100""")
+        if log:
+            dl = pd.DataFrame(log)
+            dl["em"] = dl["em"].apply(lambda d: f"{d:%d/%m/%Y %H:%M}")
+            st.dataframe(dl.rename(columns={"em": "Quando", "nome": "Nome", "usuario": "Usuário", "evento": "Evento"}),
+                         hide_index=True, width="stretch")
+
+
+def _mostrar_senha():
+    info = st.session_state.get("senha_mostrar")
+    if not info:
+        return
+    nome, login, senha = info
+    st.success(f"Acesso de **{nome}** pronto. Envie em particular (ela some desta tela quando você clicar em OK):")
+    st.code(f"Usuário: {login}\nSenha provisória: {senha}\nNo primeiro acesso o app pede para trocar a senha.", language=None)
+    if st.button("OK, já anotei", key="senha_ok"):
+        st.session_state.pop("senha_mostrar", None)
+        st.rerun()
+
+
+# ======================================================================= BIBLIOTECA (só admin)
+CATEGORIAS_BIB = ["CFS PMMS", "PCMS (Polícia Civil)", "BMMS (Bombeiros)", "CFC PMMS", "Outros"]
+TIPOS_BIB = ["pdf", "docx", "doc", "pptx", "xlsx", "txt", "jpg", "jpeg", "png", "zip"]
+LIMITE_MB = 450  # o plano gratuito do Neon tem 0,5 GB no total
+
+
+@st.cache_resource(show_spinner=False)
+def _garante_biblioteca() -> bool:
+    db.executar(
+        """CREATE TABLE IF NOT EXISTS material (
+               id          SERIAL PRIMARY KEY,
+               categoria   TEXT NOT NULL,
+               nome        TEXT NOT NULL,
+               mime        TEXT,
+               tamanho     INT  NOT NULL,
+               observacao  TEXT,
+               dados       BYTEA NOT NULL,
+               enviado_por INT REFERENCES usuario(id),
+               criado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+               UNIQUE (categoria, nome, tamanho))""")
+    return True
+
+
+def _mb(b) -> str:
+    return f"{(b or 0) / 1048576:.1f} MB"
+
+
+def tela_biblioteca(usuario: dict):
+    st.header("Biblioteca de materiais")
+    st.caption("Área exclusiva do administrador para guardar o material de estudo dos próximos concursos. "
+               "Nada daqui aparece para revisores ou alunos.")
+    _garante_biblioteca()
+    usado = db.um("SELECT COALESCE(SUM(tamanho), 0) AS t, COUNT(*) AS n FROM material")
+    st.progress(min(usado["t"] / (LIMITE_MB * 1048576), 1.0),
+                text=f"{usado['n']} arquivos · {_mb(usado['t'])} usados de ~{LIMITE_MB} MB livres no banco")
+
+    with st.form("bib_envio", clear_on_submit=True):
+        c1, c2 = st.columns([1, 1.4])
+        categoria = c1.selectbox("Para qual concurso", CATEGORIAS_BIB, key="bib_cat")
+        obs = c2.text_input("Observação (opcional)", key="bib_obs", placeholder="ex.: versão antiga, reconferir no Planalto")
+        arquivos = st.file_uploader("Arquivos", type=TIPOS_BIB, accept_multiple_files=True, key="bib_arq")
+        enviar = st.form_submit_button("Guardar na biblioteca", type="primary")
+    if enviar:
+        if not arquivos:
+            st.warning("Escolha pelo menos um arquivo.")
+        else:
+            novos, repetidos = 0, 0
+            for a in arquivos:
+                dados = a.getvalue()
+                if usado["t"] + len(dados) > LIMITE_MB * 1048576:
+                    st.error(f"Sem espaço para {a.name}. Apague arquivos antigos ou fale com o suporte do banco.")
+                    break
+                existe = db.um("SELECT 1 FROM material WHERE categoria=%s AND nome=%s AND tamanho=%s",
+                               (categoria, a.name, len(dados)))
+                if existe:
+                    repetidos += 1
+                    continue
+                db.executar("""INSERT INTO material (categoria, nome, mime, tamanho, observacao, dados, enviado_por)
+                               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                            (categoria, a.name, a.type, len(dados), obs or None, dados, usuario["id"]))
+                usado["t"] += len(dados)
+                novos += 1
+            if novos:
+                st.success(f"{novos} arquivo(s) guardado(s) em {categoria}.")
+            if repetidos:
+                st.info(f"{repetidos} arquivo(s) já estavam na biblioteca e foram ignorados.")
+
+    itens = db.consultar("""SELECT id, categoria, nome, tamanho, observacao, criado_em
+                            FROM material ORDER BY categoria, nome""")
+    if not itens:
+        st.info("A biblioteca ainda está vazia.")
+        return
+    st.subheader("Arquivos guardados")
+    filtro = st.selectbox("Concurso", ["Todos"] + sorted({i["categoria"] for i in itens}), key="bib_filtro")
+    vis = [i for i in itens if filtro == "Todos" or i["categoria"] == filtro]
+    st.dataframe(pd.DataFrame([{"Concurso": i["categoria"], "Arquivo": i["nome"], "Tamanho": _mb(i["tamanho"]),
+                                "Observação": i["observacao"] or "", "Guardado em": i["criado_em"].strftime("%d/%m/%Y")}
+                               for i in vis]), hide_index=True, width="stretch")
+
+    rotulos = {f"{i['nome']} ({i['categoria']})": i["id"] for i in vis}
+    escolhido = st.selectbox("Escolha um arquivo para baixar ou apagar", list(rotulos), index=None, key="bib_sel")
+    if escolhido:
+        mid = rotulos[escolhido]
+        c1, c2 = st.columns(2)
+        reg = db.um("SELECT nome, mime, dados FROM material WHERE id = %s", (mid,))
+        c1.download_button("Baixar", data=bytes(reg["dados"]), file_name=reg["nome"],
+                           mime=reg["mime"] or "application/octet-stream", width="stretch", key=f"bib_dl_{mid}")
+        if c2.toggle("Quero apagar este arquivo", key=f"bib_conf_{mid}"):
+            if c2.button("Apagar definitivamente", key=f"bib_del_{mid}", width="stretch"):
+                db.executar("DELETE FROM material WHERE id = %s", (mid,))
+                st.session_state.pop("bib_sel", None)
+                st.rerun()
+
+
+# ======================================================================= MINHA CONTA
+def tela_conta(usuario: dict):
+    st.header("Minha conta")
+    st.write(f"**{usuario['nome']}** · usuário `{usuario['login']}` · {auth.PERFIS[usuario['perfil']]}")
+    atual = _acesso(usuario["id"])["concurso"] or "cfs"
+    escolha = _chave(CONCURSOS, st.selectbox("Concurso que vou fazer", list(CONCURSOS.values()),
+                                             index=list(CONCURSOS).index(atual) if atual in CONCURSOS else 0,
+                                             key="mc_conc"))
+    if escolha != atual:
+        db.executar("UPDATE usuario SET concurso = %s WHERE id = %s", (escolha, usuario["id"]))
+        if usuario["perfil"] == "aluno":
+            st.session_state["trilha"] = trilha_de(escolha)
+            for k in [k for k in st.session_state if k.startswith(("f_grupo", "f_sub_", "sim_grupos", "sim_assuntos"))]:
+                del st.session_state[k]
+            st.session_state.pop("filtro_ativo", None)
+        st.success("Concurso atualizado. Questões, simulados e materiais já seguem a nova escolha.")
+    if escolha not in CONCURSOS_COM_CONTEUDO:
+        st.info(f"O conteúdo próprio do {CONCURSOS_CURTO[escolha]} está em preparação. Enquanto isso, use o do CFS PMMS: "
+                "a legislação da PMMS é a mesma base.")
+    st.subheader("Trocar senha")
+    tela_trocar_senha(usuario, obrigatoria=False)
+
+
+# ======================================================================
+# APP
+# ======================================================================
+st.set_page_config(page_title=NOME_APP, page_icon=logo_app(64), layout="centered")
+aplicar()
+
+# 1) Ainda não há administrador: só mostra a criação dele.
+if not auth.existe_admin():
+    tela_primeiro_acesso()
+    st.stop()
+
+_garante_extras()
+
+# 2) Sem login: tenta retomar a sessão salva no endereço (?s=...); senão, tela de entrada.
+sessao = st.session_state.get("usuario")
+if not sessao:
+    sessao = retomar_sessao()
+    if sessao:
+        st.session_state["usuario"] = sessao
+if not sessao:
+    tela_login()
+    st.stop()
+
+# 3) A cada clique, confere se a conta ainda está ativa (desativar corta o acesso na hora).
+usuario = auth.recarregar(sessao["id"])
+if usuario is None:
+    fechar_sessao()
+    db.executar("DELETE FROM sessao_login WHERE usuario_id = %s", (sessao["id"],))
+    st.session_state.clear()
+    st.error("Seu acesso foi encerrado. Fale com o administrador.")
+    st.stop()
+st.session_state["usuario"] = usuario
+
+# 3b) Aluno com o acesso vencido (fim da avaliação grátis ou do período pago): só vê como adquirir.
+acesso = _acesso(usuario["id"])
+if usuario["perfil"] == "aluno" and acesso["vencido"]:
+    tela_acesso_encerrado(usuario, acesso)
+    st.stop()
+
+st.session_state["so_amostra"] = usuario["perfil"] == "aluno" and acesso.get("acesso_tipo") == "avaliacao"
+if usuario["perfil"] == "aluno":
+    st.session_state["trilha"] = trilha_de(acesso.get("concurso"))
+else:
+    st.session_state["trilha"] = st.session_state.get("trilha_sel", st.session_state.get("trilha", "cfs"))
+
+# 4) Senha provisória: obriga a trocar antes de qualquer coisa.
+if usuario["trocar_senha"]:
+    tela_trocar_senha(usuario, obrigatoria=True)
+    st.stop()
+
+# 5) Marca d'água com o nome de quem está logado, em toda a tela.
+aplicar_marca_dagua(usuario["nome"], usuario["login"])
+
+if st.session_state.pop("boas_vindas", False):
+    st.success(f"Conta criada! Bem-vindo(a), {usuario['nome']}. Você tem {AVALIACAO_DIAS} dias de acesso grátis para avaliar "
+               "o app. Comece por **Resolver questões** ou monte um **Simulado**.")
+
+# 6) Menu conforme o perfil.
+ICONES_MENU = {"Resolver questões": ":material/edit_note:", "Simulados": ":material/timer:",
+               "Materiais": ":material/menu_book:", "Meu desempenho": ":material/insights:",
+               "Revisão da equipe": ":material/fact_check:", "Usuários": ":material/group:",
+               "Financeiro": ":material/payments:", "Biblioteca": ":material/local_library:",
+               "Minha conta": ":material/account_circle:"}
+# Menu lateral como lista de navegação: some a bolinha do rádio e a opção ativa ganha destaque.
+CSS_MENU = """<style>
+section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 2px; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+  width: 100%; margin: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child { display: none; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { background: rgba(75, 90, 35, .10); }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+  background: rgba(75, 90, 35, .18); box-shadow: inset 3px 0 0 #4B5A23; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p { font-weight: 600; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label span[data-testid="stIconMaterial"] { color: #4B5A23; margin-right: 4px; }
+</style>"""
+TELAS = {"Resolver questões": tela_questoes, "Simulados": tela_simulados, "Materiais": tela_materiais,
+         "Meu desempenho": tela_desempenho}
+if usuario["perfil"] in ("admin", "revisor"):
+    TELAS["Revisão da equipe"] = tela_revisao
+if usuario["perfil"] == "admin":
+    TELAS["Usuários"] = tela_usuarios
+    TELAS["Financeiro"] = tela_financeiro
+    TELAS["Biblioteca"] = tela_biblioteca
+TELAS["Minha conta"] = tela_conta
+
+with st.sidebar:
+    st.markdown(f"### {NOME_APP}")
+    st.caption(TRILHAS[trilha_atual()]["sub"])
+    st.write(f"👤 **{usuario['nome']}**  \n{auth.PERFIS[usuario['perfil']]}")
+    if usuario["perfil"] != "aluno":
+        st.selectbox("Trilha", list(TRILHAS), index=list(TRILHAS).index(trilha_atual()),
+                     format_func=lambda t: TRILHAS[t]["nome"], key="trilha_sel", on_change=_trocou_trilha,
+                     help="Cada trilha tem as suas questões, simulados e materiais. Os alunos veem só a trilha do "
+                          "concurso que escolheram.")
+    if usuario["perfil"] == "aluno":
+        conc = acesso.get("concurso") or "cfs"
+        st.caption(f"🎯 Concurso: **{CONCURSOS_CURTO.get(conc, conc)}**"
+                   + ("" if conc in CONCURSOS_COM_CONTEUDO else " · conteúdo em preparação (use o do CFS)"))
+    if usuario["perfil"] == "aluno" and acesso["acesso_ate"] is not None:
+        _aviso_prazo(usuario, acesso)
+    if _so_amostra():
+        _contador_amostra(usuario)
+    st.markdown(CSS_MENU, unsafe_allow_html=True)
+    escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed",
+                       format_func=lambda t: f"{ICONES_MENU.get(t, ':material/chevron_right:')} {t}")
+    st.button("Sair", width="stretch", on_click=_sair, args=(usuario["id"],))
+
+if edital_atual() is None:
+    st.info("O conteúdo desta trilha ainda está sendo preparado. Volte em breve.")
+TELAS[escolha](usuario)
