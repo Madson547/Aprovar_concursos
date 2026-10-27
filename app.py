@@ -1764,6 +1764,11 @@ def _garante_extras() -> bool:
                        id SERIAL PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
                        valor NUMERIC(10,2) NOT NULL CHECK (valor > 0), pago_em TIMESTAMPTZ NOT NULL DEFAULT now(),
                        acesso_ate TIMESTAMPTZ, descricao TEXT, registrado_por INT REFERENCES usuario(id))""")
+    db.executar("""CREATE TABLE IF NOT EXISTS satisfacao (
+                       id SERIAL PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+                       nota SMALLINT CHECK (nota BETWEEN 0 AND 10), comentario TEXT, trilha TEXT NOT NULL DEFAULT 'cfs',
+                       acesso_tipo TEXT, criado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    db.executar("CREATE INDEX IF NOT EXISTS ix_satisfacao_usuario ON satisfacao (usuario_id, criado_em DESC)")
     return True
 
 
@@ -2733,6 +2738,183 @@ def tela_financeiro(usuario: dict):
                     st.rerun()
 
 
+# ======================================================================= SATISFAÇÃO
+# Pergunta de recomendação (0 a 10) que aparece UMA vez para o aluno que já usou o app de verdade: 50 questões respondidas
+# ou 1 simulado entregue (na avaliação grátis, 20 questões). "Agora não" adia 7 dias; depois de responder, volta em 30.
+# Tabela satisfacao: nota NULL = o aluno escolheu "Agora não". NPS = % de notas 9-10 menos % de notas 0-6.
+SAT_MIN_RESP = 50
+SAT_MIN_RESP_AVALIACAO = 20
+SAT_REPETIR_DIAS = 30
+SAT_ADIAR_DIAS = 7
+
+
+def _satisfacao_pendente(usuario: dict, acesso: dict) -> bool:
+    if usuario["perfil"] != "aluno" or st.session_state.get("sat_feito"):
+        return False
+    r = db.um(
+        """SELECT (SELECT COUNT(DISTINCT questao_id) FROM resposta WHERE usuario_id = %(u)s) AS resp,
+                  (SELECT COUNT(*) FROM simulado WHERE usuario_id = %(u)s AND status = 'finalizado') AS sims,
+                  (SELECT COUNT(*) FROM simulado WHERE usuario_id = %(u)s AND status = 'em_andamento') AS aberto,
+                  (SELECT COUNT(*) FROM satisfacao WHERE usuario_id = %(u)s
+                     AND ((nota IS NULL AND criado_em > now() - make_interval(days => %(adiar)s))
+                       OR (nota IS NOT NULL AND criado_em > now() - make_interval(days => %(repetir)s)))) AS recente""",
+        {"u": usuario["id"], "adiar": SAT_ADIAR_DIAS, "repetir": SAT_REPETIR_DIAS})
+    if r["recente"] or r["aberto"]:          # durante um simulado a pergunta não aparece
+        return False
+    minimo = SAT_MIN_RESP_AVALIACAO if acesso.get("acesso_tipo") == "avaliacao" else SAT_MIN_RESP
+    return r["resp"] >= minimo or r["sims"] >= 1
+
+
+def _sat_gravar(uid: int, acesso_tipo, adiar: bool):
+    nota = None if adiar else st.session_state.get("sat_nota")
+    if not adiar and nota is None:
+        st.session_state["sat_aviso"] = "Escolha uma nota de 0 a 10 antes de enviar."
+        return
+    coment = None if adiar else (st.session_state.get("sat_coment") or "").strip()[:1000] or None
+    db.executar("INSERT INTO satisfacao (usuario_id, nota, comentario, trilha, acesso_tipo) VALUES (%s, %s, %s, %s, %s)",
+                (uid, nota, coment, trilha_atual(), acesso_tipo))
+    st.session_state["sat_feito"] = True
+    st.session_state["sat_obrigado"] = not adiar
+
+
+def caixa_satisfacao(usuario: dict, acesso: dict):
+    if st.session_state.pop("sat_obrigado", False):
+        st.toast("Obrigado pela avaliação! Ela ajuda a melhorar o app.", icon="💚")
+    if not _satisfacao_pendente(usuario, acesso):
+        return
+    with st.container(border=True):
+        st.markdown(f"**💬 Rapidinho: de 0 a 10, quanto você recomendaria o {NOME_APP} a um colega de curso?**")
+        st.radio("Nota", list(range(11)), index=None, horizontal=True, key="sat_nota", label_visibility="collapsed")
+        st.caption("0 = não recomendaria · 10 = recomendaria com certeza")
+        st.text_area("O que mais ajudou ou o que está faltando? (opcional)", key="sat_coment", max_chars=1000, height=80)
+        if aviso := st.session_state.pop("sat_aviso", None):
+            st.warning(aviso)
+        c1, c2, _ = st.columns([1, 1, 2])
+        c1.button("Enviar", type="primary", key="sat_enviar", width="stretch",
+                  on_click=_sat_gravar, args=(usuario["id"], acesso.get("acesso_tipo"), False))
+        c2.button("Agora não", key="sat_adiar", width="stretch",
+                  on_click=_sat_gravar, args=(usuario["id"], acesso.get("acesso_tipo"), True))
+
+
+def _nps(notas: list[int]) -> tuple[float | None, int, int, int]:
+    n = len(notas)
+    if not n:
+        return None, 0, 0, 0
+    prom, det = sum(1 for x in notas if x >= 9), sum(1 for x in notas if x <= 6)
+    return round(100 * (prom - det) / n), prom, n - prom - det, det
+
+
+SAT_TRILHAS = {"todas": "As duas trilhas", "cfs": "CFS PMMS 2026", "provao": "Provão do CFS 2026"}
+
+
+def tela_satisfacao(usuario: dict):
+    st.header("Satisfação dos alunos")
+    st.caption(f"A pergunta aparece uma vez para cada aluno depois de {SAT_MIN_RESP} questões respondidas ou do 1º simulado "
+               f"entregue ({SAT_MIN_RESP_AVALIACAO} questões na avaliação grátis). \"Agora não\" adia {SAT_ADIAR_DIAS} dias; "
+               f"quem respondeu é perguntado de novo depois de {SAT_REPETIR_DIAS} dias. Conta a última nota de cada aluno.")
+    tr = _chave(SAT_TRILHAS, st.radio("Trilha", list(SAT_TRILHAS.values()), horizontal=True, key="sat_trilha"))
+    f_sat = "" if tr == "todas" else " AND s.trilha = %(tr)s"
+    f_usu = "" if tr == "todas" else " AND u.concurso = %(tr)s"
+    p = {"tr": tr}
+
+    ult = db.consultar(
+        """SELECT DISTINCT ON (s.usuario_id) s.usuario_id, s.nota, s.comentario, s.criado_em, s.trilha, s.acesso_tipo,
+                  u.nome, u.login
+           FROM satisfacao s JOIN usuario u ON u.id = s.usuario_id
+           WHERE s.nota IS NOT NULL""" + f_sat + " ORDER BY s.usuario_id, s.criado_em DESC", p)
+    adiados = db.um("SELECT COUNT(DISTINCT s.usuario_id) AS n FROM satisfacao s WHERE s.nota IS NULL" + f_sat, p)["n"]
+    nps, prom, neu, det = _nps([r["nota"] for r in ult])
+
+    st.subheader("Recomendação (NPS)")
+    if not ult:
+        st.info("Nenhuma avaliação ainda. Ela aparece para o aluno depois que ele usa o app de verdade.")
+    else:
+        n = len(ult)
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("NPS", f"{nps:+d}", help="% de notas 9-10 menos % de notas 0-6. Vai de -100 a +100; acima de 50 é muito bom.")
+        m2.metric("Avaliações", n)
+        m3.metric("Nota média", f"{sum(r['nota'] for r in ult) / n:.1f}".replace(".", ","))
+        m4.metric("Disseram \"agora não\"", adiados)
+        st.caption(f"😀 Promotores (9-10): **{prom}** ({100 * prom / n:.0f}%) · 😐 Neutros (7-8): **{neu}** "
+                   f"({100 * neu / n:.0f}%) · 🙁 Detratores (0-6): **{det}** ({100 * det / n:.0f}%)")
+        dist = [sum(1 for r in ult if r["nota"] == k) for k in range(11)]
+        grafico_barras([str(k) for k in range(11)], dist, texto=lambda v: str(int(v)) if v else "")
+        com = [r for r in ult if r["comentario"]]
+        st.markdown(f"**Comentários ({len(com)})**")
+        if com:
+            st.dataframe(pd.DataFrame([{
+                "Data": f"{_local(r['criado_em']):%d/%m/%Y}", "Aluno": r["nome"], "Nota": r["nota"],
+                "Trilha": SAT_TRILHAS.get(r["trilha"], r["trilha"]),
+                "Acesso": "avaliação" if r["acesso_tipo"] == "avaliacao" else "pago",
+                "Comentário": r["comentario"]} for r in sorted(com, key=lambda r: r["criado_em"], reverse=True)]),
+                hide_index=True, width="stretch")
+        else:
+            st.caption("Ninguém escreveu comentário ainda.")
+
+    st.subheader("Uso do app")
+    st.caption("O comportamento confirma (ou desmente) a nota: aluno satisfeito volta e continua resolvendo questões.")
+    u = db.um(
+        """SELECT COUNT(*) AS alunos,
+                  COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM resposta r WHERE r.usuario_id = u.id
+                                                   AND r.respondida_em > now() - interval '7 days')) AS ativos7,
+                  COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM resposta r WHERE r.usuario_id = u.id
+                                                   AND r.respondida_em > now() - interval '30 days')) AS ativos30,
+                  COUNT(*) FILTER (WHERE (SELECT COUNT(DISTINCT (r.respondida_em AT TIME ZONE 'America/Campo_Grande')::date)
+                                          FROM resposta r WHERE r.usuario_id = u.id) >= 2) AS voltaram,
+                  COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM simulado s WHERE s.usuario_id = u.id
+                                                   AND s.status = 'finalizado')) AS com_simulado,
+                  COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM material_download d WHERE d.usuario_id = u.id)) AS baixaram,
+                  COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM acesso_log l WHERE l.usuario_id = u.id
+                                                   AND l.evento IN ('cadastro_proprio', 'acesso_avaliacao'))) AS avaliaram,
+                  COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM acesso_log l WHERE l.usuario_id = u.id
+                                                   AND l.evento IN ('cadastro_proprio', 'acesso_avaliacao'))
+                                     AND EXISTS (SELECT 1 FROM pagamento g WHERE g.usuario_id = u.id)) AS converteram,
+                  (SELECT COUNT(*) FROM resposta r JOIN usuario x ON x.id = r.usuario_id
+                    WHERE x.perfil = 'aluno' AND r.respondida_em > now() - interval '7 days'"""
+        + ("" if tr == "todas" else " AND x.concurso = %(tr)s") + """) AS resp7
+           FROM usuario u WHERE u.perfil = 'aluno' AND u.ativo""" + f_usu, p)
+    tot = u["alunos"] or 0
+    pct = lambda v: f"{v} ({100 * v / tot:.0f}%)" if tot else str(v)
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Alunos", tot)
+    m2.metric("Ativos (7 dias)", u["ativos7"], help="Responderam ao menos 1 questão nos últimos 7 dias.")
+    m3.metric("Ativos (30 dias)", u["ativos30"])
+    m4.metric("Questões/ativo na semana", f"{u['resp7'] / u['ativos7']:.0f}" if u["ativos7"] else "—")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Voltaram em 2+ dias", pct(u["voltaram"]))
+    m2.metric("Fizeram simulado", pct(u["com_simulado"]))
+    m3.metric("Baixaram PDF", pct(u["baixaram"]))
+    conv = f"{100 * u['converteram'] / u['avaliaram']:.0f}%" if u["avaliaram"] else "—"
+    m4.metric("Avaliação → pago", f"{conv} ({u['converteram']} de {u['avaliaram']})" if u["avaliaram"] else conv,
+              help="Dos alunos que entraram pela avaliação grátis, quantos registraram pagamento.")
+
+    with st.expander("Uso por aluno (com a última nota)"):
+        linhas = db.consultar(
+            """SELECT u.nome, u.login, u.concurso,
+                      (SELECT COUNT(DISTINCT r.questao_id) FROM resposta r WHERE r.usuario_id = u.id) AS questoes,
+                      (SELECT COUNT(*) FROM resposta r WHERE r.usuario_id = u.id
+                         AND r.respondida_em > now() - interval '7 days') AS semana,
+                      (SELECT COUNT(DISTINCT (r.respondida_em AT TIME ZONE 'America/Campo_Grande')::date)
+                         FROM resposta r WHERE r.usuario_id = u.id) AS dias,
+                      (SELECT COUNT(*) FROM simulado s WHERE s.usuario_id = u.id AND s.status = 'finalizado') AS simulados,
+                      (SELECT COUNT(DISTINCT d.material_id) FROM material_download d WHERE d.usuario_id = u.id) AS pdfs,
+                      (SELECT MAX(r.respondida_em) FROM resposta r WHERE r.usuario_id = u.id) AS ultimo,
+                      (SELECT s.nota FROM satisfacao s WHERE s.usuario_id = u.id AND s.nota IS NOT NULL
+                         ORDER BY s.criado_em DESC LIMIT 1) AS nota
+               FROM usuario u WHERE u.perfil = 'aluno' AND u.ativo""" + f_usu + " ORDER BY questoes DESC, u.nome", p)
+        if linhas:
+            st.dataframe(pd.DataFrame([{
+                "Aluno": l["nome"], "Usuário": l["login"], "Concurso": CONCURSOS_CURTO.get(l["concurso"], l["concurso"]),
+                "Questões": l["questoes"], "Na semana": l["semana"], "Dias de uso": l["dias"],
+                "Simulados": l["simulados"], "PDFs": l["pdfs"],
+                "Último uso": f"{_local(l['ultimo']):%d/%m/%Y}" if l["ultimo"] else "—",
+                "Nota": "—" if l["nota"] is None else str(l["nota"])} for l in linhas]), hide_index=True, width="stretch")
+            st.caption("Atenção a quem deu nota alta e parou de usar: a nota foi educação, não satisfação. "
+                       "E a quem usa muito e deu nota baixa: costuma ser quem mais tem a dizer.")
+        else:
+            st.caption("Nenhum aluno nesta trilha.")
+
+
 # ======================================================================= ACESSO E PAGAMENTO
 # Aluno com usuario.acesso_ate preenchido só usa o app até essa data (NULL = sem prazo). Equipe nunca é bloqueada.
 # Pagamento: Pix com QR Code gerado pelo próprio app (sem intermediário e sem taxa). O aluno paga, manda o comprovante
@@ -3185,6 +3367,16 @@ def tela_conta(usuario: dict):
     st.header("Minha conta")
     st.write(f"**{usuario['nome']}** · usuário `{usuario['login']}` · {auth.PERFIS[usuario['perfil']]}")
     atual = _acesso(usuario["id"])["concurso"] or "cfs"
+    if usuario["perfil"] == "aluno":
+        # Cada trilha é um produto: o aluno não troca o concurso sozinho (só o administrador, em Usuários).
+        st.markdown(f"**Concurso:** {CONCURSOS.get(atual, atual)}")
+        st.caption("Para mudar de concurso (por exemplo, do CFS para o Provão), fale com o administrador.")
+        if atual not in CONCURSOS_COM_CONTEUDO:
+            st.info(f"O conteúdo próprio do {CONCURSOS_CURTO[atual]} está em preparação. Enquanto isso, use o do CFS PMMS: "
+                    "a legislação da PMMS é a mesma base.")
+        st.subheader("Trocar senha")
+        tela_trocar_senha(usuario, obrigatoria=False)
+        return
     escolha = _chave(CONCURSOS, st.selectbox("Concurso que vou fazer", list(CONCURSOS.values()),
                                              index=list(CONCURSOS).index(atual) if atual in CONCURSOS else 0,
                                              key="mc_conc"))
@@ -3264,7 +3456,8 @@ if st.session_state.pop("boas_vindas", False):
 ICONES_MENU = {"Resolver questões": ":material/edit_note:", "Simulados": ":material/timer:",
                "Materiais": ":material/menu_book:", "Meu desempenho": ":material/insights:",
                "Revisão da equipe": ":material/fact_check:", "Usuários": ":material/group:",
-               "Financeiro": ":material/payments:", "Biblioteca": ":material/local_library:",
+               "Financeiro": ":material/payments:", "Satisfação": ":material/sentiment_satisfied:",
+               "Biblioteca": ":material/local_library:",
                "Minha conta": ":material/account_circle:"}
 # Menu lateral como lista de navegação: some a bolinha do rádio e a opção ativa ganha destaque.
 CSS_MENU = """<style>
@@ -3285,6 +3478,7 @@ if usuario["perfil"] in ("admin", "revisor"):
 if usuario["perfil"] == "admin":
     TELAS["Usuários"] = tela_usuarios
     TELAS["Financeiro"] = tela_financeiro
+    TELAS["Satisfação"] = tela_satisfacao
     TELAS["Biblioteca"] = tela_biblioteca
 TELAS["Minha conta"] = tela_conta
 
@@ -3312,4 +3506,5 @@ with st.sidebar:
 
 if edital_atual() is None:
     st.info("O conteúdo desta trilha ainda está sendo preparado. Volte em breve.")
+caixa_satisfacao(usuario, acesso)
 TELAS[escolha](usuario)
