@@ -1890,8 +1890,9 @@ def tela_materiais(usuario: dict):
         return
     pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
     leis = sorted({m["lei"] for m in mats}, key=lambda s: (pos.get(s, len(pos)), s))
+    _indice_materiais(mats, leis)
     for lei in leis:
-        st.subheader(lei)
+        st.subheader(lei, anchor=_ancora_lei(lei))
         _revisao_lei(lei, usuario)
         for m in [m for m in mats if m["lei"] == lei]:
             with st.container(border=True):
@@ -1922,6 +1923,40 @@ def tela_materiais(usuario: dict):
                     c2.download_button("📥 Baixar o PDF", data=pronto[0], file_name=_nome_arquivo(m["titulo"], usuario["login"]),
                                        mime="application/pdf", key=f"mat_dl_{m['id']}", width="stretch", type="primary")
                     st.caption(f"Pronto. Código deste PDF: **{pronto[1]}**.")
+        st.markdown('<div style="text-align:right;font-size:0.85rem"><a href="#indice-materiais" target="_self">'
+                    '↑ voltar ao índice</a></div>', unsafe_allow_html=True)
+
+
+def _ancora_lei(lei: str) -> str:
+    """'Ordem Unida' → 'mat-ordem-unida' (âncora do título de cada matéria na tela de Materiais)."""
+    t = unicodedata.normalize("NFKD", lei).encode("ascii", "ignore").decode().lower()
+    return "mat-" + (re.sub(r"[^a-z0-9]+", "-", t).strip("-") or "geral")
+
+
+def _indice_materiais(mats: list, leis: list) -> None:
+    """Total de PDFs + índice clicável das matérias: no topo da tela e no menu lateral (abaixo do menu)."""
+    n_lei = {lei: sum(1 for m in mats if m["lei"] == lei) for lei in leis}
+    n_tipo = {}
+    for m in mats:
+        n_tipo[m["tipo"]] = n_tipo.get(m["tipo"], 0) + 1
+    ordem_tipos = [t for t in TIPOS_MATERIAL if t in n_tipo] + [t for t in n_tipo if t not in TIPOS_MATERIAL]
+    nomes = {"lei": ("lei seca comentada", "leis secas comentadas"), "resumo": ("resumo", "resumos"),
+             "mapa": ("mapa mental", "mapas mentais"), "relatorio": ("relatório de revisão", "relatórios de revisão")}
+    partes = " · ".join(f"{n_tipo[t]} {nomes.get(t, (t, t))[n_tipo[t] > 1]}" for t in ordem_tipos)
+    rascunhos = sum(1 for m in mats if not m["publicado"])
+    extra = f" · 🔒 {rascunhos} em rascunho (só a equipe vê)" if rascunhos else ""
+    links = [f'<a href="#{_ancora_lei(lei)}" target="_self">{esc(lei)}</a>&nbsp;<span style="opacity:.6">({n_lei[lei]})</span>'
+             for lei in leis]
+    st.markdown('<div id="indice-materiais"></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(f"📚 **{len(mats)} PDFs em {len(leis)} matérias**  \n{partes}{extra}")
+        with st.expander("Ir direto para a matéria", expanded=False):
+            st.markdown("<div style='line-height:2'>" + " &nbsp;·&nbsp; ".join(links) + "</div>", unsafe_allow_html=True)
+    with st.sidebar:
+        st.divider()
+        st.markdown(f"**📚 Materiais** <span style='opacity:.6'>({len(mats)} PDFs)</span>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.88rem;line-height:1.9'>" + "<br>".join(links) + "</div>",
+                    unsafe_allow_html=True)
 
 
 PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "LC 053/90", "mariadapenha": "Lei 11.340/06",
