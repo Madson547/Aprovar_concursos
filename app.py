@@ -1952,9 +1952,8 @@ def _indice_materiais(mats: list, leis: list) -> None:
         st.markdown(f"📚 **{len(mats)} PDFs em {len(leis)} matérias**  \n{partes}{extra}")
         with st.expander("Ir direto para a matéria", expanded=False):
             st.markdown("<div style='line-height:2'>" + " &nbsp;·&nbsp; ".join(links) + "</div>", unsafe_allow_html=True)
-    with st.sidebar:
-        st.divider()
-        st.markdown(f"**📚 Materiais** <span style='opacity:.6'>({len(mats)} PDFs)</span>", unsafe_allow_html=True)
+    with globals().get("SLOT_MENU") or st.sidebar:
+        st.markdown(f"**📚 Ir para a matéria** <span style='opacity:.6'>({len(mats)} PDFs)</span>", unsafe_allow_html=True)
         st.markdown("<div style='font-size:0.88rem;line-height:1.9'>" + "<br>".join(links) + "</div>",
                     unsafe_allow_html=True)
 
@@ -3543,6 +3542,7 @@ with st.sidebar:
     st.markdown(CSS_MENU, unsafe_allow_html=True)
     escolha = st.radio("Menu", list(TELAS), key="menu", label_visibility="collapsed",
                        format_func=lambda t: f"{ICONES_MENU.get(t, ':material/chevron_right:')} {t}")
+    SLOT_MENU = st.container()  # logo abaixo do menu: a tela de Materiais põe aqui o índice das matérias
     st.button("Sair", width="stretch", on_click=_sair, args=(usuario["id"],))
 
 if edital_atual() is None:
