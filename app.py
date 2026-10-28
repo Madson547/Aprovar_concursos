@@ -1980,7 +1980,7 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "transito": "Policiamento de Trânsito", "contran": "Policiamento de Trânsito",
                      "impo": "Instrumentos de Menor Potencial Ofensivo", "eventos": "Policiamento em Eventos",
                      "ambiental": "Legislação Ambiental", "comunicacao": "Comunicação Social e Imagem Institucional",
-                     "armamento": "Armamento e Munição I", "ordemunida": "Ordem Unida"}
+                     "armamento": "Armamento e Munição I", "ordemunida": "Ordem Unida", "cp": "Direito Penal"}
 TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
 TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
                "relatorio": "Relatório de revisão"}
