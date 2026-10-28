@@ -604,7 +604,9 @@ ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM",
                 "Atendimento à Pessoa com TEA", "Direito Processual Penal", "Técnicas de Policiamento Ostensivo",
                 "Uso Diferenciado da Força", "Atendimento Pré-Hospitalar (APH)", "Inteligência de Segurança Pública",
                 "Tópicos Especiais: Abuso de Autoridade e Maria da Penha", "Direitos Humanos",
-                "Processos e Procedimentos Administrativos", "Policiamento de Choque", "Legislação Policial-Militar"]
+                "Processos e Procedimentos Administrativos", "Policiamento de Choque", "Legislação Policial-Militar",
+                "Policiamento de Trânsito", "Instrumentos de Menor Potencial Ofensivo", "Policiamento em Eventos",
+                "Legislação Ambiental", "Comunicação Social e Imagem Institucional", "Armamento e Munição I", "Ordem Unida"]
 
 
 def _chave(dicionario: dict, rotulo):
@@ -1940,7 +1942,11 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "processos": "Processos e Procedimentos Administrativos", "p187": "Processos e Procedimentos Administrativos",
                      "bravura": "Processos e Procedimentos Administrativos", "dec2426": "Processos e Procedimentos Administrativos",
                      "dpm": "Direito Penal Militar", "penalmilitar": "Direito Penal Militar",
-                     "legpm": "Legislação Policial-Militar", "legislacaopm": "Legislação Policial-Militar"}
+                     "legpm": "Legislação Policial-Militar", "legislacaopm": "Legislação Policial-Militar",
+                     "transito": "Policiamento de Trânsito", "contran": "Policiamento de Trânsito",
+                     "impo": "Instrumentos de Menor Potencial Ofensivo", "eventos": "Policiamento em Eventos",
+                     "ambiental": "Legislação Ambiental", "comunicacao": "Comunicação Social e Imagem Institucional",
+                     "armamento": "Armamento e Munição I", "ordemunida": "Ordem Unida"}
 TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
 TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
                "relatorio": "Relatório de revisão"}
