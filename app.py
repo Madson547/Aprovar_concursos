@@ -2213,13 +2213,33 @@ def _registrar_video(m: dict, usuario: dict):
     st.session_state[f"mat_vid_{m['id']}"] = codigo
 
 
+def _youtube(url: str) -> tuple[str | None, bool]:
+    """Código do vídeo e se é Short (vertical). Aceita youtube.com/watch?v=, youtu.be/, /shorts/, /embed/ e /live/."""
+    m = re.search(r"(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|shorts/|embed/|live/|v/))([\w-]{10,20})",
+                  url or "")
+    return (m.group(1), "/shorts/" in url) if m else (None, False)
+
+
 @st.dialog("🎬 Assistir", width="large")
 def _player_video(m: dict):
     st.markdown(f"**{esc(m['titulo'])}**", unsafe_allow_html=True)
-    if m.get("url"):
-        st.video(m["url"])
+    url = (m.get("url") or "").strip()
+    vid, short = _youtube(url)
+    if vid and short:
+        # Short é vertical: player em pé, centralizado (o st.video não reconhece links /shorts/)
+        components.html(
+            f'<div style="display:flex;justify-content:center"><iframe src="https://www.youtube.com/embed/{vid}?rel=0" '
+            'style="width:min(100%,360px);aspect-ratio:9/16;border:0;border-radius:12px" '
+            'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" '
+            'allowfullscreen></iframe></div>', height=650)
+    elif vid:
+        st.video(f"https://www.youtube.com/watch?v={vid}")
+    elif url:
+        st.video(url)
     else:
         st.warning("Este vídeo ainda está sem link.")
+    if url:
+        st.caption(f"Não carregou? [Abrir no YouTube]({url})")
 
 
 PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "LC 053/90", "mariadapenha": "Lei 11.340/06",
