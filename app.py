@@ -1695,8 +1695,9 @@ def _historico_simulados(usuario: dict):
 # Resumos e mapas mentais em PDF. O arquivo fica "limpo" no banco; na hora do download o app carimba
 # em todas as páginas o nome, o usuário, a data e um código único (registrado em material_download).
 TIPOS_MATERIAL = {"lei": "Lei seca comentada", "resumo": "Resumo em PDF", "mapa": "Mapa mental",
-                  "relatorio": "Relatório de revisão"}
-ORDEM_TIPO_SQL = "CASE tipo WHEN 'lei' THEN 1 WHEN 'resumo' THEN 2 WHEN 'mapa' THEN 3 ELSE 4 END"
+                  "relatorio": "Relatório de revisão", "bizu": "Ficha de bizu", "video": "Vídeo"}
+ORDEM_TIPO_SQL = ("CASE tipo WHEN 'video' THEN 0 WHEN 'bizu' THEN 1 WHEN 'lei' THEN 2 WHEN 'resumo' THEN 3 "
+                  "WHEN 'mapa' THEN 4 ELSE 5 END")
 LIMITE_MATERIAL_MB = 15
 
 
@@ -1716,7 +1717,14 @@ def _garante_materiais() -> bool:
                baixado_em TIMESTAMPTZ NOT NULL DEFAULT now())""")
     # tipos aceitos (inclui 'lei' = lei seca comentada); refaz a regra caso a tabela venha da versão anterior
     db.executar("ALTER TABLE material_estudo DROP CONSTRAINT IF EXISTS material_estudo_tipo_check")
-    db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio'))")
+    db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check "
+                "CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio', 'bizu', 'video'))")
+    # vídeo = link (YouTube não listado); não guarda arquivo no banco
+    db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS url TEXT")
+    db.executar("ALTER TABLE material_estudo ALTER COLUMN arquivo DROP NOT NULL")
+    db.executar("""CREATE TABLE IF NOT EXISTS material_favorito (
+                       usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE, lei TEXT NOT NULL,
+                       criado_em TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (usuario_id, lei))""")
     # trilha do material: 'cfs', 'provao' ou 'todas' (os materiais antigos ficam no CFS)
     db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS trilha TEXT NOT NULL DEFAULT 'cfs'")
     # uso do material: cada linha de material_download é uma cópia carimbada (um código) aberta pelo aluno.
@@ -2024,49 +2032,144 @@ def _revisao_lei(sigla: str, usuario: dict):
             st.caption("\"Onde a turma mais erra\" aparece aqui quando houver respostas suficientes nesta lei.")
 
 
+MATERIA_BIZUS = "Bizus de Prova"     # matéria especial: vídeos-bizu e fichas de bizu de todas as matérias
+ICONE_TIPO = {"video": "🎬", "bizu": "🎯", "lei": "📜", "resumo": "📄", "mapa": "🧠", "relatorio": "📊"}
+
+
+def _ancora_lei(lei: str) -> str:
+    """'Ordem Unida' → 'mat-ordem-unida' (chave estável de cada matéria na tela de Materiais)."""
+    t = unicodedata.normalize("NFKD", lei).encode("ascii", "ignore").decode().lower()
+    return "mat-" + (re.sub(r"[^a-z0-9]+", "-", t).strip("-") or "geral")
+
+
+def _favoritas(uid: int) -> set[str]:
+    return {r["lei"] for r in db.consultar("SELECT lei FROM material_favorito WHERE usuario_id = %s", (uid,))}
+
+
+def _alternar_favorita(uid: int, lei: str):
+    if db.um("SELECT 1 AS ok FROM material_favorito WHERE usuario_id = %s AND lei = %s", (uid, lei)):
+        db.executar("DELETE FROM material_favorito WHERE usuario_id = %s AND lei = %s", (uid, lei))
+    else:
+        db.executar("INSERT INTO material_favorito (usuario_id, lei) VALUES (%s, %s) ON CONFLICT DO NOTHING", (uid, lei))
+
+
+def _abrir_materia(lei: str | None):
+    if lei is None:
+        st.session_state.pop("mat_materia", None)
+    else:
+        st.session_state["mat_materia"] = lei
+
+
+def _contagem(itens: list) -> str:
+    v = sum(1 for m in itens if m["tipo"] == "video")
+    p = len(itens) - v
+    partes = ([f"{p} PDF" + ("s" if p != 1 else "")] if p else []) + ([f"{v} vídeo" + ("s" if v != 1 else "")] if v else [])
+    return " · ".join(partes)
+
+
 def tela_materiais(usuario: dict):
-    st.header("Materiais")
     _garante_materiais()
     equipe = usuario["perfil"] in ("admin", "revisor")
-    st.caption("Lei seca comentada, resumos, mapas mentais e relatórios de revisão, feitos a partir do texto oficial "
-               "das leis. Toque em **Estudar agora** para ler direto no app; se preferir, baixe o PDF no fim da leitura. "
-               "Cada cópia sai com o **seu nome e um código** em todas as páginas: é para seu estudo, não compartilhe.")
+    mats = db.consultar(
+        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado, trilha, url, atualizado_em FROM material_estudo "
+        f"WHERE (publicado OR %s) AND trilha IN (%s, 'todas') ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo",
+        (equipe, trilha_atual()))
+    abertos = {r["material_id"]: r["pg"] for r in db.consultar(
+        "SELECT material_id, MAX(COALESCE(maior_pagina, 0)) AS pg FROM material_download WHERE usuario_id = %s "
+        "GROUP BY material_id", (usuario["id"],))}
+    lei_aberta = st.session_state.get("mat_materia")
+    if lei_aberta and any(m["lei"] == lei_aberta for m in mats):
+        _tela_materia(lei_aberta, [m for m in mats if m["lei"] == lei_aberta], abertos, usuario)
+        return
+
+    st.header("Materiais")
+    st.caption("Escolha a matéria: lá dentro estão os vídeos e os PDFs (lei seca comentada, resumos, mapas mentais, "
+               "fichas de bizu e relatórios). Os PDFs abrem direto no app, com o **seu nome e um código** em todas as "
+               "páginas: é para seu estudo, não compartilhe.")
     if usuario["perfil"] == "admin":
         with st.expander("⚙️ Gerenciar materiais (só administrador)"):
             _gerenciar_materiais(usuario)
-    avaliacao = em_avaliacao(usuario)
-    baixados = _pdfs_baixados(usuario["id"]) if avaliacao else set()
-    if avaliacao:
+    if em_avaliacao(usuario):
         with st.container(border=True):
-            st.markdown("**Você está na avaliação grátis.** Pode baixar **1 PDF** (um resumo ou um mapa mental, da lei que "
-                        "escolher). A lei seca comentada, o relatório e todos os outros PDFs são liberados na aquisição.")
+            st.markdown("**Você está na avaliação grátis.** Os vídeos estão liberados e você pode abrir **1 PDF** (um "
+                        "resumo, mapa mental ou ficha de bizu, da matéria que escolher). O resto é liberado na aquisição.")
             with st.popover("💳 Adquirir acesso"):
                 _bloco_pagamento(usuario)
-
-    mats = db.consultar(
-        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado, trilha FROM material_estudo "
-        f"WHERE (publicado OR %s) AND trilha IN (%s, 'todas') ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo",
-        (equipe, trilha_atual()))
     if not mats:
         st.info("Ainda não há materiais publicados. Eles vão aparecer aqui.")
         return
+
+    favs = _favoritas(usuario["id"])
     pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
-    leis = sorted({m["lei"] for m in mats}, key=lambda s: (pos.get(s, len(pos)), s))
-    progresso = {r["material_id"]: r["pg"] for r in db.consultar(
-        "SELECT material_id, MAX(maior_pagina) AS pg FROM material_download WHERE usuario_id = %s AND maior_pagina IS NOT NULL "
-        "GROUP BY material_id", (usuario["id"],))}
-    _indice_materiais(mats, leis)
-    for lei in leis:
-        st.subheader(lei, anchor=_ancora_lei(lei))
-        _revisao_lei(lei, usuario)
-        for m in [m for m in mats if m["lei"] == lei]:
+    leis = sorted({m["lei"] for m in mats},
+                  key=lambda s: (s not in favs, s != MATERIA_BIZUS, pos.get(s, len(pos)), s))
+    n_v = sum(1 for m in mats if m["tipo"] == "video")
+    st.markdown(f"📚 **{len(leis)} matérias** · {_contagem(mats)}"
+                + (" · ⭐ suas favoritas aparecem primeiro" if favs else " · toque na ☆ para favoritar uma matéria"))
+    busca = st.text_input("Buscar matéria", key="mat_busca", placeholder="ex.: CPPM, Choque, Maria da Penha",
+                          label_visibility="collapsed")
+    if busca.strip():
+        alvo = unicodedata.normalize("NFKD", busca.lower()).encode("ascii", "ignore").decode()
+        leis = [l for l in leis if alvo in unicodedata.normalize("NFKD", l.lower()).encode("ascii", "ignore").decode()]
+        if not leis:
+            st.caption("Nenhuma matéria com esse nome.")
+    for i in range(0, len(leis), 3):
+        cols = st.columns(3)
+        for col, lei in zip(cols, leis[i:i + 3]):
+            itens = [m for m in mats if m["lei"] == lei]
+            feitos = sum(1 for m in itens if m["id"] in abertos)
+            pct = feitos / len(itens) if itens else 0
+            ult = max(m["atualizado_em"] for m in itens)
+            rasc = sum(1 for m in itens if not m["publicado"])
+            with col.container(border=True):
+                topo = st.container(horizontal=True, vertical_alignment="top")
+                topo.markdown(f"<span style='color:#b8862b;font-size:.78rem;font-weight:700;letter-spacing:.04em'>"
+                              f"{'🎯 NOVIDADE' if lei == MATERIA_BIZUS else esc(_contagem(itens).upper())}</span>",
+                              unsafe_allow_html=True, width="stretch")
+                topo.button("★" if lei in favs else "☆", key=f"mat_fav_{_ancora_lei(lei)}", type="tertiary",
+                            help="Tirar das favoritas" if lei in favs else "Favoritar (aparece primeiro)",
+                            on_click=_alternar_favorita, args=(usuario["id"], lei))
+                st.markdown(f"<div style='font-weight:700;font-size:1.02rem;line-height:1.3;min-height:2.6em'>{esc(lei)}</div>",
+                            unsafe_allow_html=True)
+                st.caption((_contagem(itens) + " · " if lei == MATERIA_BIZUS else "")
+                           + f"Atualizado em {_local(ult):%d/%m/%Y}" + (f" · 🔒 {rasc} rascunho(s)" if rasc else ""))
+                st.progress(pct, text=f"{round(pct * 100)}% estudado ({feitos} de {len(itens)})")
+                st.button("Abrir matéria", key=f"mat_abrir_{_ancora_lei(lei)}", type="primary", width="stretch",
+                          on_click=_abrir_materia, args=(lei,))
+
+
+def _tela_materia(lei: str, itens: list, abertos: dict, usuario: dict):
+    """Página da matéria: vídeos primeiro, depois os PDFs, com o progresso do aluno."""
+    st.button("← Todas as matérias", key="mat_voltar", type="tertiary", on_click=_abrir_materia, args=(None,))
+    favs = _favoritas(usuario["id"])
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.header(lei, width="stretch")
+        st.button("★ Favorita" if lei in favs else "☆ Favoritar", key="mat_fav_pag", on_click=_alternar_favorita,
+                  args=(usuario["id"], lei))
+    feitos = sum(1 for m in itens if m["id"] in abertos)
+    st.progress(feitos / len(itens), text=f"Você já abriu {feitos} de {len(itens)} ({_contagem(itens)})")
+    _revisao_lei(lei, usuario)
+    avaliacao = em_avaliacao(usuario)
+    baixados = _pdfs_baixados(usuario["id"]) if avaliacao else set()
+    if avaliacao:
+        st.caption("Você está na avaliação grátis: vídeos liberados e **1 PDF** (resumo, mapa mental ou ficha de bizu).")
+    videos = [m for m in itens if m["tipo"] == "video"]
+    pdfs = [m for m in itens if m["tipo"] != "video"]
+    if videos:
+        st.subheader("🎬 Vídeos")
+        for m in videos:
             with st.container(border=True):
-                rascunho = "" if m["publicado"] else " · 🔒 rascunho (alunos ainda não veem)"
-                st.markdown(f"**{esc(m['titulo'])}**", unsafe_allow_html=True)
-                st.caption(f"{TIPOS_MATERIAL.get(m['tipo'], m['tipo'])} · {m['paginas'] or '?'} página(s) · "
-                           f"{_mb(m['tamanho'])}{rascunho}")
-                if m["descricao"]:
-                    st.write(m["descricao"])
+                _cabecalho_item(m, abertos)
+                if usuario["perfil"] == "admin":
+                    _acoes_material(m, usuario)
+                if st.button("▶ Assistir", key=f"mat_ver_{m['id']}", type="primary"):
+                    _registrar_video(m, usuario)
+                    _player_video(m)
+    if pdfs:
+        st.subheader("📄 PDFs")
+        for m in pdfs:
+            with st.container(border=True):
+                _cabecalho_item(m, abertos)
                 if usuario["perfil"] == "admin":
                     _acoes_material(m, usuario)
                 if avaliacao:
@@ -2076,51 +2179,47 @@ def tela_materiais(usuario: dict):
                     if baixados and m["id"] not in baixados and len(baixados) >= AVALIACAO_PDFS:
                         st.caption("🔒 Você já usou o seu PDF grátis da avaliação. Os demais são liberados na aquisição.")
                         continue
-                    st.caption("🎁 Na avaliação você pode baixar **1** resumo ou mapa mental, de uma lei à sua escolha.")
-                lido = progresso.get(m["id"])
-                c1, c2 = st.columns([1, 1.4])
-                if c1.button("📖 Estudar agora", key=f"mat_prep_{m['id']}", width="stretch", type="primary"):
+                    st.caption("🎁 Na avaliação você pode abrir **1** resumo, mapa mental ou ficha de bizu.")
+                if st.button("📖 Estudar agora", key=f"mat_prep_{m['id']}", type="primary"):
                     with st.spinner("Preparando sua cópia..."):
                         _preparar_material(m, usuario)
                     _leitor_material(m, usuario)
-                if lido:
-                    c2.caption(f"Você já leu até a página {lido} de {m['paginas'] or '?'}.")
                 pronto = st.session_state.get(f"mat_pdf_{m['id']}")
                 if pronto:
                     st.caption(f"Código da sua cópia: **{pronto[1]}**.")
-        st.markdown('<div style="text-align:right;font-size:0.85rem"><a href="#indice-materiais" target="_self">'
-                    '↑ voltar ao índice</a></div>', unsafe_allow_html=True)
 
 
-def _ancora_lei(lei: str) -> str:
-    """'Ordem Unida' → 'mat-ordem-unida' (âncora do título de cada matéria na tela de Materiais)."""
-    t = unicodedata.normalize("NFKD", lei).encode("ascii", "ignore").decode().lower()
-    return "mat-" + (re.sub(r"[^a-z0-9]+", "-", t).strip("-") or "geral")
+def _cabecalho_item(m: dict, abertos: dict):
+    rasc = "" if m["publicado"] else " · 🔒 rascunho (alunos ainda não veem)"
+    feito = " · ✅ já abriu" if m["id"] in abertos else ""
+    if m["tipo"] != "video" and abertos.get(m["id"]):
+        feito = f" · ✅ leu até a pág. {abertos[m['id']]}"
+    st.markdown(f"{ICONE_TIPO.get(m['tipo'], '📄')} **{esc(m['titulo'])}**", unsafe_allow_html=True)
+    info = TIPOS_MATERIAL.get(m["tipo"], m["tipo"])
+    if m["tipo"] != "video":
+        info += f" · {m['paginas'] or '?'} página(s)"
+    st.caption(info + feito + rasc)
+    if m["descricao"]:
+        st.write(m["descricao"])
 
 
-def _indice_materiais(mats: list, leis: list) -> None:
-    """Total de PDFs + índice clicável das matérias: no topo da tela e no menu lateral (abaixo do menu)."""
-    n_lei = {lei: sum(1 for m in mats if m["lei"] == lei) for lei in leis}
-    n_tipo = {}
-    for m in mats:
-        n_tipo[m["tipo"]] = n_tipo.get(m["tipo"], 0) + 1
-    ordem_tipos = [t for t in TIPOS_MATERIAL if t in n_tipo] + [t for t in n_tipo if t not in TIPOS_MATERIAL]
-    nomes = {"lei": ("lei seca comentada", "leis secas comentadas"), "resumo": ("resumo", "resumos"),
-             "mapa": ("mapa mental", "mapas mentais"), "relatorio": ("relatório de revisão", "relatórios de revisão")}
-    partes = " · ".join(f"{n_tipo[t]} {nomes.get(t, (t, t))[n_tipo[t] > 1]}" for t in ordem_tipos)
-    rascunhos = sum(1 for m in mats if not m["publicado"])
-    extra = f" · 🔒 {rascunhos} em rascunho (só a equipe vê)" if rascunhos else ""
-    links = [f'<a href="#{_ancora_lei(lei)}" target="_self">{esc(lei)}</a>&nbsp;<span style="opacity:.6">({n_lei[lei]})</span>'
-             for lei in leis]
-    st.markdown('<div id="indice-materiais"></div>', unsafe_allow_html=True)
-    with st.container(border=True):
-        st.markdown(f"📚 **{len(mats)} PDFs em {len(leis)} matérias**  \n{partes}{extra}")
-        with st.expander("Ir direto para a matéria", expanded=False):
-            st.markdown("<div style='line-height:2'>" + " &nbsp;·&nbsp; ".join(links) + "</div>", unsafe_allow_html=True)
-    with globals().get("SLOT_MENU") or st.sidebar:
-        st.markdown(f"**📚 Ir para a matéria** <span style='opacity:.6'>({len(mats)} PDFs)</span>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:0.88rem;line-height:1.9'>" + "<br>".join(links) + "</div>",
-                    unsafe_allow_html=True)
+def _registrar_video(m: dict, usuario: dict):
+    """Abrir um vídeo conta no progresso (uma vez por sessão)."""
+    if st.session_state.get(f"mat_vid_{m['id']}"):
+        return
+    codigo = "V" + secrets.token_hex(4).upper()
+    db.executar("INSERT INTO material_download (material_id, usuario_id, codigo, modo, lido_em) VALUES (%s, %s, %s, 'video', now())",
+                (m["id"], usuario["id"], codigo))
+    st.session_state[f"mat_vid_{m['id']}"] = codigo
+
+
+@st.dialog("🎬 Assistir", width="large")
+def _player_video(m: dict):
+    st.markdown(f"**{esc(m['titulo'])}**", unsafe_allow_html=True)
+    if m.get("url"):
+        st.video(m["url"])
+    else:
+        st.warning("Este vídeo ainda está sem link.")
 
 
 PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "LC 053/90", "mariadapenha": "Lei 11.340/06",
@@ -2148,22 +2247,25 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "armamento": "Armamento e Munição I", "ordemunida": "Ordem Unida", "cp": "Direito Penal"}
 TRILHA_MATERIAL = {"cfs": "Só CFS", "provao": "Só Provão CFS 2026", "todas": "As duas trilhas"}
 TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "mapa": "Mapa mental",
-               "relatorio": "Relatório de revisão"}
+               "relatorio": "Relatório de revisão", "bizu": "Ficha de bizu", "video": "Vídeo"}
 
 
 def _leis_material() -> list[str]:
     materias = [m["nome"] for m in db.consultar("SELECT nome FROM materia WHERE nome <> 'Legislação' ORDER BY id")]
-    return materias + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
+    return [MATERIA_BIZUS] + materias + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
 
 
 def _adivinhar_material(nome_arquivo: str, leis: list[str]) -> tuple[str, str, str]:
     """'lc190_resumo.pdf' → ('LC 190/14 · Resumo esquematizado', 'LC 190/14', 'resumo'). O que não reconhecer vai como 'Geral'."""
     base = re.sub(r"\s*\(\d+\)$", "", re.sub(r"\.pdf$", "", nome_arquivo.strip().lower()))
     partes = re.split(r"[_\-\s]+", base)
-    tipo = next((t for t in ("relatorio", "resumo", "mapa", "lei") if t in partes), "resumo")
-    lei = next((PREFIXOS_MATERIAL[p] for p in partes if p in PREFIXOS_MATERIAL), "Geral")
+    tipo = next((t for t in ("bizu", "relatorio", "resumo", "mapa", "lei") if t in partes), "resumo")
+    lei = MATERIA_BIZUS if tipo == "bizu" else next((PREFIXOS_MATERIAL[p] for p in partes if p in PREFIXOS_MATERIAL), "Geral")
     if lei not in leis:
         lei = "Geral"
+    if tipo == "bizu":
+        resto = " ".join(p for p in partes if p != "bizu").strip() or "tema"
+        return f"Bizu · {resto.capitalize()}", lei, tipo
     titulo = f"{lei} · {TITULO_TIPO[tipo]}" if lei != "Geral" else nome_arquivo.rsplit(".", 1)[0]
     return titulo, lei, tipo
 
@@ -2205,7 +2307,7 @@ def _acoes_material(m: dict, usuario: dict):
             titulo = st.text_input("Título", value=m["titulo"], key=f"mat_ed_tit_{mid}")
             lei = st.selectbox("Lei / matéria", leis, index=leis.index(m["lei"]) if m["lei"] in leis else len(leis) - 1,
                                key=f"mat_ed_lei_{mid}")
-            tipos = list(TIPOS_MATERIAL)
+            tipos = ["video"] if m["tipo"] == "video" else [t for t in TIPOS_MATERIAL if t != "video"]
             tipo = st.selectbox("Tipo", tipos, index=tipos.index(m["tipo"]) if m["tipo"] in tipos else 0,
                                 format_func=TIPOS_MATERIAL.get, key=f"mat_ed_tipo_{mid}")
             trilhas = list(TRILHA_MATERIAL)
@@ -2213,7 +2315,12 @@ def _acoes_material(m: dict, usuario: dict):
                                   format_func=TRILHA_MATERIAL.get, key=f"mat_ed_tri_{mid}",
                                   help="Em qual trilha o material aparece para os alunos.")
             desc = st.text_area("Descrição curta (opcional)", value=m["descricao"] or "", height=68, key=f"mat_ed_desc_{mid}")
-            arq = st.file_uploader("Trocar o PDF (opcional)", type=["pdf"], key=f"mat_ed_arq_{mid}")
+            if m["tipo"] == "video":
+                url = st.text_input("Link do vídeo (YouTube)", value=m.get("url") or "", key=f"mat_ed_url_{mid}")
+                arq = None
+            else:
+                url = None
+                arq = st.file_uploader("Trocar o PDF (opcional)", type=["pdf"], key=f"mat_ed_arq_{mid}")
             salvar = st.form_submit_button("Salvar alterações", type="primary")
         if salvar:
             titulo = titulo.strip()
@@ -2223,6 +2330,8 @@ def _acoes_material(m: dict, usuario: dict):
             else:
                 db.executar("""UPDATE material_estudo SET titulo = %s, lei = %s, tipo = %s, descricao = %s, trilha = %s,
                                atualizado_em = now() WHERE id = %s""", (titulo, lei, tipo, desc.strip() or None, trilha, mid))
+                if url is not None:
+                    db.executar("UPDATE material_estudo SET url = %s WHERE id = %s", (url.strip() or None, mid))
                 if arq is not None:
                     dados = arq.getvalue()
                     pag = _ler_pdf(dados)
@@ -2240,6 +2349,31 @@ def _acoes_material(m: dict, usuario: dict):
             db.executar("DELETE FROM material_estudo WHERE id = %s", (mid,))
             st.session_state.pop(f"mat_pdf_{mid}", None)
             st.rerun()
+
+
+def _form_video(leis: list, usuario: dict):
+    """Vídeo entra como link (YouTube "não listado"): o arquivo fica no YouTube, o app só guarda o endereço."""
+    st.markdown("**Adicionar vídeo** (link do YouTube)")
+    with st.form("mat_video", clear_on_submit=True):
+        c1, c2 = st.columns([1.4, 1])
+        titulo = c1.text_input("Título", placeholder="ex.: Bizu · Flagrante tem prazo?")
+        lei = c2.selectbox("Matéria", leis, index=0)
+        url = st.text_input("Link do vídeo", placeholder="https://youtu.be/...")
+        desc = st.text_input("Descrição curta (opcional)")
+        publicar = st.checkbox("Publicar já para os alunos", value=True)
+        ok = st.form_submit_button("Guardar vídeo", type="primary")
+    if ok:
+        titulo, url = titulo.strip(), url.strip()
+        if not titulo or not re.match(r"https?://", url):
+            st.error("Preencha o título e um link que comece com http.")
+        elif db.um("SELECT 1 AS ok FROM material_estudo WHERE titulo = %s", (titulo,)):
+            st.error("Já existe um material com esse título.")
+        else:
+            db.executar("""INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado,
+                                                        enviado_por, trilha, url)
+                           VALUES (%s, %s, 'video', %s, NULL, 0, NULL, %s, %s, %s, %s)""",
+                        (titulo, lei, desc.strip() or None, publicar, usuario["id"], trilha_atual(), url))
+            st.success(f"Vídeo \"{titulo}\" guardado em {lei}.")
 
 
 def _gerenciar_materiais(usuario: dict):
@@ -2263,7 +2397,8 @@ def _gerenciar_materiais(usuario: dict):
             pd.DataFrame(linhas), hide_index=True, width="stretch", key=f"mat_lote_tab_{rodada}",
             column_config={"Arquivo": st.column_config.TextColumn(disabled=True),
                            "Lei": st.column_config.SelectboxColumn(options=leis, required=True),
-                           "Tipo": st.column_config.SelectboxColumn(options=list(TIPOS_MATERIAL.values()), required=True),
+                           "Tipo": st.column_config.SelectboxColumn(options=[v for k, v in TIPOS_MATERIAL.items() if k != "video"],
+                                                                   required=True),
                            "Publicar": st.column_config.CheckboxColumn()})
         if st.button(f"Guardar {len(arqs)} material(is)", type="primary", key=f"mat_lote_ok_{rodada}"):
             titulos = [str(t).strip() for t in tabela["Título"]]
@@ -2291,7 +2426,8 @@ def _gerenciar_materiais(usuario: dict):
         st.success(f"{msg[0]} material(is) guardado(s).")
         for e in msg[1]:
             st.error(e)
-    st.caption("Para renomear, trocar o PDF, publicar ou excluir, use os botões de cada material na lista abaixo.")
+    _form_video(leis, usuario)
+    st.caption("Para renomear, trocar o PDF ou o link, publicar ou excluir, abra a matéria e use os botões de cada material.")
 
     lista = db.consultar(
         f"""SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.trilha,
@@ -3245,7 +3381,7 @@ def _aviso_prazo(usuario: dict, acesso: dict):
 
 AVALIACAO_SIMULADOS = 1
 AVALIACAO_PDFS = 1
-AVALIACAO_TIPOS_PDF = ("resumo", "mapa")      # a lei seca comentada e o relatório ficam só para quem adquiriu
+AVALIACAO_TIPOS_PDF = ("resumo", "mapa", "bizu")      # a lei seca comentada e o relatório ficam só para quem adquiriu
 
 
 def _contador_amostra(usuario: dict):
@@ -3265,7 +3401,7 @@ def _simulados_feitos(uid: int) -> int:
 
 
 def _pdfs_baixados(uid: int) -> set[int]:
-    return {r["material_id"] for r in db.consultar("SELECT DISTINCT material_id FROM material_download WHERE usuario_id = %s",
+    return {r["material_id"] for r in db.consultar("SELECT DISTINCT material_id FROM material_download WHERE usuario_id = %s AND modo <> 'video'",
                                                     (uid,))}
 
 
@@ -3299,12 +3435,12 @@ def _uso_materiais_aluno(alvo: dict):
             WHERE d.usuario_id = %s GROUP BY m.id ORDER BY MIN(d.baixado_em)""", (alvo["id"],))
     tot = _total_pdfs(alvo.get("concurso") or "cfs")
     if not linhas:
-        st.caption(f"Ainda não abriu nenhum dos {tot} PDFs da trilha.")
+        st.caption(f"Ainda não abriu nenhum dos {tot} materiais da trilha.")
         return
     ini, fim = _local(linhas[0]["primeiro"]), _local(max(r["ultimo"] for r in linhas))
     dias = max(1, (fim.date() - ini.date()).days + 1)
     pct = round(100 * len(linhas) / tot) if tot else 0
-    st.markdown(f"Abriu **{len(linhas)} de {tot}** PDFs da trilha ({pct}%) em **{dias} dia(s)**: "
+    st.markdown(f"Abriu **{len(linhas)} de {tot}** materiais da trilha ({pct}%) em **{dias} dia(s)**: "
                 f"de {ini:%d/%m} a {fim:%d/%m}.")
     st.dataframe(pd.DataFrame([{
         "Material": r["titulo"], "Matéria": r["lei"],
@@ -3463,10 +3599,10 @@ def tela_usuarios(usuario: dict):
           .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação", "acesso": "Acesso",
                            "concurso": "Concurso", "whatsapp": "WhatsApp", "criado_em": "Cadastro",
                            "bloqueado": "Bloqueio", "ultimo_acesso": "Último acesso", "respostas": "Respostas",
-                           "pdfs": "PDFs abertos", "leitura": "Leitura", "downloads": "Downloads",
+                           "pdfs": "Materiais abertos", "leitura": "Leitura", "downloads": "Downloads",
                            "alerta": "Atenção", "pareceres": "Pareceres"}),
         hide_index=True, width="stretch")
-    st.caption("PDFs abertos = materiais diferentes que a pessoa abriu, do total publicado na trilha dela. Leitura = páginas "
+    st.caption("Materiais abertos = PDFs e vídeos diferentes que a pessoa abriu, do total publicado na trilha dela. Leitura = páginas "
                f"lidas no app sobre as páginas dos PDFs que abriu. Atenção = baixou {ALERTA_DOWNLOADS_PDF} vezes ou mais o "
                "mesmo PDF (vale olhar se a senha está sendo dividida; o app não bloqueia nada).")
 
@@ -3732,6 +3868,7 @@ ICONES_MENU = {"Resolver questões": ":material/edit_note:", "Simulados": ":mate
                "Minha conta": ":material/account_circle:"}
 # Menu lateral como lista de navegação: some a bolinha do rádio e a opção ativa ganha destaque.
 CSS_MENU = """<style>
+[data-testid="stProgress"] [role="progressbar"] > div > div > div {background-color:#4b5a23 !important}
 section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 2px; }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label {
   width: 100%; margin: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
