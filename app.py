@@ -1842,12 +1842,12 @@ def _pagina_jpg(pdf: bytes, i: int) -> bytes:
     doc = pdfium.PdfDocument(pdf)
     try:
         pg = doc[i]
-        escala = max(1.0, min(2.2, 1500 / max(pg.get_width(), 1)))   # ~1500 px de largura: dá para ampliar no celular
+        escala = max(1.0, min(2.0, 1300 / max(pg.get_width(), 1)))   # ~1300 px de largura: dá para ampliar no celular
         img = pg.render(scale=escala).to_pil().convert("RGB")
     finally:
         doc.close()
     buf = BytesIO()
-    img.save(buf, "JPEG", quality=82, optimize=True)
+    img.save(buf, "JPEG", quality=78, optimize=True)
     return buf.getvalue()
 
 
@@ -1888,7 +1888,11 @@ def _leitor_material(m: dict, usuario: dict):
     if (codigo, pg) not in vistas:
         _registrar_pagina(codigo, pg)
         vistas.add((codigo, pg))
-    st.image(cache[chave], width="stretch")
+    # <img> com largura 100%: o st.image(width="stretch") dentro do diálogo nasce com 16 px até a tela redesenhar
+    b64 = base64.b64encode(cache[chave]).decode()
+    st.markdown(f'<img src="data:image/jpeg;base64,{b64}" alt="Página {pg}" '
+                'style="width:100%;height:auto;border:1px solid rgba(128,128,128,.25);border-radius:6px">',
+                unsafe_allow_html=True)
     if n > 1:
         navegacao("base")
     if n > 3:
