@@ -1719,7 +1719,21 @@ def _garante_materiais() -> bool:
     db.executar("ALTER TABLE material_estudo ADD CONSTRAINT material_estudo_tipo_check CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio'))")
     # trilha do material: 'cfs', 'provao' ou 'todas' (os materiais antigos ficam no CFS)
     db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS trilha TEXT NOT NULL DEFAULT 'cfs'")
+    # uso do material: cada linha de material_download é uma cópia carimbada (um código) aberta pelo aluno.
+    # modo 'legado' = cópias da versão antiga (só existia "baixar"); 'estudo' = abertas no leitor do app.
+    db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS modo TEXT NOT NULL DEFAULT 'legado'")
+    db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS downloads INT NOT NULL DEFAULT 0")
+    db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS baixou_em TIMESTAMPTZ")
+    db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS maior_pagina INT")
+    db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS lido_em TIMESTAMPTZ")
+    db.executar("CREATE INDEX IF NOT EXISTS ix_material_download_usuario ON material_download (usuario_id, material_id)")
     return True
+
+
+# downloads do MESMO PDF pela mesma pessoa a partir dos quais o painel acende o alerta (não bloqueia nada)
+ALERTA_DOWNLOADS_PDF = 3
+# baixados por cópia: as cópias antigas (legado) contam como 1 download cada
+SQL_DL = "(CASE WHEN d.modo = 'legado' THEN 1 ELSE d.downloads END)"
 
 
 def _pagina_marca(largura: float, altura: float, nome: str, login: str, codigo: str, quando: str):
@@ -1789,16 +1803,102 @@ def _nome_arquivo(titulo: str, login: str) -> str:
 
 
 def _preparar_material(m: dict, usuario: dict):
-    """Gera o PDF carimbado para este usuário e registra o download com um código único."""
+    """Gera a cópia carimbada (nome, login e código único) e registra a abertura. Na mesma sessão a cópia é reaproveitada."""
+    if st.session_state.get(f"mat_pdf_{m['id']}"):
+        return
     arq = db.um("SELECT arquivo FROM material_estudo WHERE id = %s", (m["id"],))
     codigo = secrets.token_hex(3).upper()
     while db.um("SELECT 1 AS ok FROM material_download WHERE codigo = %s", (codigo,)):
         codigo = secrets.token_hex(3).upper()
     quando = f"{_local(pd.Timestamp.now(tz='UTC').to_pydatetime()):%d/%m/%Y %H:%M}"
     pdf = carimbar_pdf(bytes(arq["arquivo"]), m["titulo"], usuario["nome"], usuario["login"], codigo, quando)
-    db.executar("INSERT INTO material_download (material_id, usuario_id, codigo) VALUES (%s, %s, %s)",
+    db.executar("INSERT INTO material_download (material_id, usuario_id, codigo, modo, lido_em) VALUES (%s, %s, %s, 'estudo', now())",
                 (m["id"], usuario["id"], codigo))
     st.session_state[f"mat_pdf_{m['id']}"] = (pdf, codigo)
+
+
+def _registrar_download(codigo: str):
+    db.executar("UPDATE material_download SET downloads = downloads + 1, baixou_em = now() WHERE codigo = %s", (codigo,))
+
+
+def _registrar_pagina(codigo: str, pagina: int):
+    db.executar("""UPDATE material_download SET maior_pagina = GREATEST(COALESCE(maior_pagina, 0), %s), lido_em = now()
+                   WHERE codigo = %s""", (pagina, codigo))
+
+
+def _paginas_pdf(pdf: bytes) -> int:
+    import pypdfium2 as pdfium
+    doc = pdfium.PdfDocument(pdf)
+    try:
+        return len(doc)
+    finally:
+        doc.close()
+
+
+def _pagina_jpg(pdf: bytes, i: int) -> bytes:
+    """Página i (0..n-1) da cópia carimbada como imagem: abre em qualquer celular, sem leitor de PDF."""
+    from io import BytesIO
+    import pypdfium2 as pdfium
+    doc = pdfium.PdfDocument(pdf)
+    try:
+        pg = doc[i]
+        escala = max(1.0, min(2.2, 1500 / max(pg.get_width(), 1)))   # ~1500 px de largura: dá para ampliar no celular
+        img = pg.render(scale=escala).to_pil().convert("RGB")
+    finally:
+        doc.close()
+    buf = BytesIO()
+    img.save(buf, "JPEG", quality=82, optimize=True)
+    return buf.getvalue()
+
+
+def _ir_pagina(mid: int, pagina: int):
+    st.session_state[f"mat_pg_{mid}"] = pagina
+
+
+@st.dialog("📖 Estudar", width="large")
+def _leitor_material(m: dict, usuario: dict):
+    """Leitor dentro do app: o aluno estuda página por página; baixar o PDF é a segunda opção, no fim."""
+    _preparar_material(m, usuario)
+    pdf, codigo = st.session_state[f"mat_pdf_{m['id']}"]
+    chave_n = f"mat_np_{m['id']}"
+    if chave_n not in st.session_state:
+        st.session_state[chave_n] = _paginas_pdf(pdf)
+    n = st.session_state[chave_n]
+    pg = min(max(1, st.session_state.get(f"mat_pg_{m['id']}", 1)), n)
+    st.markdown(f"**{esc(m['titulo'])}**", unsafe_allow_html=True)
+
+    def navegacao(onde: str):
+        # numa linha só, também no celular (st.columns empilharia os botões)
+        with st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="center"):
+            st.button("◀", key=f"mat_ant_{onde}_{m['id']}", disabled=pg <= 1, help="Página anterior",
+                      on_click=_ir_pagina, args=(m["id"], pg - 1))
+            st.markdown(f"Página **{pg}** de {n}", width="content")
+            st.button("Próxima ▶", key=f"mat_prox_{onde}_{m['id']}", disabled=pg >= n, type="primary",
+                      on_click=_ir_pagina, args=(m["id"], pg + 1))
+
+    navegacao("topo")
+    cache = st.session_state.setdefault("mat_img_cache", {})
+    chave = (m["id"], pg)
+    if chave not in cache:
+        with st.spinner("Abrindo a página..."):
+            cache[chave] = _pagina_jpg(pdf, pg - 1)
+        while len(cache) > 8:                       # guarda só as últimas páginas abertas
+            cache.pop(next(iter(cache)))
+    vistas = st.session_state.setdefault("mat_pg_vistas", set())
+    if (codigo, pg) not in vistas:
+        _registrar_pagina(codigo, pg)
+        vistas.add((codigo, pg))
+    st.image(cache[chave], width="stretch")
+    if n > 1:
+        navegacao("base")
+    if n > 3:
+        st.select_slider("Ir para a página", options=list(range(1, n + 1)), value=pg, key=f"mat_ir_{m['id']}_{pg}",
+                         on_change=lambda: _ir_pagina(m["id"], st.session_state[f"mat_ir_{m['id']}_{pg}"]))
+    st.divider()
+    st.caption(f"Cópia licenciada para você · código **{codigo}**. Prefere estudar fora do app? Baixe o PDF "
+               "(ele sai com o seu nome e esse código em todas as páginas).")
+    st.download_button("📥 Baixar o PDF", data=pdf, file_name=_nome_arquivo(m["titulo"], usuario["login"]),
+                       mime="application/pdf", key=f"mat_dl_{m['id']}", on_click=_registrar_download, args=(codigo,))
 
 
 @st.cache_resource
@@ -1925,8 +2025,8 @@ def tela_materiais(usuario: dict):
     _garante_materiais()
     equipe = usuario["perfil"] in ("admin", "revisor")
     st.caption("Lei seca comentada, resumos, mapas mentais e relatórios de revisão, feitos a partir do texto oficial "
-               "das leis. Cada PDF sai com o **seu nome e um "
-               "código** em todas as páginas: é para seu estudo, não compartilhe.")
+               "das leis. Toque em **Estudar agora** para ler direto no app; se preferir, baixe o PDF no fim da leitura. "
+               "Cada cópia sai com o **seu nome e um código** em todas as páginas: é para seu estudo, não compartilhe.")
     if usuario["perfil"] == "admin":
         with st.expander("⚙️ Gerenciar materiais (só administrador)"):
             _gerenciar_materiais(usuario)
@@ -1948,6 +2048,9 @@ def tela_materiais(usuario: dict):
         return
     pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
     leis = sorted({m["lei"] for m in mats}, key=lambda s: (pos.get(s, len(pos)), s))
+    progresso = {r["material_id"]: r["pg"] for r in db.consultar(
+        "SELECT material_id, MAX(maior_pagina) AS pg FROM material_download WHERE usuario_id = %s AND maior_pagina IS NOT NULL "
+        "GROUP BY material_id", (usuario["id"],))}
     _indice_materiais(mats, leis)
     for lei in leis:
         st.subheader(lei, anchor=_ancora_lei(lei))
@@ -1970,17 +2073,17 @@ def tela_materiais(usuario: dict):
                         st.caption("🔒 Você já usou o seu PDF grátis da avaliação. Os demais são liberados na aquisição.")
                         continue
                     st.caption("🎁 Na avaliação você pode baixar **1** resumo ou mapa mental, de uma lei à sua escolha.")
-                pronto = st.session_state.get(f"mat_pdf_{m['id']}")
+                lido = progresso.get(m["id"])
                 c1, c2 = st.columns([1, 1.4])
-                if c1.button("Preparar meu PDF", key=f"mat_prep_{m['id']}", width="stretch",
-                             type="secondary" if pronto else "primary"):
-                    with st.spinner("Colocando seu nome no PDF..."):
+                if c1.button("📖 Estudar agora", key=f"mat_prep_{m['id']}", width="stretch", type="primary"):
+                    with st.spinner("Preparando sua cópia..."):
                         _preparar_material(m, usuario)
-                    pronto = st.session_state[f"mat_pdf_{m['id']}"]
+                    _leitor_material(m, usuario)
+                if lido:
+                    c2.caption(f"Você já leu até a página {lido} de {m['paginas'] or '?'}.")
+                pronto = st.session_state.get(f"mat_pdf_{m['id']}")
                 if pronto:
-                    c2.download_button("📥 Baixar o PDF", data=pronto[0], file_name=_nome_arquivo(m["titulo"], usuario["login"]),
-                                       mime="application/pdf", key=f"mat_dl_{m['id']}", width="stretch", type="primary")
-                    st.caption(f"Pronto. Código deste PDF: **{pronto[1]}**.")
+                    st.caption(f"Código da sua cópia: **{pronto[1]}**.")
         st.markdown('<div style="text-align:right;font-size:0.85rem"><a href="#indice-materiais" target="_self">'
                     '↑ voltar ao índice</a></div>', unsafe_allow_html=True)
 
@@ -2187,16 +2290,20 @@ def _gerenciar_materiais(usuario: dict):
     st.caption("Para renomear, trocar o PDF, publicar ou excluir, use os botões de cada material na lista abaixo.")
 
     lista = db.consultar(
-        """SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.trilha,
-                  COUNT(d.id) AS downloads, COUNT(DISTINCT d.usuario_id) AS pessoas
+        f"""SELECT m.id, m.titulo, m.lei, m.tipo, m.publicado, m.paginas, m.trilha,
+                  COUNT(d.id) AS aberturas, COALESCE(SUM({SQL_DL}), 0) AS downloads,
+                  COUNT(DISTINCT d.usuario_id) AS pessoas
            FROM material_estudo m LEFT JOIN material_download d ON d.material_id = m.id
            GROUP BY m.id ORDER BY m.trilha, m.ordem, m.lei, m.titulo""")
     if lista:
         st.dataframe(pd.DataFrame([{"Título": m["titulo"], "Trilha": TRILHA_MATERIAL.get(m["trilha"], m["trilha"]),
                                     "Lei": m["lei"], "Tipo": TIPOS_MATERIAL.get(m["tipo"]),
                                     "Situação": "Publicado" if m["publicado"] else "Rascunho", "Páginas": m["paginas"],
-                                    "Downloads": m["downloads"], "Pessoas": m["pessoas"]} for m in lista]),
+                                    "Aberturas": m["aberturas"], "Downloads": m["downloads"], "Pessoas": m["pessoas"]}
+                                   for m in lista]),
                      hide_index=True, width="stretch")
+        st.caption("Aberturas = cópias carimbadas abertas para estudo (uma por sessão do aluno). Downloads = vezes em que "
+                   "o PDF foi baixado; as cópias da versão antiga do app contam como 1 download cada.")
 
     st.markdown("**Rastrear um PDF que vazou**")
     cod = st.text_input("Código impresso no topo das páginas", key="mat_rastro", max_chars=6,
@@ -3158,6 +3265,51 @@ def _pdfs_baixados(uid: int) -> set[int]:
                                                     (uid,))}
 
 
+def _uso_materiais() -> dict:
+    """Por pessoa: PDFs diferentes abertos, páginas lidas/páginas dos abertos, downloads e o maior nº de downloads de um mesmo PDF."""
+    _garante_materiais()
+    linhas = db.consultar(
+        f"""WITH por_pdf AS (
+                SELECT d.usuario_id, d.material_id, MAX(m.paginas) AS paginas,
+                       LEAST(MAX(COALESCE(d.maior_pagina, 0)), MAX(m.paginas)) AS lidas, SUM({SQL_DL}) AS dl
+                FROM material_download d JOIN material_estudo m ON m.id = d.material_id
+                GROUP BY d.usuario_id, d.material_id)
+            SELECT usuario_id, COUNT(*) AS abertos, SUM(dl) AS downloads, MAX(dl) AS max_dl,
+                   SUM(lidas) AS lidas, SUM(paginas) FILTER (WHERE lidas > 0) AS paginas
+            FROM por_pdf GROUP BY usuario_id""")
+    return {r["usuario_id"]: {"abertos": r["abertos"], "downloads": int(r["downloads"] or 0),
+                              "max_dl": int(r["max_dl"] or 0), "lidas": int(r["lidas"] or 0),
+                              "paginas": int(r["paginas"] or 0)} for r in linhas}
+
+
+def _total_pdfs(concurso: str) -> int:
+    return db.um("SELECT COUNT(*) AS n FROM material_estudo WHERE publicado AND trilha IN (%s, 'todas')", (concurso,))["n"]
+
+
+def _uso_materiais_aluno(alvo: dict):
+    """Detalhe por PDF para o administrador: quando abriu, até onde leu, quantas vezes baixou."""
+    linhas = db.consultar(
+        f"""SELECT m.titulo, m.lei, m.paginas, MIN(d.baixado_em) AS primeiro, MAX(COALESCE(d.lido_em, d.baixado_em)) AS ultimo,
+                   COUNT(*) AS aberturas, MAX(COALESCE(d.maior_pagina, 0)) AS lidas, SUM({SQL_DL}) AS dl
+            FROM material_download d JOIN material_estudo m ON m.id = d.material_id
+            WHERE d.usuario_id = %s GROUP BY m.id ORDER BY MIN(d.baixado_em)""", (alvo["id"],))
+    tot = _total_pdfs(alvo.get("concurso") or "cfs")
+    if not linhas:
+        st.caption(f"Ainda não abriu nenhum dos {tot} PDFs da trilha.")
+        return
+    ini, fim = _local(linhas[0]["primeiro"]), _local(max(r["ultimo"] for r in linhas))
+    dias = max(1, (fim.date() - ini.date()).days + 1)
+    pct = round(100 * len(linhas) / tot) if tot else 0
+    st.markdown(f"Abriu **{len(linhas)} de {tot}** PDFs da trilha ({pct}%) em **{dias} dia(s)**: "
+                f"de {ini:%d/%m} a {fim:%d/%m}.")
+    st.dataframe(pd.DataFrame([{
+        "Material": r["titulo"], "Matéria": r["lei"],
+        "Leu até": f"pág. {min(r['lidas'], r['paginas'] or r['lidas'])} de {r['paginas'] or '?'}" if r["lidas"] else "—",
+        "Aberturas": r["aberturas"], "Downloads": int(r["dl"] or 0),
+        "Primeira vez": f"{_local(r['primeiro']):%d/%m %H:%M}", "Última vez": f"{_local(r['ultimo']):%d/%m %H:%M}",
+    } for r in linhas]), hide_index=True, width="stretch")
+
+
 def _rotulo_acesso(c: dict) -> str:
     if c["perfil"] != "aluno":
         return "equipe"
@@ -3284,6 +3436,14 @@ def tela_usuarios(usuario: dict):
                   (SELECT COUNT(*) FROM resposta r WHERE r.usuario_id = u.id) AS respostas,
                   (SELECT COUNT(*) FROM parecer p WHERE p.usuario_id = u.id) AS pareceres
            FROM usuario u WHERE login IS NOT NULL ORDER BY ativo DESC, nome""")
+    uso = _uso_materiais()
+    for c in contas:
+        x = uso.get(c["id"], {})
+        tot = _total_pdfs(c.get("concurso") or "cfs")
+        c["pdfs"] = f"{x.get('abertos', 0)}/{tot}"
+        c["leitura"] = f"{round(100 * x['lidas'] / x['paginas'])}%" if x.get("paginas") else "—"
+        c["downloads"] = x.get("downloads", 0)
+        c["alerta"] = (f"⚠️ {x['max_dl']}x o mesmo PDF" if x.get("max_dl", 0) >= ALERTA_DOWNLOADS_PDF else "")
     df = pd.DataFrame(contas)
     df["acesso"] = [_rotulo_acesso(c) for c in contas]
     df["concurso"] = df["concurso"].map(lambda c: CONCURSOS_CURTO.get(c, c))
@@ -3295,12 +3455,16 @@ def tela_usuarios(usuario: dict):
                   bloqueado=df["bloqueado"].map({True: "Bloqueado", False: ""}),
                   ultimo_acesso=df["ultimo_acesso"].apply(lambda d: f"{d:%d/%m/%Y %H:%M}" if pd.notna(d) else "nunca"))
           [["nome", "login", "perfil", "concurso", "whatsapp", "criado_em", "ativo", "acesso", "bloqueado", "ultimo_acesso",
-            "respostas", "pareceres"]]
+            "respostas", "pdfs", "leitura", "downloads", "alerta", "pareceres"]]
           .rename(columns={"nome": "Nome", "login": "Usuário", "perfil": "Perfil", "ativo": "Situação", "acesso": "Acesso",
                            "concurso": "Concurso", "whatsapp": "WhatsApp", "criado_em": "Cadastro",
                            "bloqueado": "Bloqueio", "ultimo_acesso": "Último acesso", "respostas": "Respostas",
-                           "pareceres": "Pareceres"}),
+                           "pdfs": "PDFs abertos", "leitura": "Leitura", "downloads": "Downloads",
+                           "alerta": "Atenção", "pareceres": "Pareceres"}),
         hide_index=True, width="stretch")
+    st.caption("PDFs abertos = materiais diferentes que a pessoa abriu, do total publicado na trilha dela. Leitura = páginas "
+               f"lidas no app sobre as páginas dos PDFs que abriu. Atenção = baixou {ALERTA_DOWNLOADS_PDF} vezes ou mais o "
+               "mesmo PDF (vale olhar se a senha está sendo dividida; o app não bloqueia nada).")
 
     st.subheader("Gerenciar uma conta")
     nomes = {f"{c['nome']} ({c['login']})": c["id"] for c in contas}
@@ -3342,6 +3506,8 @@ def tela_usuarios(usuario: dict):
                 auth.registrar(f"concurso_{novo}", alvo_id)
                 st.rerun()
             _gerenciar_acesso(alvo, usuario)
+        with st.expander("📚 Uso dos materiais"):
+            _uso_materiais_aluno(alvo)
 
     with st.expander("Registro de acessos (últimos 100)"):
         log = db.consultar(
