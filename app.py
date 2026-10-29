@@ -1721,6 +1721,8 @@ def _garante_materiais() -> bool:
                 "CHECK (tipo IN ('lei', 'resumo', 'mapa', 'relatorio', 'bizu', 'video'))")
     # vídeo = link (YouTube não listado); não guarda arquivo no banco
     db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS url TEXT")
+    # o material aparece também nestas matérias (ex.: bizu do flagrante em Processual Penal e no CPPM)
+    db.executar("ALTER TABLE material_estudo ADD COLUMN IF NOT EXISTS tambem_em TEXT[] NOT NULL DEFAULT '{}'")
     db.executar("ALTER TABLE material_estudo ALTER COLUMN arquivo DROP NOT NULL")
     db.executar("""CREATE TABLE IF NOT EXISTS material_favorito (
                        usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE, lei TEXT NOT NULL,
@@ -1735,6 +1737,9 @@ def _garante_materiais() -> bool:
     db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS maior_pagina INT")
     db.executar("ALTER TABLE material_download ADD COLUMN IF NOT EXISTS lido_em TIMESTAMPTZ")
     db.executar("CREATE INDEX IF NOT EXISTS ix_material_download_usuario ON material_download (usuario_id, material_id)")
+    # a matéria especial "Bizus de Prova" deixou de existir: os bizus vão para as matérias do tema
+    db.executar("""UPDATE material_estudo SET lei = 'Direito Processual Penal', tambem_em = ARRAY['CPPM'],
+                   trilha = 'todas' WHERE lei = 'Bizus de Prova'""")
     return True
 
 
@@ -2032,7 +2037,7 @@ def _revisao_lei(sigla: str, usuario: dict):
             st.caption("\"Onde a turma mais erra\" aparece aqui quando houver respostas suficientes nesta lei.")
 
 
-MATERIA_BIZUS = "Bizus de Prova"     # matéria especial: vídeos-bizu e fichas de bizu de todas as matérias
+TIPOS_BIZU = ("video", "bizu")       # vídeos e fichas de bizu: ficam dentro da própria matéria (e podem aparecer em outras)
 ICONE_TIPO = {"video": "🎬", "bizu": "🎯", "lei": "📜", "resumo": "📄", "mapa": "🧠", "relatorio": "📊"}
 
 
@@ -2067,13 +2072,27 @@ def _contagem(itens: list) -> str:
     return " · ".join(partes)
 
 
+def _distribuir(mats: list) -> list:
+    """Cada material entra na sua matéria e nas de "Também aparece em" (ex.: o bizu do flagrante em Processual Penal e
+    no CPPM). A matéria extra só recebe o material se já existir nesta trilha; se nenhuma das matérias existir, ele fica
+    na principal (assim um bizu do CPPM não cria um card "Processual Penal" no CFS). Devolve cópias com m["lei"] = matéria onde aparece (e m["lei_origem"] = a principal)."""
+    existentes = {m["lei"] for m in mats if not m.get("tambem_em")}     # matérias com material "próprio" nesta trilha
+    saida = []
+    for m in mats:
+        lugares = [m["lei"]] + [l for l in (m.get("tambem_em") or []) if l and l != m["lei"]]
+        validos = [l for l in lugares if l in existentes] or [m["lei"]]
+        for lei in dict.fromkeys(validos):
+            saida.append({**m, "lei": lei, "lei_origem": m["lei"]})
+    return saida
+
+
 def tela_materiais(usuario: dict):
     _garante_materiais()
     equipe = usuario["perfil"] in ("admin", "revisor")
-    mats = db.consultar(
-        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado, trilha, url, atualizado_em FROM material_estudo "
-        f"WHERE (publicado OR %s) AND trilha IN (%s, 'todas') ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo",
-        (equipe, trilha_atual()))
+    mats = _distribuir(db.consultar(
+        "SELECT id, titulo, lei, tipo, descricao, tamanho, paginas, publicado, trilha, url, atualizado_em, tambem_em "
+        f"FROM material_estudo WHERE (publicado OR %s) AND trilha IN (%s, 'todas') ORDER BY ordem, lei, {ORDEM_TIPO_SQL}, titulo",
+        (equipe, trilha_atual())))
     abertos = {r["material_id"]: r["pg"] for r in db.consultar(
         "SELECT material_id, MAX(COALESCE(maior_pagina, 0)) AS pg FROM material_download WHERE usuario_id = %s "
         "GROUP BY material_id", (usuario["id"],))}
@@ -2102,9 +2121,9 @@ def tela_materiais(usuario: dict):
     favs = _favoritas(usuario["id"])
     pos = {nome: i for i, nome in enumerate(ORDEM_GRUPOS)}
     leis = sorted({m["lei"] for m in mats},
-                  key=lambda s: (s not in favs, s != MATERIA_BIZUS, pos.get(s, len(pos)), s))
-    n_v = sum(1 for m in mats if m["tipo"] == "video")
-    st.markdown(f"📚 **{len(leis)} matérias** · {_contagem(mats)}"
+                  key=lambda s: (s not in favs, pos.get(s, len(pos)), s))
+    unicos = list({m["id"]: m for m in mats}.values())
+    st.markdown(f"📚 **{len(leis)} matérias** · {_contagem(unicos)}"
                 + (" · ⭐ suas favoritas aparecem primeiro" if favs else " · toque na ☆ para favoritar uma matéria"))
     busca = st.text_input("Buscar matéria", key="mat_busca", placeholder="ex.: CPPM, Choque, Maria da Penha",
                           label_visibility="collapsed")
@@ -2123,15 +2142,16 @@ def tela_materiais(usuario: dict):
             rasc = sum(1 for m in itens if not m["publicado"])
             with col.container(border=True):
                 topo = st.container(horizontal=True, vertical_alignment="top")
+                tem_bizu = any(m["tipo"] in TIPOS_BIZU for m in itens)
                 topo.markdown(f"<span style='color:#b8862b;font-size:.78rem;font-weight:700;letter-spacing:.04em'>"
-                              f"{'🎯 NOVIDADE' if lei == MATERIA_BIZUS else esc(_contagem(itens).upper())}</span>",
+                              f"{'🎬 TEM BIZU' if tem_bizu else esc(_contagem(itens).upper())}</span>",
                               unsafe_allow_html=True, width="stretch")
                 topo.button("★" if lei in favs else "☆", key=f"mat_fav_{_ancora_lei(lei)}", type="tertiary",
                             help="Tirar das favoritas" if lei in favs else "Favoritar (aparece primeiro)",
                             on_click=_alternar_favorita, args=(usuario["id"], lei))
                 st.markdown(f"<div style='font-weight:700;font-size:1.02rem;line-height:1.3;min-height:2.6em'>{esc(lei)}</div>",
                             unsafe_allow_html=True)
-                st.caption((_contagem(itens) + " · " if lei == MATERIA_BIZUS else "")
+                st.caption((_contagem(itens) + " · " if tem_bizu else "")
                            + f"Atualizado em {_local(ult):%d/%m/%Y}" + (f" · 🔒 {rasc} rascunho(s)" if rasc else ""))
                 st.progress(pct, text=f"{round(pct * 100)}% estudado ({feitos} de {len(itens)})")
                 st.button("Abrir matéria", key=f"mat_abrir_{_ancora_lei(lei)}", type="primary", width="stretch",
@@ -2272,7 +2292,7 @@ TITULO_TIPO = {"lei": "Lei seca comentada", "resumo": "Resumo esquematizado", "m
 
 def _leis_material() -> list[str]:
     materias = [m["nome"] for m in db.consultar("SELECT nome FROM materia WHERE nome <> 'Legislação' ORDER BY id")]
-    return [MATERIA_BIZUS] + materias + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
+    return materias + [d["sigla"] for d in db.consultar("SELECT sigla FROM diploma ORDER BY id")] + ["Geral"]
 
 
 def _adivinhar_material(nome_arquivo: str, leis: list[str]) -> tuple[str, str, str]:
@@ -2280,11 +2300,11 @@ def _adivinhar_material(nome_arquivo: str, leis: list[str]) -> tuple[str, str, s
     base = re.sub(r"\s*\(\d+\)$", "", re.sub(r"\.pdf$", "", nome_arquivo.strip().lower()))
     partes = re.split(r"[_\-\s]+", base)
     tipo = next((t for t in ("bizu", "relatorio", "resumo", "mapa", "lei") if t in partes), "resumo")
-    lei = MATERIA_BIZUS if tipo == "bizu" else next((PREFIXOS_MATERIAL[p] for p in partes if p in PREFIXOS_MATERIAL), "Geral")
+    lei = next((PREFIXOS_MATERIAL[p] for p in partes if p in PREFIXOS_MATERIAL), "Geral")
     if lei not in leis:
         lei = "Geral"
     if tipo == "bizu":
-        resto = " ".join(p for p in partes if p != "bizu").strip() or "tema"
+        resto = " ".join(p for p in partes if p != "bizu" and p not in PREFIXOS_MATERIAL).strip() or "tema"
         return f"Bizu · {resto.capitalize()}", lei, tipo
     titulo = f"{lei} · {TITULO_TIPO[tipo]}" if lei != "Geral" else nome_arquivo.rsplit(".", 1)[0]
     return titulo, lei, tipo
@@ -2325,8 +2345,13 @@ def _acoes_material(m: dict, usuario: dict):
         leis = _leis_material()
         with st.form(f"mat_ed_{mid}"):
             titulo = st.text_input("Título", value=m["titulo"], key=f"mat_ed_tit_{mid}")
-            lei = st.selectbox("Lei / matéria", leis, index=leis.index(m["lei"]) if m["lei"] in leis else len(leis) - 1,
+            origem = m.get("lei_origem") or m["lei"]
+            lei = st.selectbox("Lei / matéria", leis, index=leis.index(origem) if origem in leis else len(leis) - 1,
                                key=f"mat_ed_lei_{mid}")
+            extras = st.multiselect("Também aparece em (opcional)", leis,
+                                    default=[l for l in (m.get("tambem_em") or []) if l in leis], key=f"mat_ed_ext_{mid}",
+                                    help="Ex.: um bizu de flagrante em Direito Processual Penal (Provão) e no CPPM (CFS). "
+                                         "Só aparece nas matérias que existem na trilha do aluno.")
             tipos = ["video"] if m["tipo"] == "video" else [t for t in TIPOS_MATERIAL if t != "video"]
             tipo = st.selectbox("Tipo", tipos, index=tipos.index(m["tipo"]) if m["tipo"] in tipos else 0,
                                 format_func=TIPOS_MATERIAL.get, key=f"mat_ed_tipo_{mid}")
@@ -2349,7 +2374,8 @@ def _acoes_material(m: dict, usuario: dict):
                 st.error("Título vazio ou já usado por outro material.")
             else:
                 db.executar("""UPDATE material_estudo SET titulo = %s, lei = %s, tipo = %s, descricao = %s, trilha = %s,
-                               atualizado_em = now() WHERE id = %s""", (titulo, lei, tipo, desc.strip() or None, trilha, mid))
+                               tambem_em = %s, atualizado_em = now() WHERE id = %s""",
+                            (titulo, lei, tipo, desc.strip() or None, trilha, [l for l in extras if l != lei], mid))
                 if url is not None:
                     db.executar("UPDATE material_estudo SET url = %s WHERE id = %s", (url.strip() or None, mid))
                 if arq is not None:
@@ -2378,6 +2404,11 @@ def _form_video(leis: list, usuario: dict):
         c1, c2 = st.columns([1.4, 1])
         titulo = c1.text_input("Título", placeholder="ex.: Bizu · Flagrante tem prazo?")
         lei = c2.selectbox("Matéria", leis, index=0)
+        c3, c4 = st.columns([1.4, 1])
+        extras = c3.multiselect("Também aparece em (opcional)", leis,
+                                help="Ex.: Direito Processual Penal (Provão) e CPPM (CFS).")
+        trilha = c4.selectbox("Trilha", list(TRILHA_MATERIAL), index=list(TRILHA_MATERIAL).index("todas"),
+                              format_func=TRILHA_MATERIAL.get)
         url = st.text_input("Link do vídeo", placeholder="https://youtu.be/...")
         desc = st.text_input("Descrição curta (opcional)")
         publicar = st.checkbox("Publicar já para os alunos", value=True)
@@ -2390,9 +2421,10 @@ def _form_video(leis: list, usuario: dict):
             st.error("Já existe um material com esse título.")
         else:
             db.executar("""INSERT INTO material_estudo (titulo, lei, tipo, descricao, arquivo, tamanho, paginas, publicado,
-                                                        enviado_por, trilha, url)
-                           VALUES (%s, %s, 'video', %s, NULL, 0, NULL, %s, %s, %s, %s)""",
-                        (titulo, lei, desc.strip() or None, publicar, usuario["id"], trilha_atual(), url))
+                                                        enviado_por, trilha, url, tambem_em)
+                           VALUES (%s, %s, 'video', %s, NULL, 0, NULL, %s, %s, %s, %s, %s)""",
+                        (titulo, lei, desc.strip() or None, publicar, usuario["id"], trilha, url,
+                         [l for l in extras if l != lei]))
             st.success(f"Vídeo \"{titulo}\" guardado em {lei}.")
 
 
