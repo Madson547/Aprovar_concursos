@@ -428,11 +428,15 @@ def tela_primeiro_acesso():
 
 # ------------------------------------------------------------------ login que não cai
 # O Streamlit guarda o login só na conexão aberta: celular que bloqueia a tela, troca de app, rede instável ou o app
-# reiniciado (a cada atualização no GitHub) derrubam a conexão e o aluno tinha de entrar de novo. Agora, ao entrar, o app
-# cria um código secreto de sessão (válido por SESSAO_DIAS) que fica no endereço da página (?s=...); ao reconectar,
-# ele entra sozinho. "Sair" apaga o código. No banco fica só o hash do código.
+# reiniciado (a cada atualização no GitHub) derrubam a conexão e o aluno tinha de entrar de novo. Ao entrar, o app cria um
+# código secreto de sessão (válido por SESSAO_DIAS) e o guarda num COOKIE do navegador (antes ficava no endereço ?s=...,
+# e quem copiasse o link entrava na conta). O código também fica preso ao navegador (hash do User-Agent): copiado para
+# outro aparelho, não vale. Ao reconectar, o app lê o cookie e entra sozinho. "Sair" apaga o cookie e o código.
+# No banco fica só o hash do código. Links antigos com ?s= ainda funcionam uma vez: o código é trocado por um novo, que
+# vai para o cookie, e some do endereço.
 SESSAO_DIAS = 7
 SESSOES_POR_USUARIO = 3
+COOKIE_SESSAO = "am_sessao"
 
 
 def _hash_token(t: str) -> str:
@@ -440,40 +444,93 @@ def _hash_token(t: str) -> str:
     return hashlib.sha256(t.encode()).hexdigest()
 
 
+def _navegador_hash() -> str:
+    try:
+        ua = st.context.headers.get("User-Agent") or ""
+    except Exception:
+        ua = ""
+    return _hash_token("ua:" + ua)
+
+
+def _cookie_token() -> str | None:
+    try:
+        return st.context.cookies.get(COOKIE_SESSAO)
+    except Exception:
+        return None
+
+
 def abrir_sessao(uid: int):
     token = secrets.token_urlsafe(24)
-    db.executar("INSERT INTO sessao_login (token_hash, usuario_id, expira_em) VALUES (%s, %s, now() + make_interval(days => %s))",
-                (_hash_token(token), uid, SESSAO_DIAS))
+    db.executar("""INSERT INTO sessao_login (token_hash, usuario_id, expira_em, navegador)
+                   VALUES (%s, %s, now() + make_interval(days => %s), %s)""",
+                (_hash_token(token), uid, SESSAO_DIAS, _navegador_hash()))
     # no máximo SESSOES_POR_USUARIO aparelhos ao mesmo tempo (dificulta emprestar a conta)
     db.executar("""DELETE FROM sessao_login WHERE usuario_id = %s AND token_hash NOT IN (
                        SELECT token_hash FROM sessao_login WHERE usuario_id = %s ORDER BY ultimo_uso DESC LIMIT %s)""",
                 (uid, uid, SESSOES_POR_USUARIO))
-    st.query_params["s"] = token
+    st.session_state["_sessao_token"] = token
+    st.session_state["_cookie_gravar"] = token
+    st.query_params.pop("s", None)
 
 
 def retomar_sessao() -> dict | None:
-    token = st.query_params.get("s")
+    via_link = False
+    token = _cookie_token()
+    if not token:
+        token = st.query_params.get("s")
+        via_link = bool(token)
     if not token:
         return None
-    r = db.um("""UPDATE sessao_login SET ultimo_uso = now() WHERE token_hash = %s AND expira_em > now()
-                 RETURNING usuario_id""", (_hash_token(token),))
+    r = db.um("""UPDATE sessao_login SET ultimo_uso = now()
+                 WHERE token_hash = %s AND expira_em > now() AND (navegador IS NULL OR navegador = %s)
+                 RETURNING usuario_id""", (_hash_token(token), _navegador_hash()))
+    st.query_params.pop("s", None)
     if not r:
-        st.query_params.pop("s", None)
+        if not via_link:
+            st.session_state["_cookie_apagar"] = True
         return None
+    if via_link:
+        # código antigo vindo do endereço: troca por um novo, guardado no cookie, e invalida o do link
+        db.executar("DELETE FROM sessao_login WHERE token_hash = %s", (_hash_token(token),))
+        abrir_sessao(r["usuario_id"])
+    else:
+        st.session_state["_sessao_token"] = token
     return auth.recarregar(r["usuario_id"])
 
 
 def fechar_sessao(uid: int | None = None):
-    token = st.query_params.get("s")
+    token = st.session_state.get("_sessao_token") or _cookie_token() or st.query_params.get("s")
     if token:
         db.executar("DELETE FROM sessao_login WHERE token_hash = %s", (_hash_token(token),))
     st.query_params.pop("s", None)
+
+
+def _apagar_cookie_depois():
+    st.session_state["_cookie_apagar"] = True
+    st.session_state.pop("_cookie_gravar", None)
+
+
+def aplicar_cookie_sessao():
+    """Grava ou apaga o cookie do login no navegador (roda no início de cada execução, antes da tela de entrada)."""
+    gravar = st.session_state.pop("_cookie_gravar", None)
+    apagar = st.session_state.pop("_cookie_apagar", None)
+    if not gravar and not apagar:
+        return
+    if gravar:
+        valor, idade = gravar, SESSAO_DIAS * 86400
+    else:
+        valor, idade = "", 0
+    components.html(
+        "<script>(function(){var w=window.parent||window;var seg=w.location.protocol==='https:'?'; Secure':'';"
+        f"w.document.cookie='{COOKIE_SESSAO}={valor}; max-age={idade}; path=/; SameSite=Lax'+seg;}})();</script>",
+        height=0)
 
 
 def _sair(uid: int):
     auth.registrar("logout", uid)
     fechar_sessao()
     st.session_state.clear()
+    _apagar_cookie_depois()
 
 
 def tela_login():
@@ -603,7 +660,7 @@ ORDEM_GRUPOS = ["Língua Portuguesa", "LC 053/90", "CPM", "CPPM",
                 "Direito Penal", "Direito Penal Militar", "Diversidade, Gênero e Combate à Discriminação", "Povos Indígenas de MS",
                 "Atendimento à Pessoa com TEA", "Direito Processual Penal", "Técnicas de Policiamento Ostensivo",
                 "Uso Diferenciado da Força", "Atendimento Pré-Hospitalar (APH)", "Inteligência de Segurança Pública",
-                "Tópicos Especiais: Abuso de Autoridade e Maria da Penha", "Direitos Humanos",
+                "Leis Penais Extravagantes e Segurança Pública (Abuso de Autoridade e Maria da Penha)", "Direitos Humanos",
                 "Processos e Procedimentos Administrativos", "Policiamento de Choque", "Legislação Policial-Militar",
                 "Policiamento de Trânsito", "Instrumentos de Menor Potencial Ofensivo", "Policiamento em Eventos",
                 "Legislação Ambiental", "Comunicação Social e Imagem Institucional", "Armamento e Munição I", "Ordem Unida"]
@@ -1762,6 +1819,7 @@ def _garante_extras() -> bool:
                        token_hash TEXT PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
                        criado_em TIMESTAMPTZ NOT NULL DEFAULT now(), expira_em TIMESTAMPTZ NOT NULL,
                        ultimo_uso TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    db.executar("ALTER TABLE sessao_login ADD COLUMN IF NOT EXISTS navegador TEXT")
     db.executar("""CREATE TABLE IF NOT EXISTS pagamento (
                        id SERIAL PRIMARY KEY, usuario_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
                        valor NUMERIC(10,2) NOT NULL CHECK (valor > 0), pago_em TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -1971,7 +2029,7 @@ PREFIXOS_MATERIAL = {"lc190": "LC 190/14", "abuso": "Lei 13.869/19", "lc053": "L
                      "tpo": "Técnicas de Policiamento Ostensivo", "processual": "Direito Processual Penal",
                      "processo": "Direito Processual Penal", "forca": "Uso Diferenciado da Força",
                      "aph": "Atendimento Pré-Hospitalar (APH)", "inteligencia": "Inteligência de Segurança Pública",
-                     "topicos": "Tópicos Especiais: Abuso de Autoridade e Maria da Penha",
+                     "topicos": "Leis Penais Extravagantes e Segurança Pública (Abuso de Autoridade e Maria da Penha)",
                      "direitoshumanos": "Direitos Humanos", "dh": "Direitos Humanos",
                      "processos": "Processos e Procedimentos Administrativos", "p187": "Processos e Procedimentos Administrativos",
                      "bravura": "Processos e Procedimentos Administrativos", "dec2426": "Processos e Procedimentos Administrativos",
@@ -3447,8 +3505,9 @@ if not auth.existe_admin():
     st.stop()
 
 _garante_extras()
+aplicar_cookie_sessao()
 
-# 2) Sem login: tenta retomar a sessão salva no endereço (?s=...); senão, tela de entrada.
+# 2) Sem login: tenta retomar a sessão salva no cookie do navegador; senão, tela de entrada.
 sessao = st.session_state.get("usuario")
 if not sessao:
     sessao = retomar_sessao()
@@ -3464,6 +3523,8 @@ if usuario is None:
     fechar_sessao()
     db.executar("DELETE FROM sessao_login WHERE usuario_id = %s", (sessao["id"],))
     st.session_state.clear()
+    _apagar_cookie_depois()
+    aplicar_cookie_sessao()
     st.error("Seu acesso foi encerrado. Fale com o administrador.")
     st.stop()
 st.session_state["usuario"] = usuario
