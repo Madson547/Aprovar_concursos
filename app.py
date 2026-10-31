@@ -731,7 +731,7 @@ def _arvore(status: list[str], origem: str = "") -> list[dict]:
 
 def _questoes(uid: int, status: list[str], assuntos, tipo: str, origem: str, situacao: str) -> list[dict]:
     return db.consultar(
-        """SELECT q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado, q.texto_apoio, q.comentario, q.dica,
+        """SELECT q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado, q.texto_apoio, q.comentario, q.dica, q.explicacao,
                   q.status::text AS status, q.origem::text AS origem, q.fonte, q.essencial, q.amostra,
                   (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
                     WHERE qa.questao_id = q.id) AS assuntos
@@ -980,6 +980,27 @@ def _correcao(q: dict, alts: list[dict], escolha_id: int | None, fundo: str):
         marcada = next(a for a in alts if a["id"] == escolha_id)
         st.error(f"Você marcou {marcada['letra']}. Gabarito: {certa['letra']}")
 
+    explicacao = (q.get("explicacao") or "").strip()
+    if explicacao:
+        with st.container(border=True):
+            st.markdown("📖 **Explicação completa**")
+            st.markdown(explicacao)
+        with st.expander("Ver resposta curta"):
+            _resposta_curta(q, alts, escolha_id)
+    else:
+        _resposta_curta(q, alts, escolha_id)
+    lei = _lei(q["id"])
+    if lei:
+        with st.expander(f"Texto literal da lei ({len(lei)} dispositivos)"):
+            st.markdown(
+                "".join(f'<div class="lei-txt"><span class="ref">{esc(_ref(d["referencia"]))}</span>'
+                        f'{esc(d["texto"])}</div>' for d in lei),
+                unsafe_allow_html=True,
+            )
+
+
+def _resposta_curta(q: dict, alts: list[dict], escolha_id: int | None):
+    """Correção enxuta: cada alternativa com o comentário curto + comentário geral + dica."""
     dica = f'<div class="dica"><b>Para memorizar:</b> {esc(q["dica"])}</div>' if q.get("dica") else ""
     partes = []
     for a in alts:
@@ -992,14 +1013,6 @@ def _correcao(q: dict, alts: list[dict], escolha_id: int | None, fundo: str):
             {dica}</div>""",
         unsafe_allow_html=True,
     )
-    lei = _lei(q["id"])
-    if lei:
-        with st.expander(f"Texto literal da lei ({len(lei)} dispositivos)"):
-            st.markdown(
-                "".join(f'<div class="lei-txt"><span class="ref">{esc(_ref(d["referencia"]))}</span>'
-                        f'{esc(d["texto"])}</div>' for d in lei),
-                unsafe_allow_html=True,
-            )
 
 
 def _ref(referencia: str) -> str:
@@ -1201,8 +1214,8 @@ def _simulado_aberto(uid: int) -> dict | None:
 def _questoes_simulado(sid: int) -> list[dict]:
     return db.consultar(
         """SELECT sq.ordem, sq.alternativa_id, sq.acertou, q.id, q.codigo, q.tipo, q.dificuldade, q.enunciado,
-                  q.texto_apoio, q.comentario, q.dica, q.status::text AS status, q.origem::text AS origem, q.fonte,
-                  m.nome AS materia,
+                  q.texto_apoio, q.comentario, q.dica, q.explicacao, q.status::text AS status, q.origem::text AS origem,
+                  q.fonte, m.nome AS materia,
                   (SELECT string_agg(a.nome, ' · ') FROM questao_assunto qa JOIN assunto a ON a.id = qa.assunto_id
                     WHERE qa.questao_id = q.id) AS assuntos
            FROM simulado_questao sq JOIN questao q ON q.id = sq.questao_id JOIN materia m ON m.id = q.materia_id
@@ -1922,6 +1935,8 @@ def _leitor_material(m: dict, usuario: dict):
 def _garante_extras() -> bool:
     """Colunas novas que o app cria sozinho se o SQL ainda não tiver sido rodado no banco."""
     db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS essencial BOOLEAN NOT NULL DEFAULT FALSE")
+    # explicação completa (markdown): vira a correção principal; o comentário curto fica em "Ver resposta curta"
+    db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS explicacao TEXT")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_ate TIMESTAMPTZ")
     db.executar("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS acesso_tipo TEXT")
     db.executar("ALTER TABLE questao ADD COLUMN IF NOT EXISTS amostra BOOLEAN NOT NULL DEFAULT FALSE")
